@@ -94,7 +94,16 @@ INTERVAL="$(python3 "$INBOARD_HOME/bin/cfg" schedule.pull_interval_seconds 300)"
 sed -e "s#__INBOARD_HOME__#$INBOARD_HOME#g" -e "s#__PULL_INTERVAL__#$INTERVAL#g" \
   "$INBOARD_HOME/setup/local.inboard-agent.plist.template" > "$PLIST_DST"
 launchctl unload "$PLIST_DST" 2>/dev/null || true
-launchctl load "$PLIST_DST" && say "launchd job loaded (fires every ${INTERVAL}s)." || warn "launchctl load failed — load $PLIST_DST manually."
+launchctl load "$PLIST_DST" && say "pull loop loaded (fires every ${INTERVAL}s)." || warn "launchctl load failed — load $PLIST_DST manually."
+
+say "Installing the launchd webhook server"
+WPLIST_DST="$HOME/Library/LaunchAgents/local.inboard-webhook.plist"
+sed -e "s#__INBOARD_HOME__#$INBOARD_HOME#g" \
+  "$INBOARD_HOME/setup/local.inboard-webhook.plist.template" > "$WPLIST_DST"
+launchctl unload "$WPLIST_DST" 2>/dev/null || true
+launchctl load "$WPLIST_DST" \
+  && say "webhook server loaded (port $("$INBOARD_HOME/bin/cfg" board.webhook_port 8787)) — expose it via a tunnel and register the URL in your Notion integration." \
+  || warn "webhook launchctl load failed — load $WPLIST_DST manually."
 
 # --- smoke test ---
 say "Smoke test: board whoami + accounts"
