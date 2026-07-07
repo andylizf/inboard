@@ -1,0 +1,56 @@
+# inboard configuration — everything personal lives here; nothing is hardcoded in the code.
+# `inboard init` generates a real inboard.config.yaml from this template. Copy + edit by hand too.
+
+identity:
+  name: "Your Name"                 # how the agent addresses you and signs drafts
+  timezone: "America/New_York"
+
+# One entry per mailbox the agent watches. `id` is a stable key used internally (board's
+# Account value, mail-images, prompts); `label` is what shows on the board.
+accounts:
+  - id: personal
+    label: "Personal"
+    provider: gmail
+    address: "you@gmail.com"
+    calendar: true
+    gws_config_dir: ""              # blank = the default gws config; set a path to isolate a 2nd account
+    gws_keyring_backend: ""         # blank = default; e.g. "file" for a headless/second account
+  - id: work
+    label: "Work"
+    provider: gmail
+    address: "you@org.edu"
+    calendar: false
+    gws_config_dir: "~/.config/gws-work"
+    gws_keyring_backend: "file"
+
+board:
+  provider: notion
+  database_id: ""                   # filled by `inboard init` (the kanban DB it creates)
+  daily_log_database_id: ""         # optional FYI/audit log DB; blank = disabled
+  token_env: NOTION_TOKEN           # env var holding the Notion integration token (kept in .env, gitignored)
+  bot_user_id: ""                   # this integration's Notion user id (filled by init; used for self-echo dedup)
+  webhook_port: 8787                # local port the webhook server listens on
+
+schedule:
+  pull_interval_seconds: 300        # how often the pull loop runs
+  stale_awaiting_days: 3            # a sent-but-unanswered card older than this gets surfaced for follow-up
+
+agent:
+  model: sonnet                     # Claude Code model for both engines (e.g. sonnet | opus)
+  pull_max_turns: 80                # tool-call budget for one pull-loop cycle
+  interactive_max_turns: 45         # tool-call budget for a webhook (comment/action) run
+
+network:
+  https_proxy: ""                   # optional; e.g. "http://127.0.0.1:7897" — blank = direct
+
+preferences:                        # user-editable DEFAULTS; nuanced/learned prefs live in the memory backend
+  calendar_events: propose          # propose | auto | off  (propose = draft the event on the card, add on your OK)
+  ci_notifications: noise           # noise | surface       (CI/build-failure emails)
+  unsubscribe: conservative         # conservative | aggressive
+
+secrets:
+  backend: cred                     # cred | env | keychain  (external broker; see docs)
+
+memory:
+  backend: file                     # file | omem | none   (file = zero-setup default)
+  path: "~/.local/share/inboard/memory"   # used when backend: file

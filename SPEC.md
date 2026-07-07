@@ -116,11 +116,12 @@ memory:   { backend: omem }  # omem | file | none
 
 ```
 inboard/
-  bin/                     # provider CLIs: email, board, browser, mail-images, has-work
+  bin/                     # CLIs: inboard, board, email, browser, mail-images, has-work, cfg
+  lib/                     # ibconfig.py — config loader + canonical board schema
   engines/                 # inbox-agent.sh (pull loop), webhook-server.py, {comment,action}-handler.sh
   agent/
     CLAUDE.md              # lean standing orders (loaded every run)
-    skills/                # web-tasks, cred-login, email-images (progressive disclosure)
+    .claude/skills/        # web-tasks, cred-login, email-images (auto-discovered by Claude Code)
   setup/
     init.sh               # the `inboard init` wizard
     create_board.py       # parameterized Notion DB creator

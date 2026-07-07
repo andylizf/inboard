@@ -9,3 +9,12 @@ state/
 __pycache__/
 *.pyc
 *.png
+
+# --- inboard runtime (added Phase 1) ---
+inboard.config.yaml
+.env
+.venv/
+state/
+logs/
+__pycache__/
+*.pyc

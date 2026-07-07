@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# inboard — top-level entry point.
+#   inboard init      → run the setup wizard (setup/init.sh)
+#   inboard run       → run ONE pull-loop cycle now (engines/inbox-agent.sh)
+#   inboard webhook   → run the webhook server in the foreground (engines/webhook-server.py)
+#   inboard board ... → the board CLI     ·   inboard email ... → the send-guarded gmail wrapper
+#   inboard cfg <key> → read a config value
+set -uo pipefail
+INBOARD_HOME="$(cd "$(dirname "$(readlink "${BASH_SOURCE[0]}" || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
+export INBOARD_HOME
+cmd="${1:-}"; shift 2>/dev/null || true
+case "$cmd" in
+  init)    exec bash "$INBOARD_HOME/setup/init.sh" "$@" ;;
+  run)     exec bash "$INBOARD_HOME/engines/inbox-agent.sh" "$@" ;;
+  webhook)
+    source "$INBOARD_HOME/engines/_common.sh"
+    exec python3 "$INBOARD_HOME/engines/webhook-server.py" "$@" ;;
+  board|email|cfg|has-work|mail-images|browser)
+    exec "$INBOARD_HOME/bin/$cmd" "$@" ;;
+  ""|-h|--help|help)
+    sed -n '2,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  *) echo "inboard: unknown command '$cmd' (try: init | run | webhook | board | email | cfg)" >&2; exit 2 ;;
+esac

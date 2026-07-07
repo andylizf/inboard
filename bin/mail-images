@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Download image attachments / inline images from a Gmail message so the (multimodal) agent
+can SEE them — `+read` is text-only and would otherwise leave the agent blind to figures,
+screenshots, scanned forms, memes, etc.
+
+    mail-images <msgid> --account <account-id> [--out <dir>]
+
+Prints JSON: {"msgid":..., "images":[{path,mime,filename,bytes,content_id}], "remote":[urls]}.
+Real MIME image attachments are downloaded to <out> (default state/mail-images/<msgid>/); `Read`
+those paths to view them. Remote/hosted <img> URLs (not attached) are listed under "remote".
+"""
+import argparse
+import base64
+import json
+import os
+import re
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
+                                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
+import ibconfig as C  # noqa: E402
+
+IMG_EXT = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("msgid")
+    ap.add_argument("--account", required=True)
+    ap.add_argument("--out", default=None)
+    a = ap.parse_args()
+    if C.account(a.account) is None:
+        sys.exit(f"mail-images: unknown account '{a.account}' — configured: {', '.join(x.get('id') for x in C.accounts())}")
+
+    binpath = os.path.join(C.home(), "bin", "email")
+    state = os.environ.get("INBOARD_STATE") or os.path.join(C.home(), "state")
+    outdir = a.out or os.path.join(state, "mail-images", a.msgid)
+    os.makedirs(outdir, exist_ok=True)
+
+    def gws(args):
+        return subprocess.run([binpath, a.account, "gmail"] + args,
+                              capture_output=True, text=True, timeout=120).stdout
+
+    full = json.loads(gws(["users", "messages", "get", "--params",
+        json.dumps({"userId": "me", "id": a.msgid, "format": "full"})]))
+
+    def is_img(mt, fn):
+        return mt.startswith("image/") or (fn or "").lower().endswith(IMG_EXT)
+
+    images = []
+
+    def walk(p):
+        h = {x["name"].lower(): x["value"] for x in p.get("headers", [])}
+        b = p.get("body", {})
+        mt, fn = p.get("mimeType", ""), p.get("filename", "")
+        if b.get("attachmentId") and (b.get("size") or 0) > 1000 and is_img(mt, fn):
+            att = json.loads(gws(["users", "messages", "attachments", "get", "--params",
+                json.dumps({"userId": "me", "messageId": a.msgid, "id": b["attachmentId"]})]))
+            data = base64.urlsafe_b64decode(att["data"])
+            ext = fn.rsplit(".", 1)[-1].lower() if fn and "." in fn else \
+                  ("jpg" if "jpeg" in mt else mt.split("/")[-1] if "/" in mt else "png")
+            if ext not in [e[1:] for e in IMG_EXT]:
+                ext = "png"
+            path = os.path.join(outdir, "img%d.%s" % (len(images), ext))
+            open(path, "wb").write(data)
+            images.append({"path": path, "mime": mt, "filename": fn,
+                           "bytes": len(data), "content_id": h.get("content-id", "").strip("<>")})
+        for c in p.get("parts", []) or []:
+            walk(c)
+
+    walk(full.get("payload", {}))
+
+    def find_html(p):
+        if p.get("mimeType") == "text/html" and p.get("body", {}).get("data"):
+            return p["body"]["data"]
+        for c in p.get("parts", []) or []:
+            r = find_html(c)
+            if r:
+                return r
+        return None
+
+    remote = []
+    hd = find_html(full.get("payload", {}))
+    if hd:
+        html = base64.urlsafe_b64decode(hd).decode("utf-8", "replace")
+        remote = re.findall(r'<img[^>]*src=["\'](https?://[^"\']+)', html, re.I)
+
+    print(json.dumps({"msgid": a.msgid, "images": images, "remote": remote[:10]}, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()

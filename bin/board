@@ -1,0 +1,361 @@
+#!/usr/bin/env python3
+"""The board CLI the inbox agent drives — a thin Notion-kanban client.
+
+Reads the board id + token from inboard config/env (see lib/ibconfig.py). Every card is
+one matter; the agent creates, updates, comments on, and resolves cards here. Canonical
+statuses live in ibconfig.STATUS so this CLI, create_board.py, and CLAUDE.md agree.
+"""
+import argparse
+import json
+import os
+import sys
+import urllib.request
+import urllib.error
+from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
+                                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
+import ibconfig as C  # noqa: E402
+
+TOK = os.environ.get(C.get("board.token_env", "NOTION_TOKEN") or "NOTION_TOKEN")
+DB = C.get("board.database_id")
+DAILY = C.get("board.daily_log_database_id")
+S = C.STATUS
+ACTION_PLACEHOLDER = C.ACTION_PLACEHOLDER
+
+
+def api(method, path, body=None):
+    req = urllib.request.Request(
+        "https://api.notion.com/v1" + path,
+        data=json.dumps(body).encode() if body is not None else None, method=method,
+        headers={"Authorization": f"Bearer {TOK}", "Notion-Version": "2022-06-28",
+                 "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        sys.stderr.write(e.read().decode()[:400] + "\n")
+        raise
+
+
+def rt(s):
+    return [{"type": "text", "text": {"content": (s or "")[:1900]}}] if s else []
+
+
+def _g(pr, name, t):
+    v = pr.get(name, {})
+    if t == "select":
+        return (v.get("select") or {}).get("name")
+    return "".join(x.get("plain_text", "") for x in v.get(t, []))
+
+
+def find_card(msgid):
+    r = api("POST", f"/databases/{DB}/query",
+            {"filter": {"property": "MsgID", "rich_text": {"equals": msgid}}, "page_size": 1})
+    return r["results"][0] if r["results"] else None
+
+
+def upsert(a):
+    props = {
+        "Subject": {"title": rt(a.subject)},
+        "Status":  {"select": {"name": a.status}},
+        "Account": {"select": {"name": a.account}},
+        "MsgID":   {"rich_text": rt(a.msgid)},
+        "Updated": {"date": {"start": datetime.now().astimezone().isoformat()}},
+    }
+    if a.sender is not None:
+        props["Sender"] = {"rich_text": rt(a.sender)}
+    if a.draft is not None:
+        props["Draft"] = {"rich_text": rt(a.draft)}
+    if a.needs is not None:
+        props["NeedsYou"] = {"rich_text": rt(a.needs)}
+    ex = find_card(a.msgid)
+    if ex:
+        api("PATCH", f"/pages/{ex['id']}", {"properties": props})
+        print(json.dumps({"updated": ex["id"]}))
+    else:
+        props["Action"] = {"select": {"name": ACTION_PLACEHOLDER}}  # show the tappable chip in preview
+        r = api("POST", "/pages", {"parent": {"database_id": DB}, "properties": props})
+        print(json.dumps({"created": r["id"]}))
+
+
+def pending(_):
+    r = api("POST", f"/databases/{DB}/query", {"filter": {"property": "Action", "select": {"is_not_empty": True}}})
+    out = []
+    for p in r["results"]:
+        pr = p["properties"]
+        out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "action": _g(pr, "Action", "select"),
+                    "subject": _g(pr, "Subject", "title"), "account": _g(pr, "Account", "select"),
+                    "status": _g(pr, "Status", "select"), "draft": _g(pr, "Draft", "rich_text"),
+                    "needs": _g(pr, "NeedsYou", "rich_text")})
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def actionof(a):
+    # The Action currently set on one card (empty if none). Cheap gate for the webhook.
+    r = api("GET", f"/pages/{a.card}")
+    print((r["properties"].get("Action", {}).get("select") or {}).get("name") or "")
+
+
+def clear_action(a):
+    # Reset to the placeholder (not empty) so the tappable chip stays visible in the preview.
+    api("PATCH", f"/pages/{a.card}", {"properties": {"Action": {"select": {"name": ACTION_PLACEHOLDER}}}})
+    print(json.dumps({"reset": a.card}))
+
+
+def log(a):
+    api("PATCH", f"/blocks/{a.card}/children", {"children": [
+        {"object": "block", "type": "bulleted_list_item",
+         "bulleted_list_item": {"rich_text": rt(f"{datetime.now().strftime('%m-%d %H:%M')} — {a.text}")}}]})
+    print(json.dumps({"logged": a.card}))
+
+
+def daily(a):
+    if not DAILY:
+        sys.exit("board daily: no daily_log_database_id configured — set board.daily_log_database_id or skip daily logging")
+    props = {
+        "Item": {"title": rt(a.subject)},
+        "Date": {"date": {"start": datetime.now().astimezone().date().isoformat()}},
+        "Type": {"select": {"name": a.type}},
+    }
+    if a.account is not None:
+        props["Account"] = {"select": {"name": a.account}}
+    if a.detail is not None:
+        props["Detail"] = {"rich_text": rt(a.detail)}
+    r = api("POST", "/pages", {"parent": {"database_id": DAILY}, "properties": props})
+    print(json.dumps({"logged-daily": r["id"]}))
+
+
+def archive(a):
+    api("PATCH", f"/pages/{a.card}", {"archived": True})
+    print(json.dumps({"archived": a.card}))
+
+
+def done(a):
+    # Mark complete but KEEP the card (lands in the Done column) + clear any Action + clear the
+    # Subscription (matter resolved → future matching mail becomes noise). This is a record, NOT archive.
+    api("PATCH", f"/pages/{a.card}", {"properties": {"Status": {"select": {"name": S["done"]}},
+        "Action": {"select": None}, "Subscription": {"rich_text": []}}})
+    print(json.dumps({"done": a.card}))
+
+
+def awaiting(a):
+    # "I sent/submitted my part — now WAITING on the other party's reply." Keeps the card ACTIVE in
+    # 'Awaiting reply' and keeps/sets a Subscription so their reply routes back to THIS card instead of
+    # opening a disconnected new one. NOT `done`. Pass --desc to (re)set what to watch for.
+    props = {"Status": {"select": {"name": S["awaiting"]}}, "Action": {"select": None}}
+    if a.desc is not None:
+        props["Subscription"] = {"rich_text": ([{"text": {"content": a.desc[:1900]}}] if a.desc else [])}
+    api("PATCH", f"/pages/{a.card}", {"properties": props})
+    print(json.dumps({"awaiting": a.card}))
+
+
+def subscribe(a):
+    # Register a natural-language "which future mail belongs to this matter" note so the classifier
+    # routes follow-ups onto THIS card instead of duplicating. Cleared automatically by `done`.
+    api("PATCH", f"/pages/{a.card}", {"properties": {"Subscription": {"rich_text": rt(a.desc)}}})
+    print(json.dumps({"subscribed": a.card, "desc": (a.desc or "")[:80]}, ensure_ascii=False))
+
+
+def subscriptions(_):
+    # ACTIVE cards (not Done) carrying a Subscription — the classifier reads this BEFORE creating a card.
+    r = api("POST", f"/databases/{DB}/query",
+            {"filter": {"property": "Subscription", "rich_text": {"is_not_empty": True}}})
+    out = []
+    for p in r["results"]:
+        pr = p["properties"]
+        if _g(pr, "Status", "select") == S["done"]:
+            continue
+        out.append({"card": p["id"], "subject": _g(pr, "Subject", "title"), "status": _g(pr, "Status", "select"),
+                    "subscription": _g(pr, "Subscription", "rich_text"), "sender": _g(pr, "Sender", "rich_text")})
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def resolve(a):
+    r = api("GET", f"/comments/{a.comment}")
+    p = r.get("parent", {})
+    print(p.get("page_id") or p.get("block_id") or "")
+
+
+def session(a):
+    if a.set:
+        api("PATCH", f"/pages/{a.card}", {"properties": {"Session": {"rich_text": rt(a.set)}}})
+        print(a.set)
+    else:
+        r = api("GET", f"/pages/{a.card}")
+        print("".join(x.get("plain_text", "") for x in r["properties"].get("Session", {}).get("rich_text", [])))
+
+
+def reply(a):
+    # Post a comment back to the card's thread so the operator sees the agent's answer where they asked.
+    api("POST", "/comments", {"parent": {"page_id": a.card}, "rich_text": rt(a.text)})
+    print(json.dumps({"replied": a.card}))
+
+
+def plan(a):
+    # Post a LIVE to-do checklist (checkbox blocks) so the operator watches progress in real time.
+    steps = [s.strip() for s in a.steps.split("|") if s.strip()]
+    children = [{"object": "block", "type": "heading_3",
+                 "heading_3": {"rich_text": rt(f"📋 Progress {datetime.now().strftime('%H:%M')}")}}]
+    for s in steps:
+        children.append({"object": "block", "type": "to_do", "to_do": {"rich_text": rt(s), "checked": False}})
+    r = api("PATCH", f"/blocks/{a.card}/children", {"children": children})
+    ids = [b["id"] for b in r["results"] if b["type"] == "to_do"]
+    api("PATCH", f"/pages/{a.card}", {"properties": {"StepBlocks": {"rich_text": rt(json.dumps(ids))}}})
+    print(json.dumps({"plan": ids}))
+
+
+def tick(a):
+    r = api("GET", f"/pages/{a.card}")
+    raw = "".join(x.get("plain_text", "") for x in r["properties"].get("StepBlocks", {}).get("rich_text", []))
+    ids = json.loads(raw) if raw else []
+    n = int(a.n)
+    if 0 <= n < len(ids):
+        api("PATCH", f"/blocks/{ids[n]}", {"to_do": {"checked": True}})
+        print(json.dumps({"ticked": n}))
+    else:
+        print(json.dumps({"error": "index out of range", "n": n, "have": len(ids)}))
+
+
+def image(a):
+    # Upload a LOCAL image file to Notion and attach it as an image block on the card.
+    fname = os.path.basename(a.file)
+    upid = api("POST", "/file_uploads", {"filename": fname, "content_type": "image/png"})["id"]
+    with open(a.file, "rb") as f:
+        blob = f.read()
+    bd = "----inboard" + str(len(blob))
+    body = (("--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\nContent-Type: image/png\r\n\r\n"
+             % (bd, fname)).encode() + blob + ("\r\n--%s--\r\n" % bd).encode())
+    req = urllib.request.Request("https://api.notion.com/v1/file_uploads/%s/send" % upid, data=body, method="POST",
+        headers={"Authorization": "Bearer " + TOK, "Notion-Version": "2022-06-28",
+                 "Content-Type": "multipart/form-data; boundary=%s" % bd})
+    urllib.request.urlopen(req)
+    cap = [{"type": "text", "text": {"content": (a.caption or "")[:1900]}}] if a.caption else []
+    api("PATCH", f"/blocks/{a.card}/children", {"children": [
+        {"object": "block", "type": "image", "image": {"type": "file_upload", "file_upload": {"id": upid}, "caption": cap}}]})
+    print(json.dumps({"image-attached": a.card}))
+
+
+def comments(a):
+    r = api("GET", f"/comments?block_id={a.card}&page_size=30")
+    out = [{"id": c["id"], "created": c.get("created_time"),
+            "author": (c.get("created_by") or {}).get("id"),
+            "text": "".join(x.get("plain_text", "") for x in c.get("rich_text", []))} for c in r.get("results", [])]
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def search(a):
+    # Fuzzy dedup lookup: existing cards whose Subject OR Sender contains the query, so the agent can
+    # route a follow-up to an EXISTING card instead of duplicating — even for matters with no active sub.
+    q = a.query
+    r = api("POST", f"/databases/{DB}/query", {
+        "filter": {"or": [{"property": "Subject", "title": {"contains": q}},
+                          {"property": "Sender", "rich_text": {"contains": q}}]},
+        "sorts": [{"timestamp": "last_edited_time", "direction": "descending"}], "page_size": 20})
+    out = []
+    for p in r["results"]:
+        pr = p["properties"]
+        out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "subject": _g(pr, "Subject", "title"),
+                    "status": _g(pr, "Status", "select"), "sender": _g(pr, "Sender", "rich_text"),
+                    "account": _g(pr, "Account", "select"), "subscription": _g(pr, "Subscription", "rich_text"),
+                    "edited": p["last_edited_time"][:10]})
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def stale_awaiting(a):
+    # 'Awaiting reply' cards with N+ days of NO activity (the reply never came). Read-only report.
+    from datetime import timezone
+    days = int(a.days)
+    now = datetime.now(timezone.utc)
+    r = api("POST", f"/databases/{DB}/query", {
+        "filter": {"property": "Status", "select": {"equals": S["awaiting"]}},
+        "sorts": [{"timestamp": "last_edited_time", "direction": "ascending"}], "page_size": 50})
+    out = []
+    for p in r["results"]:
+        led = datetime.fromisoformat(p["last_edited_time"].replace("Z", "+00:00"))
+        waited = (now - led).days
+        if waited >= days:
+            pr = p["properties"]
+            out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "subject": _g(pr, "Subject", "title"),
+                        "sender": _g(pr, "Sender", "rich_text"), "account": _g(pr, "Account", "select"),
+                        "subscription": _g(pr, "Subscription", "rich_text"),
+                        "waiting_since": p["last_edited_time"][:10], "days_waited": waited})
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def edit(a):
+    # Generic property tweak on an EXISTING card BY CARD-ID (unlike `upsert`, which keys on msgid and can
+    # create). Only the fields you pass change; everything else (incl. Subscription/Action) is left intact.
+    props = {}
+    if a.status is not None:
+        props["Status"] = {"select": {"name": a.status}}
+    if a.needs is not None:
+        props["NeedsYou"] = {"rich_text": ([{"text": {"content": a.needs[:1900]}}] if a.needs else [])}
+    if a.subject is not None:
+        props["Subject"] = {"title": rt(a.subject)}
+    if a.draft is not None:
+        props["Draft"] = {"rich_text": rt(a.draft)}
+    if a.sender is not None:
+        props["Sender"] = {"rich_text": rt(a.sender)}
+    if not props:
+        sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender")
+    api("PATCH", f"/pages/{a.card}", {"properties": props})
+    print(json.dumps({"edited": a.card}))
+
+
+def accounts(_):
+    # The mailboxes this deployment watches (from config) — the agent reads this to know which
+    # account ids/labels to use with the `email` CLI and the board's Account property.
+    out = [{"id": x.get("id"), "label": x.get("label") or x.get("id"),
+            "address": x.get("address"), "calendar": x.get("calendar", False)} for x in C.accounts()]
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def whoami(_):
+    # This integration's own Notion user id (used by the webhook to skip self-echo comments).
+    r = api("GET", "/users/me")
+    print(r.get("id") or "")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    u = sub.add_parser("upsert"); [u.add_argument("--" + x) for x in ["msgid", "subject", "account", "status", "sender", "draft", "needs"]]
+    sub.add_parser("pending")
+    c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
+    ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
+    l = sub.add_parser("log"); l.add_argument("--card", required=True); l.add_argument("--text", required=True)
+    dl = sub.add_parser("daily"); [dl.add_argument("--" + x) for x in ["subject", "type", "account", "detail"]]
+    ar = sub.add_parser("archive"); ar.add_argument("--card", required=True)
+    dn = sub.add_parser("done"); dn.add_argument("--card", required=True)
+    aw = sub.add_parser("awaiting"); aw.add_argument("--card", required=True); aw.add_argument("--desc", default=None)
+    rs = sub.add_parser("resolve"); rs.add_argument("--comment", required=True)
+    se = sub.add_parser("session"); se.add_argument("--card", required=True); se.add_argument("--set")
+    rp = sub.add_parser("reply"); rp.add_argument("--card", required=True); rp.add_argument("--text", required=True)
+    pl = sub.add_parser("plan"); pl.add_argument("--card", required=True); pl.add_argument("--steps", required=True)
+    tk = sub.add_parser("tick"); tk.add_argument("--card", required=True); tk.add_argument("--n", required=True)
+    cm = sub.add_parser("comments"); cm.add_argument("--card", required=True)
+    im = sub.add_parser("image"); im.add_argument("--card", required=True); im.add_argument("--file", required=True); im.add_argument("--caption", default="")
+    sb = sub.add_parser("subscribe"); sb.add_argument("--card", required=True); sb.add_argument("--desc", required=True)
+    sub.add_parser("subscriptions")
+    sr = sub.add_parser("search"); sr.add_argument("--query", required=True)
+    sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
+    ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
+    sub.add_parser("accounts")
+    sub.add_parser("whoami")
+    a = ap.parse_args()
+    # config-only commands don't need live Notion creds; everything else hits the API.
+    if a.cmd != "accounts":
+        if not TOK:
+            sys.exit("board: Notion token not configured — put it in .env (run `inboard init`).")
+        if not DB and a.cmd != "whoami":
+            sys.exit("board: board.database_id not configured — run `inboard init`.")
+    {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "log": log,
+     "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
+     "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
+     "subscriptions": subscriptions, "search": search, "stale-awaiting": stale_awaiting, "edit": edit,
+     "accounts": accounts, "whoami": whoami}[a.cmd](a)
+
+
+if __name__ == "__main__":
+    main()

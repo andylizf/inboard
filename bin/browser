@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Unified browser driver for the inbox agent. Drives a persistent REAL headed Chrome (a dedicated
+# profile) via `agent-browser` over CDP. Launched in the GUI session so a self-healed launch inherits
+# GPU + Keychain → saved logins/cookies persist across cycles.
+#
+# Depends on `agent-browser` (a documented external dependency) and Google Chrome. Overridable via env:
+#   INBOARD_BROWSER_PORT (default 9223) · INBOARD_CHROME · INBOARD_CHROME_PROFILE · AGENT_BROWSER
+set -uo pipefail
+PORT="${INBOARD_BROWSER_PORT:-9223}"
+CHROME="${INBOARD_CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
+STATE="${INBOARD_STATE:-${INBOARD_HOME:-$HOME/.local/share/inboard}/state}"
+PROFILE="${INBOARD_CHROME_PROFILE:-$STATE/chrome-profile}"
+AB="${AGENT_BROWSER:-$HOME/.local/bin/agent-browser}"
+
+if ! curl -s --max-time 3 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
+  mkdir -p "$PROFILE"
+  nohup "$CHROME" --user-data-dir="$PROFILE" --remote-debugging-port="$PORT" \
+    --no-first-run --no-default-browser-check --restore-last-session=false \
+    >/tmp/inboard-chrome.log 2>&1 &
+  for _ in $(seq 1 20); do
+    curl -s --max-time 2 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1 && break
+    sleep 1
+  done
+fi
+exec "$AB" --cdp "$PORT" "$@"

@@ -1,0 +1,15 @@
+[project]
+name = "inboard"
+version = "0.1.0"
+description = "Self-hosted AI inbox agent — your inbox on a Notion kanban board you drive. Powered by Claude Code."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[tool.uv]
+# inboard's Python CLIs (bin/*, engines/*.py, setup/*.py) run against this project's venv.
+# `inboard init` runs `uv sync`; the engines put .venv/bin first on PATH so the CLIs get it.
+package = false

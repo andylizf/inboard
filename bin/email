@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""Send-guarded Gmail wrapper — the ONLY way the inbox agent touches mail.
+
+    email <account-id> <gws args...>          # e.g.  email personal gmail +read --message-id <ID>
+
+The first arg selects a configured account (see `board accounts` / inboard.config.yaml); this
+sets that account's isolated gws config dir + keyring backend, then execs the real `gws`
+(google-workspace CLI). Every IRREVERSIBLE send op is BLOCKED — the agent may read, research,
+label, unsubscribe, and create DRAFTS, but physically cannot send. Sending stays a human action.
+"""
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
+                                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
+import ibconfig as C  # noqa: E402
+
+BLOCK = [  # (needle-in-args, human label) — irreversible sends; refuse unless it's a --draft variant
+    ("+send", None), ("+forward", None),
+    ("+reply-all", "--draft"), ("+reply", "--draft"),  # allowed only with --draft
+    ("drafts send", None), ("messages send", None), ("messages import", None),
+]
+
+
+def blocked(label):
+    sys.stderr.write(
+        '{"error":{"reason":"blocked_by_guardrail","message":"%s is a send/irreversible op and is '
+        'blocked. Use \'+reply --draft\' to create a Gmail draft instead; the user sends manually."}}\n'
+        % label)
+    sys.exit(64)
+
+
+def real_gws():
+    # Find the real gws on PATH, skipping this wrapper's own dir.
+    self_dir = os.path.dirname(os.path.abspath(__file__))
+    for d in os.environ.get("PATH", "").split(os.pathsep):
+        cand = os.path.join(d, "gws")
+        if os.path.realpath(d) != os.path.realpath(self_dir) and os.access(cand, os.X_OK):
+            return cand
+    sys.exit("email: real `gws` (google-workspace CLI) not found on PATH — install it (a documented dependency).")
+
+
+def main():
+    args = sys.argv[1:]
+    if not args:
+        sys.exit("usage: email <account-id> <gws args...>")
+    acct_id, rest = args[0], args[1:]
+    acct = C.account(acct_id)
+    if acct is None:
+        sys.exit(f"email: unknown account '{acct_id}' — configured: {', '.join(a.get('id') for a in C.accounts())}")
+
+    joined = " " + " ".join(rest) + " "
+    for needle, allow in BLOCK:
+        if (" " + needle + " ") in joined or joined.strip().endswith(" " + needle):
+            if allow and (" " + allow + " ") in joined:
+                continue
+            blocked("gmail " + needle)
+
+    env = dict(os.environ)
+    cfg_dir = C.expand(acct.get("gws_config_dir") or "")
+    if cfg_dir:
+        env["GOOGLE_WORKSPACE_CLI_CONFIG_DIR"] = cfg_dir
+    kr = acct.get("gws_keyring_backend") or ""
+    if kr:
+        env["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = kr
+
+    gws = real_gws()
+    os.execvpe(gws, [gws] + rest, env)
+
+
+if __name__ == "__main__":
+    main()

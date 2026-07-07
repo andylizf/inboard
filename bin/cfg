@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""Tiny config reader for shell + agent use:  cfg <dotted.key> [default]
+
+    cfg identity.name
+    cfg schedule.pull_interval_seconds 300
+    cfg board.database_id
+
+Prints the value (JSON for maps/lists, plain text for scalars). The agent uses this to read
+deployment-specific values (the operator's name, account ids, proxy) without anything being hardcoded.
+"""
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
+                                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
+import ibconfig as C  # noqa: E402
+
+
+def main():
+    if len(sys.argv) < 2:
+        sys.exit("usage: cfg <dotted.key> [default]")
+    default = sys.argv[2] if len(sys.argv) > 2 else ""
+    v = C.get(sys.argv[1], default)
+    if isinstance(v, (dict, list)):
+        print(json.dumps(v, ensure_ascii=False))
+    elif isinstance(v, bool):
+        print("true" if v else "false")
+    elif v is None:
+        print("")
+    else:
+        print(v)
+
+
+if __name__ == "__main__":
+    main()

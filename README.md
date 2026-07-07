@@ -16,5 +16,5 @@ Two engines around one board:
 Notion is the only surface — you drive everything from the board on your phone or the web.
 
 ## Status
-Building in phases (see `SPEC.md` §9): (1) de-personalize + config, (2) provider seams, (3) packaging +
-setup wizard + docs. License: MIT.
+Building in phases (see `SPEC.md` §9): **(1) de-personalize + config — landed**, (2) provider seams,
+(3) packaging polish. Set up with `git clone` + `uv sync` + `inboard init` (macOS). License: MIT.
