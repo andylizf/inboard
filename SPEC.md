@@ -66,8 +66,8 @@ store (learned preferences/facts, injected each run, extracted after). See §7 o
 | **Agent runtime** | **Claude Code** (hard dependency — it provides the headless agent + tools + skills + MCP) | — |
 | **Email** | **Gmail** (OAuth, via a `gws`-style CLI) | `EmailProvider` (IMAP / other) |
 | **Board** | **Notion** (via the board CLI; DB created by `init`) | `BoardProvider` (Linear / Trello / GitHub Projects) |
-| **Secrets** | **cred broker** (bundled — a socket daemon that injects secrets, never exposing them) | `SecretBackend` (env / OS keychain) |
-| **Memory** | git-synced markdown store (omem-style), optional | `MemoryBackend` (file / none / omem) |
+| **Secrets** | **cred broker** — an EXTERNAL dependency the user sets up (a socket daemon that injects secrets, never exposing them); documented, not bundled | `SecretBackend` (env / OS keychain) |
+| **Memory** | **omem** — EXTERNAL, documented (or a bundled `file` no-sync default) | `MemoryBackend` (file / none / omem) |
 
 Everything except Claude Code is behind an interface; v1 ships one implementation each. New providers are a
 later phase, not a v1 blocker.
@@ -179,9 +179,11 @@ the interface lets a `file` (no-sync) or hardened backend drop in later.
 
 ## 10. Decisions locked / open
 
-**Locked:** name `inboard`; Claude Code as a hard dependency; cred broker kept (bundled, not replaced);
-MIT license; repo starts private, flips public after Phase 1 de-personalization; calendar-events default =
-`propose` (decision B).
-
-**Open:** distribution mechanism (git-clone+init for v1 vs a packaged installer); how much of cred/omem to
-bundle vs document; whether v1 supports multiple board providers or Notion-only.
+**All locked (2026-07):**
+- Name **`inboard`**; **Claude Code** as a hard dependency; **MIT** license.
+- **Platform: macOS only for v1** (launchd; Linux/systemd is a later phase).
+- **Distribution: `git clone` + `inboard init`** for v1 (a packaged installer — brew/npm/docker — is later).
+- **cred + memory (omem) are EXTERNAL dependencies, DOCUMENTED, not bundled** — inboard requires them present and talks to them via the `SecretBackend` / `MemoryBackend` interfaces (a `file` no-sync memory backend ships as the zero-setup default).
+- **Board: Notion-only for v1** (the `BoardProvider` seam exists for later providers).
+- Repo starts **private**, flips **public** after Phase 1 de-personalization.
+- Calendar-events default = **`propose`** (decision B).
