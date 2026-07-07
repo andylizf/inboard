@@ -80,7 +80,7 @@ Run `board pending`. For each actioned card, act on the operator's request, then
   `board upsert` the card with the new draft + status `✍️ Draft ready`.
 - **📤 Sent — awaiting reply** → `board awaiting --card <CARD> --desc '<the reply you await>'` (and, if a daily
   log is configured, `board daily --type '✅ Done' ...`). Keep the card open so the reply routes back here.
-- **✅ Done / ignore** → `board done --card <CARD>` (keep the card in Done, don't trash it).
+- **✅ Done / ignore** → (if a daily log is configured) `board daily --type '✅ Done' --subject '<one line: what was sent/ignored>' --account <label>`, then `board done --card <CARD>` (keep the card in Done, don't trash it).
 
 ## B) New mail pipeline
 1. Read `$INBOARD_STATE/processed.json` (object: id → {...}). Missing/empty = `{}`. (State dir = `$INBOARD_STATE`.)
