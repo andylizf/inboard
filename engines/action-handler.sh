@@ -8,7 +8,7 @@ cd "$INBOARD_HOME/agent" || exit 1
 
 MODEL="$(cfg agent.model sonnet)"
 MAX_TURNS="$(cfg agent.interactive_max_turns 45)"
-ACTION_PLACEHOLDER="👉 Pick action"
+ACTION_PLACEHOLDER="$(cfg board.schema.action_placeholder '👉 Pick action')"
 
 CARD="${1:-}"; [ -n "$CARD" ] || exit 0
 

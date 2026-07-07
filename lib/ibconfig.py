@@ -91,23 +91,58 @@ def label_to_id(label):
     return label
 
 
-# --- Canonical board schema (create_board, the `board` CLI, and CLAUDE.md must agree) ---
-STATUS = {
-    "new":         "📥 New",
-    "researching": "🔍 Researching",
-    "draft":       "✍️ Draft ready",
-    "awaiting":    "⏳ Awaiting reply",
-    "done":        "✅ Done",
-    "unsub":       "🚫 Unsubscribed",
-}
+# --- Canonical board schema ------------------------------------------------
+# The STABLE part is the KEYS below (new/researching/... , item/date/... ). The DISPLAY strings are
+# LOCALE/DEPLOYMENT config under `board.schema.*`, so inboard can drive a board in ANY language (e.g. an
+# existing Chinese board) without touching code or the agent's standing orders. Defaults are English.
+# `agent/CLAUDE.md` always writes the English canonical names; the `board` CLI translates them to the
+# deployment's configured display strings on write (see status_name()/daily_type_name()), and filters/writes
+# in bin/board read STATUS/DAILY_* below — so both sides agree in whatever language the board uses.
 STATUS_ORDER = ["new", "researching", "draft", "awaiting", "done", "unsub"]
-STATUS_NAMES = [STATUS[k] for k in STATUS_ORDER]
+_STATUS_DEFAULT = {
+    "new": "📥 New", "researching": "🔍 Researching", "draft": "✍️ Draft ready",
+    "awaiting": "⏳ Awaiting reply", "done": "✅ Done", "unsub": "🚫 Unsubscribed",
+}
+_ACTIONS_DEFAULT = ["▶️ Continue / redo", "📤 Sent — awaiting reply", "✅ Done / ignore"]
+# Non-empty placeholder so Notion always renders the Action property as a tappable chip in its lightweight
+# preview (it hides EMPTY properties there). Handlers treat it as no-action.
+_ACTION_PLACEHOLDER_DEFAULT = "👉 Pick action"
+_DAILY_TYPES_DEFAULT = {"unsub": "🚫 Unsubscribe", "done": "✅ Done", "draft": "✉️ Draft", "fyi": "ℹ️ FYI"}
+_DAILY_PROPS_DEFAULT = {"item": "Item", "date": "Date", "type": "Type", "account": "Account", "detail": "Detail"}
 
-# Non-empty placeholder so Notion always renders the Action property as a tappable chip
-# in its lightweight preview (it hides EMPTY properties there). Handlers treat it as no-action.
-ACTION_PLACEHOLDER = "👉 Pick action"
 
-# The tappable Action chips the operator picks on a card (a no-typing decision → action-handler).
-ACTIONS = ["▶️ Continue / redo", "📤 Sent — awaiting reply", "✅ Done / ignore"]
+def _schema(key, default):
+    v = get("board.schema." + key)
+    return v if v else default
 
-DAILY_TYPES = ["🚫 Unsubscribe", "✅ Done", "✉️ Draft", "ℹ️ FYI"]
+
+def __getattr__(name):  # PEP 562 — resolve these from config lazily (no config read at import time)
+    if name == "STATUS":            return _schema("status", _STATUS_DEFAULT)
+    if name == "STATUS_NAMES":      s = _schema("status", _STATUS_DEFAULT); return [s.get(k, k) for k in STATUS_ORDER]
+    if name == "ACTIONS":           return _schema("actions", _ACTIONS_DEFAULT)
+    if name == "ACTION_PLACEHOLDER":return _schema("action_placeholder", _ACTION_PLACEHOLDER_DEFAULT)
+    if name == "DAILY_TYPES":       return _schema("daily_types", _DAILY_TYPES_DEFAULT)
+    if name == "DAILY_PROPS":       return _schema("daily_props", _DAILY_PROPS_DEFAULT)
+    raise AttributeError(name)
+
+
+def status_name(v):
+    """Resolve a status the agent supplies (a key like 'done', or the English canonical '✅ Done', or an
+    already-correct display string) to the deployment's configured Status display value."""
+    st = _schema("status", _STATUS_DEFAULT)
+    if v in st:                                  # it's a key
+        return st[v]
+    for k, d in _STATUS_DEFAULT.items():         # it's an English canonical display → map via key
+        if v == d:
+            return st.get(k, v)
+    return v                                     # already a config display, or unknown → pass through
+
+
+def daily_type_name(v):
+    dt = _schema("daily_types", _DAILY_TYPES_DEFAULT)
+    if v in dt:
+        return dt[v]
+    for k, d in _DAILY_TYPES_DEFAULT.items():
+        if v == d:
+            return dt.get(k, v)
+    return v

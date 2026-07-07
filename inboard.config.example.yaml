@@ -31,6 +31,34 @@ board:
   bot_user_id: ""                   # this integration's Notion user id (filled by init; used for self-echo dedup)
   webhook_port: 8787                # local port the webhook server listens on
 
+  # Board vocabulary — the DISPLAY strings inboard reads/writes. Defaults are English (shown here). To drive
+  # an EXISTING board in another language, set these to that board's actual values (the KEYS stay fixed).
+  # The agent always writes the English canonical names; the board CLI translates them to these on write.
+  schema:
+    status:                         # Status select values, by role
+      new: "📥 New"
+      researching: "🔍 Researching"
+      draft: "✍️ Draft ready"
+      awaiting: "⏳ Awaiting reply"
+      done: "✅ Done"
+      unsub: "🚫 Unsubscribed"
+    action_placeholder: "👉 Pick action"
+    actions:                        # tappable Action chips (created only on a fresh board)
+      - "▶️ Continue / redo"
+      - "📤 Sent — awaiting reply"
+      - "✅ Done / ignore"
+    daily_types:                    # daily-log Type select values, by role
+      unsub: "🚫 Unsubscribe"
+      done: "✅ Done"
+      draft: "✉️ Draft"
+      fyi: "ℹ️ FYI"
+    daily_props:                    # daily-log PROPERTY names (Notion never auto-creates properties → must match the DB)
+      item: "Item"
+      date: "Date"
+      type: "Type"
+      account: "Account"
+      detail: "Detail"
+
 schedule:
   pull_interval_seconds: 300        # how often the pull loop runs
   stale_awaiting_days: 3            # a sent-but-unanswered card older than this gets surfaced for follow-up

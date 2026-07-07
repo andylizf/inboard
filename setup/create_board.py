@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
                                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import ibconfig as C  # noqa: E402
 
-STATUS_COLORS = {"📥 New": "gray", "🔍 Researching": "blue", "✍️ Draft ready": "green",
-                 "⏳ Awaiting reply": "yellow", "✅ Done": "default", "🚫 Unsubscribed": "red"}
+STATUS_COLORS = {"new": "gray", "researching": "blue", "draft": "green",
+                 "awaiting": "yellow", "done": "default", "unsub": "red"}  # keyed by status KEY, not display
 ACCOUNT_COLORS = ["blue", "orange", "green", "purple", "pink", "brown"]
 
 
@@ -75,7 +75,8 @@ def main():
 
     account_opts = [{"name": lbl, "color": ACCOUNT_COLORS[i % len(ACCOUNT_COLORS)]}
                     for i, lbl in enumerate(C.account_labels())] or [{"name": "Personal", "color": "blue"}]
-    status_opts = [{"name": s, "color": STATUS_COLORS.get(s, "default")} for s in C.STATUS_NAMES]
+    status = C.STATUS
+    status_opts = [{"name": status.get(k, k), "color": STATUS_COLORS.get(k, "default")} for k in C.STATUS_ORDER]
     action_opts = [{"name": C.ACTION_PLACEHOLDER, "color": "default"}] + \
                   [{"name": x, "color": c} for x, c in zip(C.ACTIONS, ["green", "blue", "gray"])]
 
@@ -100,15 +101,16 @@ def main():
 
     daily_id = None
     if a.with_daily:
+        P = C.DAILY_PROPS
         daily = notion("POST", "/databases", token, {
             "parent": {"type": "page_id", "page_id": parent["id"]},
             "title": [{"type": "text", "text": {"content": "📓 inboard — daily log"}}],
             "properties": {
-                "Item":    {"title": {}},
-                "Date":    {"date": {}},
-                "Type":    {"select": {"options": [{"name": t, "color": "default"} for t in C.DAILY_TYPES]}},
-                "Account": {"select": {"options": account_opts}},
-                "Detail":  {"rich_text": {}},
+                P["item"]:    {"title": {}},
+                P["date"]:    {"date": {}},
+                P["type"]:    {"select": {"options": [{"name": t, "color": "default"} for t in C.DAILY_TYPES.values()]}},
+                P["account"]: {"select": {"options": account_opts}},
+                P["detail"]:  {"rich_text": {}},
             },
         })
         daily_id = daily["id"]

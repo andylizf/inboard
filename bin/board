@@ -58,7 +58,7 @@ def find_card(msgid):
 def upsert(a):
     props = {
         "Subject": {"title": rt(a.subject)},
-        "Status":  {"select": {"name": a.status}},
+        "Status":  {"select": {"name": C.status_name(a.status)}},
         "Account": {"select": {"name": a.account}},
         "MsgID":   {"rich_text": rt(a.msgid)},
         "Updated": {"date": {"start": datetime.now().astimezone().isoformat()}},
@@ -113,15 +113,16 @@ def log(a):
 def daily(a):
     if not DAILY:
         sys.exit("board daily: no daily_log_database_id configured — set board.daily_log_database_id or skip daily logging")
+    P = C.DAILY_PROPS   # property NAMES are locale config (Notion never auto-creates properties)
     props = {
-        "Item": {"title": rt(a.subject)},
-        "Date": {"date": {"start": datetime.now().astimezone().date().isoformat()}},
-        "Type": {"select": {"name": a.type}},
+        P["item"]: {"title": rt(a.subject)},
+        P["date"]: {"date": {"start": datetime.now().astimezone().date().isoformat()}},
+        P["type"]: {"select": {"name": C.daily_type_name(a.type)}},
     }
     if a.account is not None:
-        props["Account"] = {"select": {"name": a.account}}
+        props[P["account"]] = {"select": {"name": a.account}}
     if a.detail is not None:
-        props["Detail"] = {"rich_text": rt(a.detail)}
+        props[P["detail"]] = {"rich_text": rt(a.detail)}
     r = api("POST", "/pages", {"parent": {"database_id": DAILY}, "properties": props})
     print(json.dumps({"logged-daily": r["id"]}))
 
@@ -288,7 +289,7 @@ def edit(a):
     # create). Only the fields you pass change; everything else (incl. Subscription/Action) is left intact.
     props = {}
     if a.status is not None:
-        props["Status"] = {"select": {"name": a.status}}
+        props["Status"] = {"select": {"name": C.status_name(a.status)}}
     if a.needs is not None:
         props["NeedsYou"] = {"rich_text": ([{"text": {"content": a.needs[:1900]}}] if a.needs else [])}
     if a.subject is not None:
