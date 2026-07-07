@@ -44,10 +44,10 @@ else MSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); echo "$MSID" >"$SESS_
 
 PROMPT='Run the inbox pipeline NOW, following CLAUDE.md in this directory exactly. First run `board accounts`
 to see which mailboxes to check. Find new mail — READ OR UNREAD; do NOT filter by unread, your own
-state/processed.json is the seen-ledger — in EVERY configured account (via `email <account-id> gmail ...`),
+$INBOARD_STATE/processed.json is the seen-ledger — in EVERY configured account (via `email <account-id> gmail ...`),
 triage it, and handle every important one (auto-unsubscribe clear noise via One-Click; for substantive mail
 dispatch a subagent that researches and saves a Gmail DRAFT reply with `email <id> gmail +reply --draft`).
-Update state/processed.json. Output ONLY the short summary, or nothing at all if there is no new mail. Never send any email.'
+Update $INBOARD_STATE/processed.json. Output ONLY the short summary, or nothing at all if there is no new mail. Never send any email.'
 
 run_claude() {  # $@ = session flags (kept positional — no bash-4 nameref; launchd may run bash 3.2)
   claude -p "$PROMPT" "$@" \

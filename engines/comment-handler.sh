@@ -48,6 +48,9 @@ sleep 2  # let a same-card burst settle
 # Deterministic dedup (NO LLM): only proceed if the NEWEST comment is from a HUMAN, not our own bot reply.
 # A self-triggered webhook (our reply fired it) or a duplicate re-delivery leaves the BOT comment newest → skip
 # silently so claude is never even invoked (no wasted run, no "duplicate webhook" noise comment).
+if [ -n "$CARD" ] && [ -z "$BOT_UID" ]; then
+  echo "[$(date)] WARN: board.bot_user_id empty -> self-echo dedup DISABLED (run inboard init or set board.bot_user_id)" >> "$INBOARD_LOGS/webhook.log"
+fi
 if [ -n "$CARD" ] && [ -n "$BOT_UID" ]; then
   LAST_AUTHOR=$(board comments --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log" | python3 -c 'import json,sys
 try: cs=json.load(sys.stdin)

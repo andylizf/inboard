@@ -83,7 +83,7 @@ Run `board pending`. For each actioned card, act on the operator's request, then
 - **✅ Done / ignore** → `board done --card <CARD>` (keep the card in Done, don't trash it).
 
 ## B) New mail pipeline
-1. Read `state/processed.json` (object: id → {...}). Missing/empty = `{}`. (State dir = `$INBOARD_STATE`.)
+1. Read `$INBOARD_STATE/processed.json` (object: id → {...}). Missing/empty = `{}`. (State dir = `$INBOARD_STATE`.)
 2. New mail (READ **or** UNREAD — do NOT filter by `is:unread`; `processed.json` is the agent's own
    seen-ledger, so mail the operator already opened is still handled), EVERY account from `board accounts`:
    `email <id> gmail +triage --query 'in:inbox newer_than:2d' --max 100 --format json`.
@@ -149,7 +149,7 @@ Run `board pending`. For each actioned card, act on the operator's request, then
      (if a daily log is configured) `board daily --type '🚫 Unsubscribe' --subject 'Unsub <sender>' --account <label> --detail '<why>'`.
      mailto-only / non-one-click → never send; just mark `noise`.
    - **plain NOISE** (no unsubscribe action) → just mark processed, no card.
-7. Update `state/processed.json`: add every handled id → `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done","ts":"<iso>"}`. Write the file.
+7. Update `$INBOARD_STATE/processed.json`: add every handled id → `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done","ts":"<iso>"}`. Write the file.
 8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. As you work each
    important item, append your **research notes, the drafted reply, and what you did/decided** to the card's
    page body: `board log --card <CARD_ID> --text '...'` (call it several times). The board is the only memory.

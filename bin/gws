@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Hard guardrail: SHADOW the real `gws` so no caller (the model, a subagent, a skill) can send mail by
+# invoking gws directly. inboard puts bin/ first on PATH, so this shim intercepts every bare `gws ...`,
+# blocks every irreversible send op, then execs the real gws for everything else. The normal path is
+# `email <account-id> gmail ...` (per-account routing, same block list); this shim is the safety net that
+# makes "drafts only" a filesystem guarantee, not just a prompt convention.
+self_dir="$(cd "$(dirname "$0")" && pwd)"
+REAL=""
+IFS=: read -ra _dirs <<< "$PATH"
+for d in "${_dirs[@]}"; do
+  [ -n "$d" ] || continue
+  [ "$(cd "$d" 2>/dev/null && pwd)" = "$self_dir" ] && continue   # skip our own dir (don't re-invoke self)
+  if [ -x "$d/gws" ]; then REAL="$d/gws"; break; fi
+done
+[ -n "$REAL" ] || { echo '{"error":{"reason":"gws_not_found","message":"real gws not found on PATH"}}' >&2; exit 127; }
+
+ARGS="$*"
+blocked() { echo "{\"error\":{\"reason\":\"blocked_by_guardrail\",\"message\":\"$1 is a send/irreversible op and is blocked. Use 'email <account-id> gmail +reply --draft' to create a Gmail draft; the user sends manually.\"}}" >&2; exit 64; }
+case " $ARGS " in
+  *" +send "*)           blocked "gmail +send" ;;
+  *" +forward "*)        blocked "gmail +forward" ;;
+  *" +reply-all "*)      case " $ARGS " in *" --draft "*) : ;; *) blocked "gmail +reply-all without --draft" ;; esac ;;
+  *" +reply "*)          case " $ARGS " in *" --draft "*) : ;; *) blocked "gmail +reply without --draft" ;; esac ;;
+  *" drafts send "*)     blocked "gmail drafts send" ;;
+  *" messages send "*)   blocked "gmail messages send" ;;
+  *" messages import "*) blocked "gmail messages import" ;;
+esac
+exec "$REAL" "$@"
