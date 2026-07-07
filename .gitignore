@@ -1,0 +1,11 @@
+# secrets & runtime
+*.config.yaml
+!*.config.example.yaml
+.env
+.env.*
+logs/
+state/
+*.bak*
+__pycache__/
+*.pyc
+*.png
