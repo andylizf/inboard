@@ -14,7 +14,7 @@ BOT_UID="$(cfg board.bot_user_id)"   # this integration's Notion user id (create
 # NOTE: do NOT write ${1:-{}} — bash parses the {} default so the first } closes the expansion and a stray
 # } gets appended to $1, corrupting the JSON. Be explicit:
 EVENT="$1"; [ -n "$EVENT" ] || EVENT='{}'
-TS=$(date +%Y%m%d_%H%M%S)
+TS=$(date +%Y%m%d_%H%M%S)_$$   # +PID: same-second handlers must not share a log file
 
 # --- entity from the event ---
 read -r ENT_TYPE ENT_ID < <(printf '%s' "$EVENT" | python3 -c 'import json,sys
@@ -33,16 +33,7 @@ fi
 # PER-CARD lock: comments on DIFFERENT cards run concurrently — a busy card never makes us DROP another
 # card's comment. Same-card events coalesce safely (the run reads ALL latest comments). Stale-reclaim (>15m).
 LK="$INBOARD_STATE/.lock-${CARD:-global}"
-if ! mkdir "$LK" 2>/dev/null; then
-  if [ -n "$(find "$LK" -prune -mmin +15 2>/dev/null)" ]; then
-    rmdir "$LK" 2>/dev/null; mkdir "$LK" 2>/dev/null \
-      && echo "[$(date)] reclaimed stale lock $LK" >> "$INBOARD_LOGS/webhook.log" \
-      || { echo "[$(date)] $LK contended, skip" >> "$INBOARD_LOGS/webhook.log"; exit 0; }
-  else
-    echo "[$(date)] $LK busy (same card already handling) → coalesced-skip" >> "$INBOARD_LOGS/webhook.log"; exit 0
-  fi
-fi
-trap 'rmdir "$LK" 2>/dev/null' EXIT
+lock_or_exit "$LK" 15 "$INBOARD_LOGS/webhook.log" "$LK busy (same card already handling) → coalesced-skip"
 sleep 2  # let a same-card burst settle
 
 # Deterministic dedup (NO LLM): only proceed if the NEWEST comment is from a HUMAN, not our own bot reply.
@@ -64,15 +55,7 @@ fi
 
 # --- per-card session: resume the same conversation, or open a new one and remember its id ---
 SESS=(); NEWSID=""
-if [ -n "$CARD" ]; then
-  SID=$(board session --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log")
-  # Resume ONLY a well-formed UUID; any garbage must not wedge the card forever — fall through to fresh.
-  if printf '%s' "$SID" | grep -qiE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
-    SESS=(--resume "$SID")
-  else
-    NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
-  fi
-fi
+if [ -n "$CARD" ]; then prep_session; fi
 
 if [ -n "$CARD" ]; then
   TASK="A Notion comment fired on card $CARD (the inbox board). Read CLAUDE.md (this dir).
@@ -93,15 +76,13 @@ Now ACT:
  - preference → apply it now AND record it on the card via \`board log\` so you keep obeying it.
 FINISH by replying IN THE COMMENT THREAD so they see it where they asked:
 \`board reply --card $CARD --text '<one line: what you did / conclusion / what they must decide>'\`. Put longer detail in the body via \`board log\`.
-⚠️ Be truthful: only say an action succeeded if you actually VERIFIED it (saw the draft / a confirmation page or email).
-If you could not complete or verify something (e.g. a web form), say so plainly — never claim success you didn't confirm.
 NEVER send email (drafts only)."
 else
   TASK="A Notion comment fired but I couldn't resolve the card. Read CLAUDE.md (this dir).
 Scan actionable cards (\`board pending\` + read comments on the awaiting/draft cards), find the one with a fresh
 comment from the operator, and handle it (instruction or preference). If they say drop/done → \`board done --card <ID>\`
 (keep the card, do NOT archive). Reply in-thread with \`board reply --card <ID> --text '<one line>'\` so they see it,
-and \`board log\` the detail. ⚠️ Only claim success you actually verified; otherwise say so. NEVER send email (drafts only)."
+and \`board log\` the detail. NEVER send email (drafts only)."
 fi
 
 # NOTE: the full Event JSON is deliberately NOT embedded — /goal hard-caps its condition at 4000 chars
@@ -109,31 +90,10 @@ fi
 # already resolved above and the run reads live comments itself, so the payload adds nothing but bytes.
 PROMPT="/goal $TASK
 Event: ${ENT_TYPE:-unknown} ${ENT_ID:-?} (payload omitted; the card above is authoritative)
-GOAL — keep working toward this; do NOT stop early. Your own WORD is NOT trusted: every attempt and its outcome
-must be backed by concrete EVIDENCE — a screenshot, an artifact, a saved draft, uploaded to the card — and a
-claim with no evidence ('I tried X and it failed') does NOT count as having actually done it. You have
-effectively unlimited reach: whenever you do not yet see a resolution, take the next action toward it (including
-REACHING OUT to whoever could help — email the responsible office/support/person, ask, escalate) and EVIDENCE
-each one. This is DONE only when EITHER (a) the matter is RESOLVED, PROVEN by concrete evidence, OR (b) the one
-remaining step is inherently the operator's OWN — their decision or authority (spending money, an
-irreversible/final submit, a value judgment) or something only they can supply (their 2FA approval, their
-signature, a secret only they hold) — with everything else prepared and teed up, AND you have EVIDENCE of every
-alternative you actually tried on the way there. Handing back on your unproven word, or claiming resolved
-without evidence, does NOT count as done."
-# Last-line guard: never send an oversized goal (the CLI failure above is SILENT). Degrade to a plain
-# prompt (no goal-mode) so the comment still gets answered, and log loudly so the regression is visible.
-if [ "${#PROMPT}" -gt 3900 ]; then
-  echo "[$(date)] WARN: prompt ${#PROMPT} chars > /goal 4000 cap → stripped /goal, running plain (card=${CARD:-?})" >> "$INBOARD_LOGS/webhook.log"
-  PROMPT="${PROMPT#/goal }"
-fi
+$GOAL_TRAILER"
+cap_goal_prompt
 runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
-runh ${SESS[@]+"${SESS[@]}"}; RC=$?
-# self-heal: a --resume of a stale/foreign claude session fails ("No conversation found") -> retry once fresh.
-if [ -z "$NEWSID" ] && [ "$RC" != 0 ]; then
-  NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())')
-  echo "[$(date)] resume failed (rc=$RC) card ${CARD:-?} -> fresh session, retry once" >> "$INBOARD_LOGS/webhook.log"
-  runh --session-id "$NEWSID"; RC=$?
-fi
+run_with_selfheal
 
 # Persist the new session id on the card only after a clean run, so the next comment resumes this thread.
 if [ -n "$CARD" ] && [ -n "$NEWSID" ] && [ "$RC" = 0 ]; then

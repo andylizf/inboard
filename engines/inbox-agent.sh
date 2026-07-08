@@ -12,19 +12,8 @@ cd "$AGENT_DIR" || exit 1
 MODEL="$(cfg agent.model sonnet)"
 MAX_TURNS="$(cfg agent.pull_max_turns 80)"
 
-# Single-instance lock: never overlap runs (the scheduler fires on an interval).
-LOCK="$INBOARD_STATE/.lock"
-if ! mkdir "$LOCK" 2>/dev/null; then
-  # Stale-lock reclaim: a SIGKILLed cycle can't clean its lock via trap → it would block forever. Steal it.
-  if [ -n "$(find "$LOCK" -prune -mmin +25 2>/dev/null)" ]; then
-    rmdir "$LOCK" 2>/dev/null; mkdir "$LOCK" 2>/dev/null \
-      && echo "[$(date)] reclaimed stale run lock" >> "$INBOARD_LOGS/agent.log" \
-      || { echo "[$(date)] lock contended, skip" >> "$INBOARD_LOGS/agent.log"; exit 0; }
-  else
-    echo "[$(date)] previous run still going, skip" >> "$INBOARD_LOGS/agent.log"; exit 0
-  fi
-fi
-trap 'rmdir "$LOCK" 2>/dev/null' EXIT
+# Single-instance lock: never overlap runs (the scheduler fires on an interval). Stale-reclaim (>25m).
+lock_or_exit "$INBOARD_STATE/.lock" 25 "$INBOARD_LOGS/agent.log" "previous run still going, skip"
 
 # Cheap pre-check (NO LLM): skip the expensive claude run on empty cycles — protects the Claude usage quota.
 if WORK=$("$INBOARD_HOME/bin/has-work" 2>>"$INBOARD_LOGS/agent.log"); then
