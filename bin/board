@@ -80,7 +80,11 @@ def upsert(a):
 
 
 def pending(_):
-    r = api("POST", f"/databases/{DB}/query", {"filter": {"property": "Action", "select": {"is_not_empty": True}}})
+    # Only cards with a REAL Action picked — exclude the always-present placeholder chip, so `pending`
+    # (and the has-work precheck that counts it) doesn't fire on every card that merely shows the chip.
+    r = api("POST", f"/databases/{DB}/query", {"filter": {"and": [
+        {"property": "Action", "select": {"is_not_empty": True}},
+        {"property": "Action", "select": {"does_not_equal": ACTION_PLACEHOLDER}}]}})
     out = []
     for p in r["results"]:
         pr = p["properties"]
