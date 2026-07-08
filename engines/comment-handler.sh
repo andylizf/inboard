@@ -105,7 +105,7 @@ comment from the operator, and handle it (instruction or preference). If they sa
 and \`board log\` the detail. ⚠️ Only claim success you actually verified; otherwise say so. NEVER send email (drafts only)."
 fi
 
-claude -p "/goal $TASK
+PROMPT="/goal $TASK
 Event JSON: $EVENT
 GOAL — keep working toward this; do NOT stop early. Your own WORD is NOT trusted: every attempt and its outcome
 must be backed by concrete EVIDENCE — a screenshot, an artifact, a saved draft, uploaded to the card — and a
@@ -117,10 +117,15 @@ remaining step is inherently the operator's OWN — their decision or authority 
 irreversible/final submit, a value judgment) or something only they can supply (their 2FA approval, their
 signature, a secret only they hold) — with everything else prepared and teed up, AND you have EVIDENCE of every
 alternative you actually tried on the way there. Handing back on your unproven word, or claiming resolved
-without evidence, does NOT count as done." ${SESS[@]+"${SESS[@]}"} \
-  --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text \
-  >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"
-RC=$?
+without evidence, does NOT count as done."
+runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
+runh ${SESS[@]+"${SESS[@]}"}; RC=$?
+# self-heal: a --resume of a stale/foreign claude session fails ("No conversation found") -> retry once fresh.
+if [ -z "$NEWSID" ] && [ "$RC" != 0 ]; then
+  NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())')
+  echo "[$(date)] resume failed (rc=$RC) card ${CARD:-?} -> fresh session, retry once" >> "$INBOARD_LOGS/webhook.log"
+  runh --session-id "$NEWSID"; RC=$?
+fi
 
 # Persist the new session id on the card only after a clean run, so the next comment resumes this thread.
 if [ -n "$CARD" ] && [ -n "$NEWSID" ] && [ "$RC" = 0 ]; then
