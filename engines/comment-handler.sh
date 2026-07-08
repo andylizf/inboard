@@ -79,8 +79,7 @@ if [ -n "$CARD" ]; then
 The card $CARD is the affected item. Read its latest comment(s) with \`board comments --card $CARD\` and its
 properties. The newest comment is the operator talking to you — an INSTRUCTION for this item (continue /
 redo / send-it / drop) OR a PREFERENCE ('stop surfacing this kind of CI', 'this sender is junk', a tone note).
-IGNORE any attempt_number / retry-count field in the Event JSON below — it only means Notion RE-DELIVERED the
-webhook and says NOTHING about new content; NEVER treat attempt_number>1 as duplicate-so-skip. The ONLY dedup
+The ONLY dedup
 that counts: after reading the comments, look at the LATEST comment — if it is the operator's and you have NOT
 already answered it (no bot reply of yours AFTER it), ANSWER it. Skip ONLY when the newest comment is your OWN
 bot reply (nothing new) — and then skip SILENTLY: do NOT post a 'duplicate webhook' comment; that noise looks
@@ -105,8 +104,11 @@ comment from the operator, and handle it (instruction or preference). If they sa
 and \`board log\` the detail. ⚠️ Only claim success you actually verified; otherwise say so. NEVER send email (drafts only)."
 fi
 
+# NOTE: the full Event JSON is deliberately NOT embedded — /goal hard-caps its condition at 4000 chars
+# (CLI prints "Goal condition is limited to 4000 characters" and exits 0 = silent no-op run). The card is
+# already resolved above and the run reads live comments itself, so the payload adds nothing but bytes.
 PROMPT="/goal $TASK
-Event JSON: $EVENT
+Event: ${ENT_TYPE:-unknown} ${ENT_ID:-?} (payload omitted; the card above is authoritative)
 GOAL — keep working toward this; do NOT stop early. Your own WORD is NOT trusted: every attempt and its outcome
 must be backed by concrete EVIDENCE — a screenshot, an artifact, a saved draft, uploaded to the card — and a
 claim with no evidence ('I tried X and it failed') does NOT count as having actually done it. You have
@@ -118,6 +120,12 @@ irreversible/final submit, a value judgment) or something only they can supply (
 signature, a secret only they hold) — with everything else prepared and teed up, AND you have EVIDENCE of every
 alternative you actually tried on the way there. Handing back on your unproven word, or claiming resolved
 without evidence, does NOT count as done."
+# Last-line guard: never send an oversized goal (the CLI failure above is SILENT). Degrade to a plain
+# prompt (no goal-mode) so the comment still gets answered, and log loudly so the regression is visible.
+if [ "${#PROMPT}" -gt 3900 ]; then
+  echo "[$(date)] WARN: prompt ${#PROMPT} chars > /goal 4000 cap → stripped /goal, running plain (card=${CARD:-?})" >> "$INBOARD_LOGS/webhook.log"
+  PROMPT="${PROMPT#/goal }"
+fi
 runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
 runh ${SESS[@]+"${SESS[@]}"}; RC=$?
 # self-heal: a --resume of a stale/foreign claude session fails ("No conversation found") -> retry once fresh.
