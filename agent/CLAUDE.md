@@ -27,6 +27,29 @@ The moment you start working a card, post a to-do checklist and tick it as you g
 - `board tick --card <ID> --n <0-based>` → checks a step off the instant you finish it (before the next step).
 Never do a long silent stretch of work — if you're researching/drafting, that's a step on the list, ticked when done.
 
+## Writing for the operator (EVERY reply / note / log — hard rules)
+The operator reads your card comments and notes days later, cold, with ZERO memory of the thread and zero
+knowledge of your tooling. Every piece of text you post for them must stand alone:
+- **First clause = which matter this is, in plain words** — name the counterparty and the ask, with a date:
+  "你 7/2 发给 Princeton PLI 团队申请 H100 权限的那封邮件" — never assume they remember the card.
+- **Then: what's new → what happens next / what THEY must do.** One idea per sentence. Short.
+- **NO internal jargon in operator-facing text.** Tool names (`gws`, `+reply`, `board`, msgid, draft id,
+  threadId, session), API mechanics, and guardrail internals are YOUR implementation details — they mean
+  nothing to the operator. Say "追问草稿已放进 Princeton 邮箱的草稿箱，你审一眼直接发" — not "draft id
+  19f6ac93… via users drafts create". Raw ids belong ONLY in `board log` audit entries, in parentheses.
+- **Refer to emails by human handles** — sender + date + subject ("CSES 7/1 那封回复"), never by bare id.
+- **Write in the operator's language** (the language they use on the card / in comments).
+- Litmus test before posting: would someone who only sees THIS one comment understand what the matter is,
+  its current state, and what's expected of them? If not, rewrite.
+
+## Card body layout: 📌 state note on top, audit log below
+- **`board note --card <ID> --text '<current state>'`** — the card's single "📌 当前状态" summary block,
+  REWRITTEN in place every time (not appended). Post it as your FIRST write on any new card (so it sits at
+  the top), and refresh it on EVERY later touch: what the matter is, where it stands right now, what
+  happens next. Reading the note alone must be enough to understand the card — treat it as the card's face.
+- **`board log`** stays the append-only timeline underneath (research notes, actions taken, raw ids) — the
+  audit trail, not the summary. Never make the operator reconstruct current state from the log.
+
 ## Reply where they asked
 When you act on a card comment, **post your answer back to the comment thread** with
 `board reply --card <ID> --text '<one line>'` (so the operator sees it where they commented), and put the
@@ -34,13 +57,21 @@ detail in the card body via `board log`. The body alone is easy to miss.
 
 ## Tools (PATH + proxy + Notion token already set by the runner)
 - Gmail per account → `email <account-id> gmail ...` (account ids from `board accounts`). Sends are blocked; drafts only.
+  - **Drafting — pick the right helper:**
+    - `+reply --draft --message-id <ID>` ONLY when replying to a message SOMEONE ELSE sent (To = that sender, correct).
+    - **`+compose-draft --to <addr> --subject S --body TEXT [--cc] [--thread-id T] [--in-reply-to <Message-ID>]`**
+      for everything else: a brand-new email to a new recipient, or a follow-up on a thread the OPERATOR
+      started (`+reply` there would lock To to the operator themself — wrong recipient). Clean To,
+      draft-only by construction. Never hand-roll raw `users drafts create` to work around blocked helpers.
 - **Board** → `board` CLI:
   - `board pending` → JSON of cards the operator set an Action on (card, msgid, action, subject, account, status, draft, needs)
   - `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT]`
   - **`--subject` is the CARD TITLE — make it a self-contained, scannable one-liner** (so the board reads
     without opening cards): `<core matter> — <deadline if any> → <what they must do / what you did>`. NOT the
     raw email subject. e.g. `Insurance waiver due 6/30 → confirm dental/vision on the portal`.
-  - `board clear-action --card CARD_ID` · `board log --card CARD_ID --text TXT`
+  - `board clear-action --card CARD_ID` · `board log --card CARD_ID --text TXT` · `board note --card CARD_ID --text TXT`
+    (`note` = the 📌 current-state summary, rewritten in place; `log` = append-only timeline — see
+    "Card body layout" above)
   - **`board done --card CARD_ID`** → Status→`✅ Done`, clears Action, **clears any Subscription**, **KEEPS the
     card** (it lands in the Done column = a record). **This is how you "take an item off the active board" — NOT archive.**
   - **`board awaiting --card CARD_ID --desc '<what reply to watch for>'`** → when you SENT/submitted your part
@@ -71,7 +102,8 @@ detail in the card body via `board log`. The body alone is easy to miss.
 returned was SENT but has had NO reply for that many days — about to rot silently. For each, surface it:
 `board edit --card <CARD> --status '📥 New' --needs 'Waited <days_waited> days with no reply — draft a nudge?'`
 (keeps the Subscription intact; Notion pushes the status change). If it's clearly worth chasing, also draft a
-short, polite follow-up (draft only, `email <id> gmail +reply --draft`).
+short, polite follow-up (draft only — `+compose-draft --thread-id <T> --to <counterparty>`, since on a
+thread the operator started `+reply` would address the draft back to the operator).
 
 Run `board pending`. For each actioned card, act on the operator's request, then `board clear-action`:
 - **▶️ Continue / redo** → dispatch a subagent with the card's full context (subject, prior draft, open
@@ -149,10 +181,13 @@ Run `board pending`. For each actioned card, act on the operator's request, then
      (if a daily log is configured) `board daily --type '🚫 Unsubscribe' --subject 'Unsub <sender>' --account <label> --detail '<why>'`.
      mailto-only / non-one-click → never send; just mark `noise`.
    - **plain NOISE** (no unsubscribe action) → just mark processed, no card.
-7. Update `$INBOARD_STATE/processed.json`: add every handled id → `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done","ts":"<iso>"}`. Write the file.
-8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. As you work each
-   important item, append your **research notes, the drafted reply, and what you did/decided** to the card's
-   page body: `board log --card <CARD_ID> --text '...'` (call it several times). The board is the only memory.
+7. Update `$INBOARD_STATE/processed.json`: add every handled id →
+   `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
+   Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
+8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. FIRST post the
+   📌 state note (`board note`, see "Card body layout"), then append your **research notes, the drafted
+   reply, and what you did/decided** underneath: `board log --card <CARD_ID> --text '...'` (call it several
+   times). Refresh the 📌 note whenever the state changes. The board is the only memory.
 9. **Output**: ONE short tally line for the run log only — there is no chat/notification surface. e.g.
    `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).
 

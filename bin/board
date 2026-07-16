@@ -114,6 +114,23 @@ def log(a):
     print(json.dumps({"logged": a.card}))
 
 
+def note(a):
+    # The card's ONE "current state" summary — a 📌 callout in the body, REWRITTEN in place on
+    # every update (unlike `log`, which appends to the audit trail). Post it as the FIRST thing
+    # on a new card so it sits at the top; afterwards it's found by its 📌 icon and patched.
+    r = api("GET", f"/blocks/{a.card}/children?page_size=50")
+    ex = next((b for b in r.get("results", [])
+               if b.get("type") == "callout" and (b["callout"].get("icon") or {}).get("emoji") == "📌"), None)
+    if ex:
+        api("PATCH", f"/blocks/{ex['id']}", {"callout": {"rich_text": rt(a.text)}})
+        print(json.dumps({"note-updated": ex["id"]}))
+    else:
+        r = api("PATCH", f"/blocks/{a.card}/children", {"children": [
+            {"object": "block", "type": "callout", "callout": {
+                "rich_text": rt(a.text), "icon": {"type": "emoji", "emoji": "📌"}, "color": "yellow_background"}}]})
+        print(json.dumps({"note-created": r["results"][0]["id"]}))
+
+
 def daily(a):
     if not DAILY:
         sys.exit("board daily: no daily_log_database_id configured — set board.daily_log_database_id or skip daily logging")
@@ -330,6 +347,7 @@ def main():
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
     l = sub.add_parser("log"); l.add_argument("--card", required=True); l.add_argument("--text", required=True)
+    nt = sub.add_parser("note"); nt.add_argument("--card", required=True); nt.add_argument("--text", required=True)
     dl = sub.add_parser("daily"); [dl.add_argument("--" + x) for x in ["subject", "type", "account", "detail"]]
     ar = sub.add_parser("archive"); ar.add_argument("--card", required=True)
     dn = sub.add_parser("done"); dn.add_argument("--card", required=True)
@@ -355,7 +373,7 @@ def main():
             sys.exit("board: Notion token not configured — put it in .env (run `inboard init`).")
         if not DB and a.cmd != "whoami":
             sys.exit("board: board.database_id not configured — run `inboard init`.")
-    {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "log": log,
+    {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
      "subscriptions": subscriptions, "search": search, "stale-awaiting": stale_awaiting, "edit": edit,

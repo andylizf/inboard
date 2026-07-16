@@ -71,18 +71,23 @@ FIRST, post a live to-do so they can watch progress in real time:
 \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 short concrete steps).
 Then the MOMENT you finish each step, run \`board tick --card $CARD --n <0-based index>\` before moving on.
 Now ACT:
- - instruction → do it (research/redraft → save Gmail draft via \`email <id> gmail +reply --draft\` / move status); update the card.
+ - instruction → do it (research/redraft → save a Gmail draft with the right helper per CLAUDE.md: \`+reply --draft\`
+   only when answering someone ELSE's message, \`+compose-draft\` for new recipients or threads the operator started; move status); update the card.
    If they say it's done/handled/not-important/drop → \`board done --card $CARD\` (keeps the card in the Done column, do NOT archive).
  - preference → apply it now AND record it on the card via \`board log\` so you keep obeying it.
-FINISH by replying IN THE COMMENT THREAD so they see it where they asked:
-\`board reply --card $CARD --text '<one line: what you did / conclusion / what they must decide>'\`. Put longer detail in the body via \`board log\`.
+FINISH by (1) refreshing the card's 📌 state note (\`board note --card $CARD --text '<current state, self-contained>'\`)
+and (2) replying IN THE COMMENT THREAD so they see it where they asked:
+\`board reply --card $CARD --text '<2-4 short sentences, SELF-CONTAINED per CLAUDE.md's writing rules: which
+matter this is in plain words, what you did/found, what they must do next — no tool jargon, no raw ids>'\`.
+Put longer detail in the body via \`board log\`.
 NEVER send email (drafts only)."
 else
   TASK="A Notion comment fired but I couldn't resolve the card. Read CLAUDE.md (this dir).
 Scan actionable cards (\`board pending\` + read comments on the awaiting/draft cards), find the one with a fresh
 comment from the operator, and handle it (instruction or preference). If they say drop/done → \`board done --card <ID>\`
-(keep the card, do NOT archive). Reply in-thread with \`board reply --card <ID> --text '<one line>'\` so they see it,
-and \`board log\` the detail. NEVER send email (drafts only)."
+(keep the card, do NOT archive). Reply in-thread with \`board reply --card <ID> --text '<short + self-contained
+per CLAUDE.md's writing rules>'\` so they see it, refresh the 📌 note (\`board note\`), and \`board log\` the detail.
+NEVER send email (drafts only)."
 fi
 
 # NOTE: the full Event JSON is deliberately NOT embedded — /goal hard-caps its condition at 4000 chars

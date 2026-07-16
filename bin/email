@@ -8,6 +8,7 @@ sets that account's isolated gws config dir + keyring backend, then execs the re
 (google-workspace CLI). Every IRREVERSIBLE send op is BLOCKED — the agent may read, research,
 label, unsubscribe, and create DRAFTS, but physically cannot send. Sending stays a human action.
 """
+import json
 import os
 import sys
 
@@ -20,6 +21,52 @@ BLOCK = [  # (needle-in-args, human label) — irreversible sends; refuse unless
     ("+reply-all", "--draft"), ("+reply", "--draft"),  # allowed only with --draft
     ("drafts send", None), ("messages send", None), ("messages import", None),
 ]
+
+
+def compose_draft(acct_env, gws, rest):
+    """`email <id> gmail +compose-draft` — create a CLEAN Gmail draft to any recipient(s).
+
+    Covers the two cases the plain gws helpers handle badly: a brand-new email to a new
+    recipient (+forward/+send are blocked, and hand-rolling RFC822 base64 is error-prone),
+    and a follow-up on a thread the OPERATOR started (+reply locks To to the original
+    sender — the operator themself — so the counterparty ends up in a messy To list).
+    Only ever calls `drafts create`; sending stays physically impossible.
+
+        email <id> gmail +compose-draft --to a@b[,c@d] --subject S --body TEXT
+                                        [--cc x@y] [--thread-id T] [--in-reply-to <Message-ID>]
+    """
+    import argparse
+    import base64
+    import subprocess
+    from email.message import EmailMessage
+
+    ap = argparse.ArgumentParser(prog="email <account-id> gmail +compose-draft")
+    ap.add_argument("--to", required=True, help="recipient(s), comma-separated")
+    ap.add_argument("--subject", required=True)
+    ap.add_argument("--body", required=True, help="plain-text body")
+    ap.add_argument("--cc", default=None)
+    ap.add_argument("--thread-id", default=None, help="Gmail threadId to attach the draft to")
+    ap.add_argument("--in-reply-to", default=None, help="RFC822 Message-ID being replied to")
+    a = ap.parse_args(rest)
+
+    m = EmailMessage()
+    m["To"] = a.to
+    if a.cc:
+        m["Cc"] = a.cc
+    m["Subject"] = a.subject
+    if a.in_reply_to:
+        m["In-Reply-To"] = a.in_reply_to
+        m["References"] = a.in_reply_to
+    m.set_content(a.body)
+
+    raw = base64.urlsafe_b64encode(m.as_bytes()).decode()
+    msg = {"raw": raw}
+    if a.thread_id:
+        msg["threadId"] = a.thread_id
+    r = subprocess.run([gws, "gmail", "users", "drafts", "create",
+                        "--params", '{"userId":"me"}',
+                        "--json", json.dumps({"message": msg})], env=acct_env)
+    sys.exit(r.returncode)
 
 
 def blocked(label):
@@ -65,6 +112,8 @@ def main():
         env["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = kr
 
     gws = real_gws()
+    if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+compose-draft":
+        compose_draft(env, gws, rest[2:])
     os.execvpe(gws, [gws] + rest, env)
 
 
