@@ -62,6 +62,9 @@ if [ -n "$CARD" ]; then
 The card $CARD is the affected item. Read its latest comment(s) with \`board comments --card $CARD\` and its
 properties. The newest comment is the operator talking to you — an INSTRUCTION for this item (continue /
 redo / send-it / drop) OR a PREFERENCE ('stop surfacing this kind of CI', 'this sender is junk', a tone note).
+If a comment has a non-empty \"attachments\" list (the operator pasted a screenshot), run
+\`comment-images --card $CARD\` and Read the returned local paths BEFORE answering — they are
+usually asking about what is IN that image, and answering without looking reads as ignoring them.
 The ONLY dedup
 that counts: after reading the comments, look at the LATEST comment — if it is the operator's and you have NOT
 already answered it (no bot reply of yours AFTER it), ANSWER it. Skip ONLY when the newest comment is your OWN

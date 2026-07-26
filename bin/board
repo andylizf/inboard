@@ -262,7 +262,11 @@ def comments(a):
     r = api("GET", f"/comments?block_id={a.card}&page_size=30")
     out = [{"id": c["id"], "created": c.get("created_time"),
             "author": (c.get("created_by") or {}).get("id"),
-            "text": "".join(x.get("plain_text", "") for x in c.get("rich_text", []))} for c in r.get("results", [])]
+            "text": "".join(x.get("plain_text", "") for x in c.get("rich_text", [])),
+            # attachments the operator pasted (screenshots etc). URLs are short-lived signed
+            # links, so expose only what they ARE — fetch pixels with `comment-images`.
+            "attachments": [{"category": at.get("category"), "name": at.get("name")}
+                            for at in (c.get("attachments") or [])]} for c in r.get("results", [])]
     print(json.dumps(out, ensure_ascii=False))
 
 

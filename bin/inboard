@@ -4,6 +4,7 @@
 #   inboard run       → run ONE pull-loop cycle now (engines/inbox-agent.sh)
 #   inboard webhook   → run the webhook server in the foreground (engines/webhook-server.py)
 #   inboard comment-catchup → poll cards for unanswered operator comments (webhook backstop)
+#   inboard comment-images --card ID → download a card's comment screenshots so the agent can see them
 #   inboard board ... → the board CLI     ·   inboard email ... → the send-guarded gmail wrapper
 #   inboard cfg <key> → read a config value
 set -uo pipefail
@@ -19,7 +20,7 @@ case "$cmd" in
   comment-catchup)
     source "$INBOARD_HOME/engines/_common.sh"
     exec python3 "$INBOARD_HOME/engines/comment-catchup.py" "$@" ;;
-  board|email|cfg|has-work|mail-images|browser)
+  board|email|cfg|has-work|mail-images|comment-images|browser)
     exec "$INBOARD_HOME/bin/$cmd" "$@" ;;
   ""|-h|--help|help)
     sed -n '2,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;

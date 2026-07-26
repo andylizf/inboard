@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Download image attachments from a card's Notion comments so the (multimodal) agent
+can SEE them — `board comments` is text-only, which left the agent blind to screenshots
+the operator pastes into a comment (it would answer as if no image existed).
+
+    comment-images --card <card-id> [--comment <comment-id>] [--out <dir>]
+
+Prints JSON: {"card":..., "images":[{path,comment_id,category,name,bytes}]}. `Read` those
+paths to view them. Notion attachment URLs are short-lived signed S3 links, so this always
+re-fetches them from the API rather than trusting a URL captured earlier.
+"""
+import argparse
+import json
+import os
+import sys
+import urllib.request
+
+sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
+                                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
+import ibconfig as C  # noqa: E402
+
+TOKEN = os.environ.get("NOTION_TOKEN")
+if not TOKEN:
+    sys.exit("comment-images: NOTION_TOKEN not set (source engines/_common.sh)")
+H = {"Authorization": f"Bearer {TOKEN}", "Notion-Version": "2022-06-28"}
+
+ap = argparse.ArgumentParser()
+ap.add_argument("--card", required=True)
+ap.add_argument("--comment", help="only this comment's attachments (default: all comments on the card)")
+ap.add_argument("--out")
+a = ap.parse_args()
+
+state = os.environ.get("INBOARD_STATE") or os.path.join(C.home(), "state")
+out_dir = a.out or os.path.join(state, "comment-images", a.card)
+os.makedirs(out_dir, exist_ok=True)
+
+req = urllib.request.Request(
+    f"https://api.notion.com/v1/comments?block_id={a.card}&page_size=30", headers=H)
+with urllib.request.urlopen(req, timeout=25) as r:
+    comments = json.load(r).get("results", [])
+
+images = []
+for c in comments:
+    if a.comment and c.get("id") != a.comment:
+        continue
+    for i, att in enumerate(c.get("attachments") or []):
+        url = (att.get("file") or {}).get("url")
+        if not url:
+            continue
+        name = att.get("name") or f"{c['id'][:8]}_{i}.png"
+        if "." not in os.path.basename(name):
+            name += ".png"
+        path = os.path.join(out_dir, f"{c['id'][:8]}_{i}_{os.path.basename(name)}")
+        try:
+            with urllib.request.urlopen(url, timeout=60) as resp, open(path, "wb") as f:
+                data = resp.read()
+                f.write(data)
+            images.append({"path": path, "comment_id": c.get("id"),
+                           "category": att.get("category"), "name": name, "bytes": len(data)})
+        except Exception as e:  # a stale/expired link shouldn't kill the whole run
+            sys.stderr.write(f"comment-images: failed {name}: {e}\n")
+
+print(json.dumps({"card": a.card, "images": images}, ensure_ascii=False))
