@@ -105,6 +105,15 @@ launchctl load "$WPLIST_DST" \
   && say "webhook server loaded (port $("$INBOARD_HOME/bin/cfg" board.webhook_port 8787)) — expose it via a tunnel and register the URL in your Notion integration." \
   || warn "webhook launchctl load failed — load $WPLIST_DST manually."
 
+say "Installing the launchd comment catch-up (webhook backstop)"
+CPLIST_DST="$HOME/Library/LaunchAgents/local.inboard-comment-catchup.plist"
+sed -e "s#__INBOARD_HOME__#$INBOARD_HOME#g" \
+  "$INBOARD_HOME/setup/local.inboard-comment-catchup.plist.template" > "$CPLIST_DST"
+launchctl unload "$CPLIST_DST" 2>/dev/null || true
+launchctl load "$CPLIST_DST" \
+  && say "comment catch-up loaded (polls every 900s as a webhook backstop)." \
+  || warn "comment-catchup launchctl load failed — load $CPLIST_DST manually."
+
 # --- smoke test ---
 say "Smoke test: board whoami + accounts"
 "$INBOARD_HOME/bin/board" whoami && "$INBOARD_HOME/bin/board" accounts || warn "smoke test failed — check .env token + config."

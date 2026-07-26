@@ -3,6 +3,7 @@
 #   inboard init      → run the setup wizard (setup/init.sh)
 #   inboard run       → run ONE pull-loop cycle now (engines/inbox-agent.sh)
 #   inboard webhook   → run the webhook server in the foreground (engines/webhook-server.py)
+#   inboard comment-catchup → poll cards for unanswered operator comments (webhook backstop)
 #   inboard board ... → the board CLI     ·   inboard email ... → the send-guarded gmail wrapper
 #   inboard cfg <key> → read a config value
 set -uo pipefail
@@ -15,9 +16,12 @@ case "$cmd" in
   webhook)
     source "$INBOARD_HOME/engines/_common.sh"
     exec python3 "$INBOARD_HOME/engines/webhook-server.py" "$@" ;;
+  comment-catchup)
+    source "$INBOARD_HOME/engines/_common.sh"
+    exec python3 "$INBOARD_HOME/engines/comment-catchup.py" "$@" ;;
   board|email|cfg|has-work|mail-images|browser)
     exec "$INBOARD_HOME/bin/$cmd" "$@" ;;
   ""|-h|--help|help)
     sed -n '2,7p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
-  *) echo "inboard: unknown command '$cmd' (try: init | run | webhook | board | email | cfg)" >&2; exit 2 ;;
+  *) echo "inboard: unknown command '$cmd' (try: init | run | webhook | comment-catchup | board | email | cfg)" >&2; exit 2 ;;
 esac
