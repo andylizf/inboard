@@ -15,6 +15,24 @@ MAX_TURNS="$(cfg agent.pull_max_turns 80)"
 # Single-instance lock: never overlap runs (the scheduler fires on an interval). Stale-reclaim (>25m).
 lock_or_exit "$INBOARD_STATE/.lock" 25 "$INBOARD_LOGS/agent.log" "previous run still going, skip"
 
+# --- SELFHEAL-20260726: adaptive catch-up window ---------------------------
+# Widen the triage window to cover any downtime so an outage self-heals instead
+# of silently dropping mail older than the fixed 2-day window. Watermark =
+# last successful cycle (YYYY/MM/DD); floored at 30 days to bound a long gap.
+WM_FILE="$INBOARD_STATE/last-cycle-success"
+# NOTE: use python3 for date math — mac-mini's PATH `date` is GNU (no BSD -v).
+if [ -s "$WM_FILE" ]; then
+  SINCE="$(cat "$WM_FILE" 2>/dev/null)"
+  FLOOR="$(python3 -c 'import datetime;print((datetime.date.today()-datetime.timedelta(days=30)).strftime("%Y/%m/%d"))')"
+  [ "$SINCE" \< "$FLOOR" ] && SINCE="$FLOOR"
+  MAIL_WINDOW="in:inbox after:$SINCE"
+else
+  MAIL_WINDOW="in:inbox newer_than:2d"
+fi
+export INBOARD_MAIL_WINDOW="$MAIL_WINDOW"
+# --- end SELFHEAL-20260726 -------------------------------------------------
+
+
 # Cheap pre-check (NO LLM): skip the expensive claude run on empty cycles — protects the Claude usage quota.
 if WORK=$("$INBOARD_HOME/bin/has-work" 2>>"$INBOARD_LOGS/agent.log"); then
   echo "[$(date)] work? $WORK → run agent" >> "$INBOARD_LOGS/agent.log"
@@ -37,6 +55,7 @@ $INBOARD_STATE/processed.json is the seen-ledger — in EVERY configured account
 triage it, and handle every important one (auto-unsubscribe clear noise via One-Click; for substantive mail
 dispatch a subagent that researches and saves a Gmail DRAFT reply with `email <id> gmail +reply --draft`).
 Update $INBOARD_STATE/processed.json. Output ONLY the short summary, or nothing at all if there is no new mail. Never send any email.'
+PROMPT="$PROMPT  SELFHEAL window override: use exactly  $MAIL_WINDOW  as the +triage --query for EVERY account (this adapts to catch up any downtime; do NOT use the default 2-day window)."
 
 run_claude() {  # $@ = session flags (kept positional — no bash-4 nameref; launchd may run bash 3.2)
   claude -p "$PROMPT" "$@" \
@@ -55,4 +74,5 @@ fi
 SUMMARY=$(cat "$OUT" 2>/dev/null)
 echo "[$(date)] claude exit=$RC, session=$MSID, summary_bytes=$(printf %s "$SUMMARY" | wc -c)" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"
 [ -n "$SUMMARY" ] && echo "[$(date)] tally: $SUMMARY" >>"$LOG"
+[ "$RC" = 0 ] && python3 -c 'import datetime;print((datetime.date.today()-datetime.timedelta(days=2)).strftime("%Y/%m/%d"))' > "$INBOARD_STATE/last-cycle-success" 2>/dev/null  # SELFHEAL watermark write
 echo "[$(date)] === inbox cycle done (rc=$RC) ===" >>"$LOG"

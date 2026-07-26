@@ -27,7 +27,7 @@ except Exception:
 
 def triage(account_id):
     try:
-        out = subprocess.run([EMAIL, account_id, "gmail", "+triage", "--query", "in:inbox newer_than:2d",
+        out = subprocess.run([EMAIL, account_id, "gmail", "+triage", "--query", os.environ.get("INBOARD_MAIL_WINDOW", "in:inbox newer_than:2d"),
                               "--max", "100", "--format", "json"], capture_output=True, text=True, timeout=60).stdout
         msgs = json.loads(out).get("messages", [])
         return [m["id"] for m in msgs if m.get("id")]
