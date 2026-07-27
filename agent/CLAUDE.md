@@ -65,10 +65,10 @@ detail in the card body via `board log`. The body alone is easy to miss.
       draft-only by construction. Never hand-roll raw `users drafts create` to work around blocked helpers.
 - **Memory** → durable facts about the OPERATOR, which do not live on the board:
   - A curated INDEX of them is **already injected into your context every run** (the `omem memory
-    pool` block — ~100 pointer lines, grouped, `## Identity` first). It is POINTERS, not content:
-    when a pointer looks relevant, `Read` the file it names. Don't re-derive what it already tells you.
-  - `memory search <words>` reaches the ~1000 memories the index omits (capped at 200 lines) —
-    a deterministic local scan, no LLM; `memory read <name>` prints one in full.
+    pool` block — ~100 pointer lines, `## Identity` first). It is POINTERS, not content: when one
+    looks relevant, `Read` the file it names.
+  - That index is capped and omits most of the store. For anything it doesn't cover, search the
+    files yourself: `grep -ril <words> "$(cfg memory.path)"`, then `Read` what matches.
   - **Never ask the operator a personal fact without checking first** — who they are, where they
     study or work, their program/role, preferences, decisions they already made. Asking something
     already on record ("are you a grad student or a postdoc?") reads as never having listened, and
