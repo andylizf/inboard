@@ -63,17 +63,13 @@ detail in the card body via `board log`. The body alone is easy to miss.
       for everything else: a brand-new email to a new recipient, or a follow-up on a thread the OPERATOR
       started (`+reply` there would lock To to the operator themself — wrong recipient). Clean To,
       draft-only by construction. Never hand-roll raw `users drafts create` to work around blocked helpers.
-- **Memory** → durable facts about the OPERATOR, which do not live on the board:
-  - A curated INDEX of them is **already injected into your context every run** (the `omem memory
-    pool` block — ~100 pointer lines, `## Identity` first). It is POINTERS, not content: when one
-    looks relevant, `Read` the file it names.
-  - That index is capped and omits most of the store. For anything it doesn't cover, search the
-    files yourself: `grep -ril <words> "$(cfg memory.path)"`, then `Read` what matches.
-  - **Never ask the operator a personal fact without checking first** — who they are, where they
-    study or work, their program/role, preferences, decisions they already made. Asking something
-    already on record ("are you a grad student or a postdoc?") reads as never having listened, and
-    is the most expensive way to waste their attention.
-  - The board holds THIS matter; memory holds who they are. Different stores.
+- **Memory** → who the OPERATOR is. The store, its index (`omem memory pool`, injected each run)
+  and how to read/write it are already specified in your context — not repeated here. Two things
+  that spec does NOT cover, and they are the ones that matter:
+  - **Never ask the operator a personal fact without checking memory first** — their program/role,
+    where they study or work, preferences, decisions already made. Asking something already on
+    record ("are you a grad student or a postdoc?") reads as never having listened.
+  - **The board holds THIS matter; memory holds who they are.** Different stores, both real.
 - **Board** → `board` CLI:
   - `board pending` → JSON of cards the operator set an Action on (card, msgid, action, subject, account, status, draft, needs)
   - `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT]`
