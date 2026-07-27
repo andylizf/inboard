@@ -7,6 +7,7 @@ statuses live in ibconfig.STATUS so this CLI, create_board.py, and CLAUDE.md agr
 """
 import argparse
 import json
+import re
 import os
 import sys
 import urllib.request
@@ -40,6 +41,32 @@ def api(method, path, body=None):
 
 def rt(s):
     return [{"type": "text", "text": {"content": (s or "")[:1900]}}] if s else []
+
+
+def md(s):
+    """Markdown -> Notion rich_text runs. The API takes ANNOTATIONS, not markdown: posting
+    "**bold**" shows the operator literal asterisks. Handles **bold**, `code`, [text](url),
+    *italic*; anything else passes through as plain text."""
+    s = (s or "")[:1900]
+    if not s:
+        return []
+    pat = re.compile(r"\*\*(.+?)\*\*|`([^`]+?)`|\[([^\]]+)\]\(([^)\s]+)\)|(?<![*\w])\*([^*\n]+?)\*(?!\*)")
+    runs, i = [], 0
+    for m in pat.finditer(s):
+        if m.start() > i:
+            runs.append({"type": "text", "text": {"content": s[i:m.start()]}})
+        if m.group(1) is not None:
+            runs.append({"type": "text", "text": {"content": m.group(1)}, "annotations": {"bold": True}})
+        elif m.group(2) is not None:
+            runs.append({"type": "text", "text": {"content": m.group(2)}, "annotations": {"code": True}})
+        elif m.group(3) is not None:
+            runs.append({"type": "text", "text": {"content": m.group(3), "link": {"url": m.group(4)}}})
+        else:
+            runs.append({"type": "text", "text": {"content": m.group(5)}, "annotations": {"italic": True}})
+        i = m.end()
+    if i < len(s):
+        runs.append({"type": "text", "text": {"content": s[i:]}})
+    return runs
 
 
 def _g(pr, name, t):
@@ -110,7 +137,7 @@ def clear_action(a):
 def log(a):
     api("PATCH", f"/blocks/{a.card}/children", {"children": [
         {"object": "block", "type": "bulleted_list_item",
-         "bulleted_list_item": {"rich_text": rt(f"{datetime.now().strftime('%m-%d %H:%M')} — {a.text}")}}]})
+         "bulleted_list_item": {"rich_text": md(f"{datetime.now().strftime('%m-%d %H:%M')} — {a.text}")}}]})
     print(json.dumps({"logged": a.card}))
 
 
@@ -122,12 +149,12 @@ def note(a):
     ex = next((b for b in r.get("results", [])
                if b.get("type") == "callout" and (b["callout"].get("icon") or {}).get("emoji") == "📌"), None)
     if ex:
-        api("PATCH", f"/blocks/{ex['id']}", {"callout": {"rich_text": rt(a.text)}})
+        api("PATCH", f"/blocks/{ex['id']}", {"callout": {"rich_text": md(a.text)}})
         print(json.dumps({"note-updated": ex["id"]}))
     else:
         r = api("PATCH", f"/blocks/{a.card}/children", {"children": [
             {"object": "block", "type": "callout", "callout": {
-                "rich_text": rt(a.text), "icon": {"type": "emoji", "emoji": "📌"}, "color": "yellow_background"}}]})
+                "rich_text": md(a.text), "icon": {"type": "emoji", "emoji": "📌"}, "color": "yellow_background"}}]})
         print(json.dumps({"note-created": r["results"][0]["id"]}))
 
 
@@ -210,7 +237,7 @@ def session(a):
 
 def reply(a):
     # Post a comment back to the card's thread so the operator sees the agent's answer where they asked.
-    api("POST", "/comments", {"parent": {"page_id": a.card}, "rich_text": rt(a.text)})
+    api("POST", "/comments", {"parent": {"page_id": a.card}, "rich_text": md(a.text)})
     print(json.dumps({"replied": a.card}))
 
 

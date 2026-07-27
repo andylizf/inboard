@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+"""Long-term memory lookup — the durable facts about the operator that live OUTSIDE the board.
+
+The board is this work's record; it is NOT where standing facts about the operator live
+(who they are, where they study, their preferences). Without this, the agent asks questions
+whose answers are already known ("are you a grad student or a postdoc?"), which reads as
+never having listened.
+
+    memory search <query...>      ranked matches: name, type, path, description, snippet
+    memory read <name-or-path>    print one memory in full
+
+Backends (config `memory.backend`): `omem` (a directory of markdown memories with YAML
+frontmatter, `memory.path`), `file` (same layout, zero-setup default path), or `none`.
+Search is a deterministic local scan — no LLM, no network, fast enough to run on every cycle.
+"""
+import argparse
+import json
+import os
+import re
+import sys
+
+sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
+                                os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
+import ibconfig as C  # noqa: E402
+
+BACKEND = (C.get("memory.backend", "file") or "file").strip()
+DEFAULT_PATHS = {"omem": "~/omem-data", "file": "~/.local/share/inboard/memory"}
+PATH = os.path.expanduser(C.get("memory.path") or DEFAULT_PATHS.get(BACKEND, ""))
+
+
+def die_unconfigured(msg):
+    print(json.dumps({"memories": [], "note": msg}, ensure_ascii=False))
+    sys.exit(0)
+
+
+def load():
+    """Return [{path, name, type, description, body}] for every memory file."""
+    if BACKEND == "none":
+        die_unconfigured("memory.backend is 'none' — no long-term memory store configured.")
+    if not PATH or not os.path.isdir(PATH):
+        die_unconfigured(f"memory store not found at {PATH or '(unset)'} — set memory.path in the config.")
+    out = []
+    for fn in sorted(os.listdir(PATH)):
+        if not fn.endswith(".md"):
+            continue
+        p = os.path.join(PATH, fn)
+        try:
+            text = open(p, errors="ignore").read()
+        except Exception:
+            continue
+        meta = {}
+        if text.startswith("---"):
+            end = text.find("\n---", 3)
+            if end != -1:
+                for line in text[3:end].splitlines():
+                    if ":" in line:
+                        k, v = line.split(":", 1)
+                        meta[k.strip()] = v.strip()
+                text = text[end + 4:]
+        out.append({"path": p, "file": fn, "name": meta.get("name", fn[:-3]),
+                    "type": meta.get("type", ""), "description": meta.get("description", ""),
+                    "body": text})
+    return out
+
+
+def cmd_search(a):
+    terms = [t.lower() for t in " ".join(a.query).split() if len(t) > 1]
+    if not terms:
+        die_unconfigured("empty query")
+    hits = []
+    for m in load():
+        fn, head = m["file"].lower(), (m["name"] + " " + m["description"]).lower()
+        body = m["body"].lower()
+        # filename and frontmatter matter more than a passing mention in the body
+        score = sum(3 * fn.count(t) + 2 * head.count(t) + min(body.count(t), 5) for t in terms)
+        if not score:
+            continue
+        snippet = ""
+        for t in terms:
+            i = body.find(t)
+            if i != -1:
+                snippet = re.sub(r"\s+", " ", m["body"][max(0, i - 120):i + 220]).strip()
+                break
+        hits.append({"score": score, "name": m["name"], "type": m["type"],
+                     "path": m["path"], "description": m["description"], "snippet": snippet})
+    hits.sort(key=lambda h: -h["score"])
+    print(json.dumps({"query": " ".join(a.query), "backend": BACKEND,
+                      "memories": hits[:a.max]}, ensure_ascii=False))
+
+
+def cmd_read(a):
+    target = os.path.expanduser(a.name)
+    if not os.path.isfile(target):
+        cand = [m for m in load() if a.name in m["file"] or a.name.lower() in m["name"].lower()]
+        if not cand:
+            die_unconfigured(f"no memory matching '{a.name}'")
+        target = cand[0]["path"]
+    sys.stdout.write(open(target, errors="ignore").read())
+
+
+ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+sub = ap.add_subparsers(dest="cmd", required=True)
+s = sub.add_parser("search"); s.add_argument("query", nargs="+"); s.add_argument("--max", type=int, default=8)
+r = sub.add_parser("read"); r.add_argument("name")
+a = ap.parse_args()
+{"search": cmd_search, "read": cmd_read}[a.cmd](a)

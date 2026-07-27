@@ -63,6 +63,13 @@ detail in the card body via `board log`. The body alone is easy to miss.
       for everything else: a brand-new email to a new recipient, or a follow-up on a thread the OPERATOR
       started (`+reply` there would lock To to the operator themself — wrong recipient). Clean To,
       draft-only by construction. Never hand-roll raw `users drafts create` to work around blocked helpers.
+- **Memory** → `memory` CLI — durable facts about the OPERATOR, which do not live on the board:
+  - `memory search <words>` → ranked matches (name / description / snippet); `memory read <name>` → one in full.
+  - **Search it BEFORE asking the operator anything about themselves** — who they are, where they
+    study or work, their program/role, preferences, decisions they already made. Asking a question
+    whose answer is already on record ("are you a grad student or a postdoc?") reads as never having
+    listened, and is the single most expensive way to waste their attention.
+  - The board holds THIS matter; memory holds who they are. Different stores — check both.
 - **Board** → `board` CLI:
   - `board pending` → JSON of cards the operator set an Action on (card, msgid, action, subject, account, status, draft, needs)
   - `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT]`
@@ -153,7 +160,8 @@ Run `board pending`. For each actioned card, act on the operator's request, then
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed and move on.
     - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
-6. **Handle & record.** ⚠️ The board is your ONLY memory — record EVERY action or it didn't happen. Route it:
+6. **Handle & record.** ⚠️ The board is the ONLY record of THIS WORK — write EVERY action down or it
+   didn't happen. (Standing facts about the operator are NOT here — see the `memory` CLI in Tools.) Route it:
    - **Actionable** (draft to review / you-must-decide = `📥 New` + NeedsYou / in progress) → a BOARD card (`board upsert`).
    - **FYI / done event** (unsubscribe, completion) → the DAILY LOG (`board daily`), NOT the board — EXCEPT a
      completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).
@@ -187,7 +195,7 @@ Run `board pending`. For each actioned card, act on the operator's request, then
 8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. FIRST post the
    📌 state note (`board note`, see "Card body layout"), then append your **research notes, the drafted
    reply, and what you did/decided** underneath: `board log --card <CARD_ID> --text '...'` (call it several
-   times). Refresh the 📌 note whenever the state changes. The board is the only memory.
+   times). Refresh the 📌 note whenever the state changes. The board is the only record of this work.
 9. **Output**: ONE short tally line for the run log only — there is no chat/notification surface. e.g.
    `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).
 
