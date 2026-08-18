@@ -58,13 +58,35 @@ lock_or_exit() {
   trap "rmdir '$lk' 2>/dev/null" EXIT
 }
 
+# session_too_big <session-id> — true when that transcript has outgrown agent.session_rotate_mb.
+# The transcript lives under ~/.claude/projects/<cwd with / turned into ->/<id>.jsonl; engines always run
+# from $INBOARD_HOME/agent, so the slug comes from the current directory. A missing file is NOT too big:
+# an unreadable path must not silently rotate every card on every cycle.
+session_too_big() {
+  local sid="${1:-}" limit_mb f bytes
+  limit_mb="$(cfg agent.session_rotate_mb 4)"
+  f="$HOME/.claude/projects/$(pwd | tr '/' '-')/$sid.jsonl"
+  [ -f "$f" ] || return 1
+  bytes=$(wc -c < "$f" 2>/dev/null | tr -d ' ')
+  [ -n "$bytes" ] || return 1
+  [ "$bytes" -gt $(( limit_mb * 1024 * 1024 )) ]
+}
+
 # prep_session — resume the card's per-card claude session, or mint a fresh id.
 # Reads CARD; sets SID, SESS (claude session flags), NEWSID (non-empty only when starting fresh).
 # Resume ONLY a well-formed UUID; any garbage must not wedge the card forever — fall through to fresh.
+# A transcript over the rotation limit also falls through: the card keeps its identity and its 📌 note,
+# and only the working memory turns over — which is the layer the state model says is disposable.
 prep_session() {
   SID=$(board session --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log"); SESS=(); NEWSID=""
-  if valid_uuid "$SID"; then SESS=(--resume "$SID")
-  else NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID"); fi
+  if valid_uuid "$SID" && ! session_too_big "$SID"; then
+    SESS=(--resume "$SID")
+  else
+    valid_uuid "$SID" && session_too_big "$SID" \
+      && echo "[$(date)] rotating card $CARD session $SID (transcript over agent.session_rotate_mb)" \
+         >>"$INBOARD_LOGS/webhook.log"
+    NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
+  fi
 }
 
 # cap_goal_prompt — /goal hard-caps its condition at 4000 chars and the CLI exits 0 on that error (a SILENT

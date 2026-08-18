@@ -75,6 +75,9 @@ agent:
   dispatch_max_turns: 30            # the dispatcher only lists and groups; it never opens a body
   card_max_turns: 45                # one matter's agent
   dispatch_parallel: 4              # concurrent card agents
+  session_rotate_mb: 4              # rotate a card's claude session once its transcript exceeds this;
+                                    # the card and its state note carry the matter, so only working
+                                    # memory is lost (see DESIGN.md 'State model')
 
 network:
   https_proxy: ""                   # optional; e.g. "http://127.0.0.1:7897" — blank = direct
