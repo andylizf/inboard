@@ -67,6 +67,32 @@ context converges on the same split — a per-task notes file for state tied to 
 for what is reused across tasks, and never one artifact doing both jobs, because the two have different
 capacities and different failure modes.
 
+## Engine 1b — dispatch (opt-in, `agent.dispatch`)
+
+Engine 1 runs one session over the whole batch, and that stops scaling before the mail does: a
+101-message cycle opened 14 bodies, because "read every message" is unaffordable at that volume and the
+agent silently classifies from headers instead. Dispatch restores the rule rather than suspending it.
+
+```
+  phase 1  DISPATCHER — the daily rolling session, the only agent that is not a card.
+           Headers + `board subscriptions` only, never a body. Groups the batch into MATTERS,
+           routes each (existing card / new / noise), emits a JSON plan. Also owns anything
+           cross-card, since no card agent can see past its own matter.
+  phase 2  CARD AGENTS — one per dispatched matter, in parallel, each resuming that card's own
+           `Session` so the matter keeps its working memory across cycles. Reads only its own bodies.
+```
+
+**Grouped by matter, never by message.** Grouping happens before any hand-off, so the cross-message view
+survives: 73 copies of one CI notification collapse because a single agent saw all 73. Split per message
+and each agent is blind to the other 72.
+
+**The shell owns `state/processed.json`, not the agents.** N agents writing one ledger would clobber each
+other, and "was this handled" is a fact about an exit code — deterministic, so it belongs in deterministic
+code. A dispatched group is marked only after its agent exits 0, so a crashed agent leaves its mail
+unprocessed and the next cycle retries it. For the same reason the success watermark advances only when
+the dispatcher *and* every group succeeded: it is the signal the liveness watchdog reads as "mail is
+actually being handled", and advancing it after a failed cycle would hide the outage.
+
 ## Autonomy principle
 Act autonomously on everything **except** what genuinely spends resources or is irreversible /
 outward-facing — those are gated on *your approval* (but then agent-executed, not handed back).

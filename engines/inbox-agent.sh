@@ -5,6 +5,14 @@
 set -uo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_common.sh"
 
+# Engine selection. `agent.dispatch: true` routes the cycle through the per-matter dispatcher
+# (engines/dispatch.sh) instead of the single-session pipeline below: one agent groups the batch
+# from headers, then one agent per matter reads only its own bodies. Handing off here rather than
+# in the launchd job keeps the switch to one config line, and the rollback to the same line.
+if [ "$(cfg agent.dispatch false)" = "true" ]; then
+  exec bash "$INBOARD_HOME/engines/dispatch.sh" "$@"
+fi
+
 AGENT_DIR="$INBOARD_HOME/agent"      # holds CLAUDE.md (standing orders) + skills/
 cd "$AGENT_DIR" || exit 1
 [ -f "$INBOARD_STATE/processed.json" ] || echo '{}' > "$INBOARD_STATE/processed.json"

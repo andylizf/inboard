@@ -67,6 +67,13 @@ agent:
   model: sonnet                     # Claude Code model for both engines (e.g. sonnet | opus)
   pull_max_turns: 80                # tool-call budget for one pull-loop cycle
   interactive_max_turns: 45         # tool-call budget for a webhook (comment/action) run
+  dispatch: false                   # false = one session per batch (engine 1);
+                                    # true  = engine 1b: a dispatcher groups the batch by matter
+                                    #         from headers, then one agent per matter reads only
+                                    #         its own bodies (see DESIGN.md 'Engine 1b')
+  dispatch_max_turns: 30            # the dispatcher only lists and groups; it never opens a body
+  card_max_turns: 45                # one matter's agent
+  dispatch_parallel: 4              # concurrent card agents
 
 network:
   https_proxy: ""                   # optional; e.g. "http://127.0.0.1:7897" — blank = direct
