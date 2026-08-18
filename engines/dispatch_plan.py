@@ -47,9 +47,13 @@ def record(ledger_path, messages, status):
                 mid = m.get("id")
                 if not mid:
                     continue
+                # No threadId: the header listing does not carry one, and nothing reads it back out
+                # of this ledger anyway. A dispatcher asked for it once and filled it with the message
+                # id — a value that looks right and is only right by coincidence, which is worse than
+                # an absent field.
                 ledger[mid] = {"account": m.get("account"), "status": status, "ts": now,
                                "subject": m.get("subject"), "from": m.get("from"),
-                               "threadId": m.get("threadId")}
+                               "kind": m.get("kind", "inbox")}
             tmp = ledger_path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as fh:
                 json.dump(ledger, fh, ensure_ascii=False)

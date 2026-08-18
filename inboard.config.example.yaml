@@ -52,6 +52,7 @@ board:
       done: "✅ Done"
       draft: "✉️ Draft"
       fyi: "ℹ️ FYI"
+      sent: "📤 Sent"
     daily_props:                    # daily-log PROPERTY names (Notion never auto-creates properties → must match the DB)
       item: "Item"
       date: "Date"
