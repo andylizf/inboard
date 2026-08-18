@@ -170,13 +170,20 @@ write the fact into memory, because the other sessions that need to know a reply
 Do not touch other cards — the dispatcher owns anything cross-card. Do not create a second card for this
 matter. NEVER send email (drafts only). Output one short line."
   else
+    # Mint the id BEFORE the prompt: only the agent learns the card id it creates, so it is the only one
+    # that can attach the two. Without this a new matter's card is born with no Session, the next cycle
+    # starts it cold, and one-card-one-agent silently does not hold for anything newly created.
+    NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
     PROMPT="You own ONE new matter from the inbox: '$matter'. Follow CLAUDE.md in this directory.
 Its messages: $ids (accounts noted in the plan at $PLAN).
 Read ONLY these messages' bodies, then handle them per CLAUDE.md steps 5b, 5c and 6: check it is really not
 an existing card first, ask memory, then either create ONE card (with 📌 note, Due/Lapses if a deadline
 appeared, and a subscription if it will keep generating mail) or — if it turns out to be noise or a clean
-unsubscribe — do that and create no card. NEVER send email (drafts only). Output one short line."
-    NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
+unsubscribe — do that and create no card.
+If you DO create a card, attach this conversation to it as the last thing you do:
+\`board session --card <the new card id> --set $NEWSID\`. That is what makes the next mail on this matter
+resume YOU instead of starting cold — you are the only one who knows the card id.
+NEVER send email (drafts only). Output one short line."
   fi
 
   runh() { claude -p "$PROMPT" "$@" --model "$MODEL" \
