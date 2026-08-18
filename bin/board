@@ -82,6 +82,17 @@ def find_card(msgid):
     return r["results"][0] if r["results"] else None
 
 
+def _due_props(a, props):  # DUE-20260818
+    """Fold --due/--lapses into a property dict. Shared by upsert and edit."""
+    due = getattr(a, "due", None)
+    if due is not None:
+        props["Due"] = {"date": ({"start": due} if due else None)}
+    lapses = getattr(a, "lapses", None)
+    if lapses is not None:
+        props["Lapses"] = {"checkbox": lapses == "yes"}
+    return props
+
+
 def upsert(a):
     props = {
         "Subject": {"title": rt(a.subject)},
@@ -96,6 +107,7 @@ def upsert(a):
         props["Draft"] = {"rich_text": rt(a.draft)}
     if a.needs is not None:
         props["NeedsYou"] = {"rich_text": rt(a.needs)}
+    _due_props(a, props)  # DUE-20260818
     ex = find_card(a.msgid)
     if ex:
         api("PATCH", f"/pages/{ex['id']}", {"properties": props})
@@ -145,6 +157,11 @@ def note(a):
     # The card's ONE "current state" summary — a 📌 callout in the body, REWRITTEN in place on
     # every update (unlike `log`, which appends to the audit trail). Post it as the FIRST thing
     # on a new card so it sits at the top; afterwards it's found by its 📌 icon and patched.
+    #
+    # The pin is the callout's ICON. Agents read "the 📌 state note" in their instructions and
+    # type the pin into --text as well, which renders two in a row; strip it so the wording of
+    # those instructions can never leak into the card.
+    a.text = re.sub(r"^\s*📌\s*", "", a.text)
     r = api("GET", f"/blocks/{a.card}/children?page_size=50")
     ex = next((b for b in r.get("results", [])
                if b.get("type") == "callout" and (b["callout"].get("icon") or {}).get("emoji") == "📌"), None)
@@ -350,8 +367,9 @@ def edit(a):
         props["Draft"] = {"rich_text": rt(a.draft)}
     if a.sender is not None:
         props["Sender"] = {"rich_text": rt(a.sender)}
+    _due_props(a, props)  # DUE-20260818
     if not props:
-        sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender")
+        sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender/--due/--lapses")
     api("PATCH", f"/pages/{a.card}", {"properties": props})
     print(json.dumps({"edited": a.card}))
 
@@ -374,6 +392,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     u = sub.add_parser("upsert"); [u.add_argument("--" + x) for x in ["msgid", "subject", "account", "status", "sender", "draft", "needs"]]
+    u.add_argument("--due"); u.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818
     sub.add_parser("pending")
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
@@ -395,6 +414,7 @@ def main():
     sr = sub.add_parser("search"); sr.add_argument("--query", required=True)
     sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
     ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
+    ed.add_argument("--due"); ed.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818
     sub.add_parser("accounts")
     sub.add_parser("whoami")
     a = ap.parse_args()

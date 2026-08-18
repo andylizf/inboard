@@ -52,6 +52,21 @@ The canonical status/action names live in `lib/ibconfig.py`, so the board creato
   (zero-setup, local markdown); `omem` (a git-synced store, an external dependency) or `none` are also
   selectable. Whatever an agent *says* it recorded, the backend is where a preference actually lands.
 
+**What goes where.** The three layers are separated by **lifespan**, not by content type. A session is
+working memory and is meant to be thrown away; a card is its matter's short-term store and dies with the
+matter (`✅ Done`, or `Due` passing); the memory backend holds facts that outlive any single matter and are
+read by other sessions on other machines. So the routing question for any fact is *would this still matter
+if this card did not exist?* — no, and it belongs on the card; yes, and it belongs in the backend. A
+decision usually lands in both, written differently: the card records the transaction, the backend records
+the resulting state of the world.
+
+That is also why a card body is a **maintained document rather than a transcript**. The 📌 note is the
+layer an agent reads to reconstitute itself after its session is discarded, so it carries a size cap and
+is rewritten in place; the append-only log underneath is unbounded. The published guidance on agent
+context converges on the same split — a per-task notes file for state tied to one task, a durable store
+for what is reused across tasks, and never one artifact doing both jobs, because the two have different
+capacities and different failure modes.
+
 ## Autonomy principle
 Act autonomously on everything **except** what genuinely spends resources or is irreversible /
 outward-facing — those are gated on *your approval* (but then agent-executed, not handed back).

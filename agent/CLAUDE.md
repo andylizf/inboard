@@ -11,9 +11,35 @@ Deployment specifics are NOT hardcoded here — read them at runtime:
 - `cfg identity.name` → the operator's name (for addressing / signing drafts). `cfg <key>` reads any config value.
 
 ## State model (how to think about memory)
-- The **board is the durable blackboard = source of truth**. If it isn't written to a card, it didn't happen.
-- A **claude session** (this run) is just **working memory**; the main loop rolls one session per day. Don't
-  rely on it surviving — always persist decisions/drafts/notes onto the card so any later run reconstructs them.
+
+Three layers. What separates them is **how long each lives**, not what kind of thing it holds.
+
+| Layer | Lives | If it is lost |
+|---|---|---|
+| **Your claude session** — working memory | Minutes to a day. Discarded on rotation, compaction, or a kill. | Nothing — *provided* the card is current. |
+| **The card** — this matter's short-term state | As long as the matter: until `✅ Done`, or its `Due` passes. | This matter's progress is gone. |
+| **Memory** (`omem search` / the memory backend) — durable facts | Longer than any matter. Read by other sessions, other agents, other machines. | Every matter that relied on the fact is now uninformed. |
+
+**Your working memory is disposable by design, and the 📌 note is how you become yourself again.** Assume
+you can be discarded between any two tool calls. Whatever you know that is not written down did not
+survive; after a reset you will read the card and continue from it. So rewrite the note the moment the
+state changes, not at the end of the cycle.
+
+**Card or memory? One test: would this fact still matter if this card did not exist?**
+- **No → the card.** What has been done, what is being waited on, the draft text, thread ids, research
+  notes, the next step. It dies with the matter, and that is correct.
+- **Yes → memory.** Facts about the world that outlive this matter: who a counterparty is and what they
+  are responsible for, an account id, a policy, a decision other matters will cite. Other sessions read
+  these long after the card they came from is gone.
+- **A decision usually goes to BOTH, written differently.** The card records the transaction — "they
+  offered A or B, we chose B on <date>". Memory records the resulting state of the world — "this
+  project's storage plan is B".
+
+**The 📌 note is capped; the log is not.** Keep the note under ~1500 characters and REWRITE it: when it
+is full, delete what no longer decides anything instead of appending. The cap is what forces that edit —
+without one the note quietly becomes a second log and stops being readable in one pass, which is the only
+property that made it worth writing. Detail you cannot bear to delete goes to `board log`, which is
+append-only and unbounded on purpose.
 
 ## Autonomy (act freely; gate only the irreversible)
 Do whatever it takes to handle mail well — read, **research with all relevant materials** (web search, `gh`,
@@ -63,13 +89,24 @@ detail in the card body via `board log`. The body alone is easy to miss.
       for everything else: a brand-new email to a new recipient, or a follow-up on a thread the OPERATOR
       started (`+reply` there would lock To to the operator themself — wrong recipient). Clean To,
       draft-only by construction. Never hand-roll raw `users drafts create` to work around blocked helpers.
-- **Memory** → who the OPERATOR is. The store, its index (`omem memory pool`, injected each run)
-  and how to read/write it are already specified in your context — not repeated here. Two things
-  that spec does NOT cover, and they are the ones that matter:
+- **Memory** → who the OPERATOR is **and where every tracked matter stands**. The store, its index
+  (`omem memory pool`, injected each run) and how to read/write it are already specified in your
+  context — not repeated here. What that spec does NOT cover:
+  - **The injected index is a fraction of the pool** — most of it is memories you will never see
+    unless you ask. **`omem search '<a few words>'`** is how you actually reach it: it returns whole
+    matching memories, most relevant first, each stamped with its age. Use it deliberately (see 5c),
+    not on every message.
   - **Never ask the operator a personal fact without checking memory first** — their program/role,
     where they study or work, preferences, decisions already made. Asking something already on
     record ("are you a grad student or a postdoc?") reads as never having listened.
-  - **The board holds THIS matter; memory holds who they are.** Different stores, both real.
+  - **Memory carries live matters, not just biography.** Hundreds of its entries are `project`
+    records of things in flight — an ongoing dispute, a compliance thread, a deadline already
+    scheduled. Such a memory frequently names the REAL source of truth for that matter (a case file,
+    a Notion page) and says to read that instead of acting on the memory itself. When you see such a
+    pointer, follow it before you decide anything.
+  - **The board is this matter's WORK LOG; memory is its STATE across all sessions.** Other sessions
+    — and the operator himself — move matters forward without touching the board. If you only read
+    the board, you are reading your own notes and calling it the world.
 - **Board** → `board` CLI:
   - `board pending` → JSON of cards the operator set an Action on (card, msgid, action, subject, account, status, draft, needs)
   - `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT]`
@@ -160,9 +197,55 @@ Run `board pending`. For each actioned card, act on the operator's request, then
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed and move on.
     - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
-6. **Handle & record.** ⚠️ The board is the ONLY record of THIS WORK — write EVERY action down or it
-   didn't happen. (Standing facts about the operator are NOT here — see the `memory` CLI in Tools.) Route it:
+5c. **Ask memory before opening ANY new card.** Only for mail that survived triage as important or
+    actionable — never for noise, and never when 5b already routed it to an existing card.
+    - **`omem search '<the matter in a few words>'`** — the matter, not the email subject
+      (`ACME storage-quota request`, not `Re: FW: ACTION REQUIRED - please respond`).
+    - **Nothing relevant comes back** → it is genuinely new; continue to 6.
+    - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
+      truth first. Then answer the ONE question that decides everything: **does this mail change what
+      is already known?**
+      · **No** — a repeat reminder, a status already on record, a deadline already scheduled, a
+        decision already made → **do NOT open a card.** `board daily --type 'ℹ️ FYI' --subject
+        '<one line: what arrived and why it needs nothing>' --account <label>` and move on. A card
+        that hands back something already settled costs the operator attention twice: once to read
+        it, once to remember why he can ignore it. Enough of those and he stops trusting the board.
+      · **Yes** — new information, a changed deadline, something now genuinely blocked on him →
+        handle it per 6.
+    - **Write the change back.** Whenever this cycle moved a matter that memory tracks — a date got
+      set, a reply landed, a decision was made, a blocker cleared — update that memory file (the
+      write format is in your context). Not a running commentary: record what a reader coming to this
+      matter cold next week needs to know.
+      · **Every date you write forward must carry how it is known.** Not `2026-03-05`, but
+        `2026-03-05 15:45 (confirmation email)` or `2026-03-05 (their target; nothing booked)`. A proposal, an
+        invitation, and a booking are all just dates once the qualifier is gone, and the next
+        reader cannot recover the difference. This pool already lost six weeks to exactly that:
+        a "soft target" was restated as "the operative plan", another file copied the bare date,
+        and the whole chain was fiction. Someone confirming a DEADLINE is never evidence the
+        operator has committed to a date inside it — record the deadline as a deadline.
+      · **Never state as settled anything the operator has not confirmed.** If the card says you
+        are waiting on him, the memory says you are waiting on him.
+    - **Also repair staleness, not just changes.** If the memory you just read disagrees with the
+      card you just read — the card knows a date, an outcome, a reply that the memory does not —
+      write the card's side back into the memory, EVEN IF this mail changed nothing. Earlier cycles
+      moved matters on the board while memory was still read-only, so that disagreement is the
+      normal state right now, not an anomaly. Only do this for the memory and card you already
+      opened for this message; never go scanning for others. The cost of skipping it is concrete: a
+      memory still reading "two items outstanding, ball in their court", while the card has held a
+      confirmed appointment for days, briefs every other session on a status that expired.
+
+6. **Handle & record.** ⚠️ Write EVERY action down or it didn't happen — in BOTH places, they answer
+   different questions: the board records what you DID to this matter and what the operator must do
+   next; memory records where the matter now STANDS for whoever picks it up next (5c). A board-only
+   record is stale the moment another session touches the same matter. Route it:
    - **Actionable** (draft to review / you-must-decide = `📥 New` + NeedsYou / in progress) → a BOARD card (`board upsert`).
+   - **If the matter has a deadline, put it on the card**: `--due YYYY-MM-DD` plus
+     `--lapses yes|no`. `yes` = the date passing ENDS the matter (an optional talk, an RSVP, an
+     invitation that expires, a sale). `no` = the date passing makes it WORSE (enrollment, a tax
+     form, mandatory training, a bill). A daily sweep closes the `yes` ones on its own and flags
+     the `no` ones as overdue instead — but only for cards that carry the date, and a deadline
+     living in the subject line is invisible to it. **When unsure use `no`**: a wrong `no` leaves a
+     dead card on the board, a wrong `yes` closes a live obligation with nobody watching.
    - **FYI / done event** (unsubscribe, completion) → the DAILY LOG (`board daily`), NOT the board — EXCEPT a
      completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).
    - **Pure noise, no action** → nothing recorded (the only exception).
@@ -195,7 +278,8 @@ Run `board pending`. For each actioned card, act on the operator's request, then
 8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. FIRST post the
    📌 state note (`board note`, see "Card body layout"), then append your **research notes, the drafted
    reply, and what you did/decided** underneath: `board log --card <CARD_ID> --text '...'` (call it several
-   times). Refresh the 📌 note whenever the state changes. The board is the only record of this work.
+   times). Refresh the 📌 note whenever the state changes. The card body is the only record of this
+   item's research and drafts — where the matter STANDS goes to memory as well (see 5c/6).
 9. **Output**: ONE short tally line for the run log only — there is no chat/notification surface. e.g.
    `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).
 
