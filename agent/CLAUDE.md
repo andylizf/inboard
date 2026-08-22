@@ -220,6 +220,12 @@ Run `board pending`. For each actioned card, act on the operator's request, then
         changed" (when he did not ask), "we blocked a transaction", money that actually moved — those are
         outcomes, and they are his to rule on. The test is whether the sender is telling him something
         BAD ALREADY HAPPENED, not whether something merely happened.
+      · **The test is what the message reports, never who sent it.** A bank, a password manager, a
+        government portal or a broker sending a notification is still sending a notification. "It
+        involves money" is not the trigger — money HAVING MOVED is. Reaching for the sender's category
+        to justify a card is how this rule gets quietly suspended, and it was suspended that way within
+        the hour it was written: a bank reported that a new phone had been set up, while memory held
+        both the phone he had ordered and his own confirmation of the identical alert six weeks earlier.
     - **Nothing relevant comes back** → it is genuinely new; continue to 6.
     - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
       truth first. Then answer the ONE question that decides everything: **does this mail change what
