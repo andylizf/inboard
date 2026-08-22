@@ -204,15 +204,22 @@ Run `board pending`. For each actioned card, act on the operator's request, then
     - **One lookup per thing, not per group.** If several unrelated alerts arrived together, each
       needs its own search. Answering the first and carding the rest looks exactly like having
       followed this step.
-    - **For a "was this you?" alert, search the NOUN, not the event.** A sign-in notice, a new-device
-      warning, a third-party app authorization, a charge you did not expect — the matter reads as an
-      event ("an app was authorized"), and memory holds no such event, so searching the matter
-      returns nothing and the alert looks unexplained. What memory does hold is what the named
-      **app / device / service / place / vendor** IS to the operator. Search that name on its own.
-      If it comes back as something he uses, the alert is explained: `board daily --type 'ℹ️ FYI'`
-      and no card. **"Confirm this was you" is the most expensive card you can write** — he pays
-      attention to read it and gets nothing back, because the answer was already on record. Open one
-      only when the named thing is genuinely absent from memory, or when memory contradicts the alert.
+    - **"Was this you?" — per `cfg preferences.identity_alerts` (default `assume-self`): assume it was him
+      and do not ask.** A sign-in from a new device or place, a third-party app authorization, a password
+      reset he requested, a new API token, a login code — these are notices that an event happened, and
+      the operator is the overwhelmingly likely cause of every one. Record it (`board daily --type 'ℹ️ FYI'`)
+      and move on. If memory happens to name the app or device, say so in the log line; do NOT make the
+      lookup a precondition, because memory cannot hold every service he has ever touched and its silence
+      is not suspicion.
+      · **Never let a confirmation question gate the work.** If the same mail also carries something
+        actionable — an appointment, a form, a deadline, a temporary PIN — do that part. Putting "was
+        that you?" in `NeedsYou` blocks everything else on the card behind a question whose answer is
+        almost always yes.
+      · **Escalate only when the message reports an OUTCOME, not an event.** "A new device signed in" is
+        an event. "We locked your account after unauthorised access", "your password/recovery email was
+        changed" (when he did not ask), "we blocked a transaction", money that actually moved — those are
+        outcomes, and they are his to rule on. The test is whether the sender is telling him something
+        BAD ALREADY HAPPENED, not whether something merely happened.
     - **Nothing relevant comes back** → it is genuinely new; continue to 6.
     - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
       truth first. Then answer the ONE question that decides everything: **does this mail change what
@@ -250,6 +257,15 @@ Run `board pending`. For each actioned card, act on the operator's request, then
    different questions: the board records what you DID to this matter and what the operator must do
    next; memory records where the matter now STANDS for whoever picks it up next (5c). A board-only
    record is stale the moment another session touches the same matter. Route it:
+   - **The fork test, before you route anything: would he DO anything about this?** Not "is it
+     interesting", not "might he want to see it" — would he take an action that changes something.
+     **Anything he would glance at and move past is NOT a card**, however genuinely informative: a
+     statement, a notification, a status, an FYI, a bill with nothing owed, someone mentioning him
+     somewhere, a build waiting on CI, a notice that something happened. Those go to the daily log,
+     where they cost him nothing until he chooses to look. A card costs him twice — once to read it,
+     once to work out that it needed nothing — and a board where most cards cost that is a board he
+     stops trusting. When you cannot name the action in a short phrase ("send the reply", "pick one of
+     two", "book it before the 21st"), there isn't one: log it.
    - **Actionable** (draft to review / you-must-decide = `📥 New` + NeedsYou / in progress) → a BOARD card (`board upsert`).
    - **If the matter has a deadline, put it on the card**: `--due YYYY-MM-DD` plus
      `--lapses yes|no`. `yes` = the date passing ENDS the matter (an optional talk, an RSVP, an
