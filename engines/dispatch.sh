@@ -80,7 +80,17 @@ Do exactly this:
      outbound: \`email <id> gmail +triage --query '$SENT_SINCE' --max 100 --format json\`   → kind='sent'
    Headers only. Do NOT open message bodies — reading bodies is the card agents' job, not yours.
 3. Subtract ids already in \$INBOARD_STATE/processed.json.
-4. \`board subscriptions\` — every active card's own declaration of what belongs to it.
+4. \`board subscriptions\` — every active card's own declaration of what belongs to it. This is only the
+   FIRST hop and it is far from complete: it returns nothing for a card that never registered a
+   subscription, and most of the board is in that state, so a card missing here is NOT evidence the
+   matter is new.
+4b. For any group you are about to route 'new', run \`board search --query '<sender or key subject words>'\`
+   first — it searches every card's Subject and Sender regardless of status or subscription, and it is the
+   only way to see the cards step 4 hides. If it returns the matter, route 'card' with that id instead.
+   A message that announces itself as a repeat — 'reminder', '2nd notice', 'still awaiting', 'final
+   notice' — is by definition not new: search before believing otherwise. Three cards were opened for one
+   GitHub App permission request on 2026-08-22 in three consecutive cycles, the third one labelled '3rd
+   notice, still no card' by the dispatcher that then opened it anyway.
 5. Group the remaining messages into MATTERS. Several messages about one thing are ONE group. This
    grouping is the only place the whole batch is visible at once, so collapse duplicates here.
 6. Route each group:
@@ -177,9 +187,16 @@ matter. NEVER send email (drafts only). Output one short line."
     PROMPT="You own ONE new matter from the inbox: '$matter'. Follow CLAUDE.md in this directory.
 Its messages: $ids (accounts noted in the plan at $PLAN).
 Read ONLY these messages' bodies, then handle them per CLAUDE.md steps 5b, 5c and 6: check it is really not
-an existing card first, ask memory, then either create ONE card (with 📌 note, Due/Lapses if a deadline
-appeared, and a subscription if it will keep generating mail) or — if it turns out to be noise or a clean
-unsubscribe — do that and create no card.
+an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
+subscription and are invisible to the latter), ask memory, then either create ONE card (with 📌 note,
+Due/Lapses if a deadline appeared) or — if it turns out to be noise or a clean unsubscribe — do that and
+create no card.
+If you create a card, \`board subscribe\` it whenever more mail on this matter is even plausible, and
+ALWAYS when this message called itself a reminder or a follow-up — that wording is proof the sender will
+write again. A card with no subscription cannot be found by the next cycle's first lookup, which is how
+one matter becomes three cards. Write the subscription at the grain the OPERATOR acts on, not the grain
+the sender uses: 'GitHub App permission approvals' rather than 'installation 77604681', because he
+approves them all in one trip and wants one card.
 If you DO create a card, attach this conversation to it as the last thing you do:
 \`board session --card <the new card id> --set $NEWSID\`. That is what makes the next mail on this matter
 resume YOU instead of starting cold — you are the only one who knows the card id.
