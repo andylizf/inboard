@@ -87,6 +87,102 @@ def real_gws():
     sys.exit("email: real `gws` (google-workspace CLI) not found on PATH — install it (a documented dependency).")
 
 
+def _norm(s):
+    """Whitespace-insensitive comparison — Notion reflows text, the wire format does not."""
+    return " ".join((s or "").split())
+
+
+def send_approved(acct_env, gws, rest):
+    """`email <id> gmail +send-approved --card <ID> --draft-id <ID>` — send a draft the
+    operator approved on its card. Every check below must pass; each one fails closed."""
+    import argparse
+    import base64
+    import json as _json
+    import subprocess
+    import urllib.request
+
+    ap = argparse.ArgumentParser(prog="email <acct> gmail +send-approved", add_help=True)
+    ap.add_argument("--card", required=True, help="the board card carrying the operator's approval")
+    ap.add_argument("--draft-id", required=True, help="the Gmail draft id to send")
+    a = ap.parse_args(rest)
+
+    token = os.environ.get("NOTION_TOKEN")
+    if not token:
+        blocked("+send-approved without NOTION_TOKEN (the board is what carries the approval)")
+
+    def notion(method, path, payload=None):
+        req = urllib.request.Request(
+            "https://api.notion.com/v1/" + path,
+            data=_json.dumps(payload).encode() if payload is not None else None,
+            headers={"Authorization": "Bearer " + token, "Notion-Version": "2022-06-28",
+                     "Content-Type": "application/json"}, method=method)
+        return _json.load(urllib.request.urlopen(req, timeout=60))
+
+    want = C.get("board.schema.send_action", "") or ""
+    if not want:
+        blocked("+send-approved with no board.schema.send_action configured")
+
+    page = notion("GET", "pages/" + a.card)
+    props = page.get("properties", {})
+    have = ((props.get("Action") or {}).get("select") or {}).get("name") or ""
+    if _norm(have) != _norm(want):
+        blocked("+send-approved on a card whose Action is %r, not the approval action %r "
+                "(only the operator can set it, by tapping the chip)" % (have, want))
+
+    # What the card actually shows him: the Draft property plus every block on the page.
+    def plain(runs):
+        return "".join(x.get("plain_text", "") for x in (runs or []))
+
+    visible = plain((props.get("Draft") or {}).get("rich_text"))
+    cursor = None
+    while True:
+        q = "blocks/%s/children?page_size=100" % a.card + (("&start_cursor=" + cursor) if cursor else "")
+        res = notion("GET", q)
+        for b in res.get("results", []):
+            body = b.get(b.get("type"), {})
+            if isinstance(body, dict):
+                visible += " " + plain(body.get("rich_text"))
+        if not res.get("has_more"):
+            break
+        cursor = res["next_cursor"]
+
+    got = subprocess.run([gws, "gmail", "users", "drafts", "get", "--params",
+                          _json.dumps({"userId": "me", "id": a.draft_id, "format": "full"})],
+                         env=acct_env, capture_output=True, text=True)
+    if got.returncode != 0:
+        sys.exit("+send-approved: could not read draft %s: %s" % (a.draft_id, got.stderr[:300]))
+    payload = _json.loads(got.stdout)
+
+    def body_text(part):
+        out = ""
+        data = (part.get("body") or {}).get("data")
+        if data and part.get("mimeType", "").startswith("text/"):
+            out += base64.urlsafe_b64decode(data + "===").decode("utf-8", "replace")
+        for sub in part.get("parts") or []:
+            out += body_text(sub)
+        return out
+
+    outgoing = body_text((payload.get("message") or {}).get("payload") or {})
+    if not _norm(outgoing):
+        sys.exit("+send-approved: draft %s has no readable text body" % a.draft_id)
+    if _norm(outgoing) not in _norm(visible):
+        blocked("+send-approved where the draft body is NOT what the card shows — he can only "
+                "approve text he could read. Post the full reply onto the card, then ask again")
+
+    sent = subprocess.run([gws, "gmail", "users", "drafts", "send", "--params",
+                           _json.dumps({"userId": "me", "id": a.draft_id})],
+                          env=acct_env, capture_output=True, text=True)
+    sys.stdout.write(sent.stdout)
+    sys.stderr.write(sent.stderr)
+    if sent.returncode == 0:
+        # One tap sends once: leaving the Action set would let the next cycle reuse this approval.
+        try:
+            notion("PATCH", "pages/" + a.card, {"properties": {"Action": {"select": None}}})
+        except Exception as exc:
+            sys.stderr.write("warning: sent, but could not clear the card Action: %s\n" % exc)
+    sys.exit(sent.returncode)
+
+
 def main():
     args = sys.argv[1:]
     if not args:
@@ -112,6 +208,8 @@ def main():
         env["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = kr
 
     gws = real_gws()
+    if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+send-approved":
+        send_approved(env, gws, rest[2:])
     if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+compose-draft":
         compose_draft(env, gws, rest[2:])
     os.execvpe(gws, [gws] + rest, env)

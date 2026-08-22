@@ -43,6 +43,7 @@ board:
       done: "✅ Done"
       unsub: "🚫 Unsubscribed"
     action_placeholder: "👉 Pick action"
+    send_action: 📤 Send it for me
     actions:                        # tappable Action chips (created only on a fresh board)
       - "▶️ Continue / redo"
       - "📤 Sent — awaiting reply"

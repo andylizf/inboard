@@ -154,6 +154,16 @@ Run `board pending`. For each actioned card, act on the operator's request, then
   question) + re-read the original email by `--message-id <msgid>`; research more / redo per the implied
   feedback; rewrite the Gmail draft (`email <id> gmail +reply --message-id ID --body '...' --draft`);
   `board upsert` the card with the new draft + status `✍️ Draft ready`.
+- **Send-it-for-me (`cfg board.schema.send_action`)** → the operator approved THIS card's draft by tapping
+  the chip; that tap is his per-item approval and the only thing that unlocks sending. Send it with
+  `email <account> gmail +send-approved --card <CARD> --draft-id <GMAIL_DRAFT_ID>` — the sole path by which
+  mail can leave. **Do not touch the draft first.** What he approved is the text that was on the card when he
+  tapped, so rewriting it — even to improve it — sends something he never read; the guard checks the outgoing
+  body against what the card actually shows and will refuse. If it does refuse for that reason, post the FULL
+  reply onto the card (`board log`, several calls if long), set the card back to `📥 New` saying why, and let
+  him tap again — never work around the check. After a successful send: `board awaiting` if a reply is
+  expected, otherwise `board done`; then log it to the daily log under the sent type from
+  `cfg board.schema.daily_types.sent`, one line saying what went out and to whom.
 - **📤 Sent — awaiting reply** → `board awaiting --card <CARD> --desc '<the reply you await>'` (and, if a daily
   log is configured, `board daily --type '✅ Done' ...`). Keep the card open so the reply routes back here.
 - **✅ Done / ignore** → (if a daily log is configured) `board daily --type '✅ Done' --subject '<one line: what was sent/ignored>' --account <label>`, then `board done --card <CARD>` (keep the card in Done, don't trash it).
