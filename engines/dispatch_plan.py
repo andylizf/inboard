@@ -76,6 +76,11 @@ def main() -> int:
         g = gs[idx]
         if key == "ids":
             print(" ".join(m.get("id", "") for m in g.get("messages", [])))
+        elif key == "pairs":
+            # "<id>(<account>)" per message, so a card agent gets its own accounts inline instead of
+            # being pointed at the plan file — reading that file pulls every OTHER group's mail into
+            # its context, which is the opposite of the isolation the split exists for.
+            print(" ".join(f"{m.get('id','')}({m.get('account','')})" for m in g.get("messages", [])))
         else:
             print(g.get(key) or "")
     elif cmd == "summary":

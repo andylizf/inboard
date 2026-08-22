@@ -154,7 +154,7 @@ run_group() {   # $1 = group index
   route=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" route)
   card=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" card)
   matter=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" matter)
-  ids=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" ids)
+  ids=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" pairs)
   local glog="$INBOARD_LOGS/dispatch-$TS-g$idx.log"
 
   CARD=""; SESS=(); NEWSID=""
@@ -168,7 +168,7 @@ run_group() {   # $1 = group index
     trap "rmdir '$LK' 2>/dev/null" RETURN
     prep_session
     PROMPT="You own ONE matter on the inbox board: card $CARD ('$matter'). Follow CLAUDE.md in this directory.
-New mail on this matter: $ids (accounts noted in the plan at $PLAN).
+New mail on this matter, as <message-id>(<account>): $ids
 Read ONLY these messages' bodies (\`email <account> gmail +read --message-id <ID>\`), then handle them per
 CLAUDE.md steps 5c and 6 for THIS card only: ask memory before changing anything, update the card and its
 📌 note, write back what memory now needs to know, and set Due/Lapses if a deadline appeared.
@@ -185,7 +185,7 @@ matter. NEVER send email (drafts only). Output one short line."
     # starts it cold, and one-card-one-agent silently does not hold for anything newly created.
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
     PROMPT="You own ONE new matter from the inbox: '$matter'. Follow CLAUDE.md in this directory.
-Its messages: $ids (accounts noted in the plan at $PLAN).
+Its messages, as <message-id>(<account>): $ids
 Read ONLY these messages' bodies, then handle them per CLAUDE.md steps 5b, 5c and 6: check it is really not
 an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
 subscription and are invisible to the latter), ask memory, then either create ONE card (with 📌 note,

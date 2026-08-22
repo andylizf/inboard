@@ -201,6 +201,18 @@ Run `board pending`. For each actioned card, act on the operator's request, then
     actionable — never for noise, and never when 5b already routed it to an existing card.
     - **`omem search '<the matter in a few words>'`** — the matter, not the email subject
       (`ACME storage-quota request`, not `Re: FW: ACTION REQUIRED - please respond`).
+    - **One lookup per thing, not per group.** If several unrelated alerts arrived together, each
+      needs its own search. Answering the first and carding the rest looks exactly like having
+      followed this step.
+    - **For a "was this you?" alert, search the NOUN, not the event.** A sign-in notice, a new-device
+      warning, a third-party app authorization, a charge you did not expect — the matter reads as an
+      event ("an app was authorized"), and memory holds no such event, so searching the matter
+      returns nothing and the alert looks unexplained. What memory does hold is what the named
+      **app / device / service / place / vendor** IS to the operator. Search that name on its own.
+      If it comes back as something he uses, the alert is explained: `board daily --type 'ℹ️ FYI'`
+      and no card. **"Confirm this was you" is the most expensive card you can write** — he pays
+      attention to read it and gets nothing back, because the answer was already on record. Open one
+      only when the named thing is genuinely absent from memory, or when memory contradicts the alert.
     - **Nothing relevant comes back** → it is genuinely new; continue to 6.
     - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
       truth first. Then answer the ONE question that decides everything: **does this mail change what
