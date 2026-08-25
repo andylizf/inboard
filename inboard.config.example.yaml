@@ -41,6 +41,7 @@ board:
       draft: "✍️ Draft ready"
       awaiting: "⏳ Awaiting reply"
       done: "✅ Done"
+      expired: "⌛ Expired"
       unsub: "🚫 Unsubscribed"
     action_placeholder: "👉 Pick action"
     send_action: 📤 Send it for me

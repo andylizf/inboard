@@ -200,12 +200,8 @@ def archive(a):
 def done(a):
     # Mark complete but KEEP the card (lands in the Done column) + clear any Action + clear the
     # Subscription (matter resolved → future matching mail becomes noise). This is a record, NOT archive.
-    # Session goes too: it addresses the agent that owned this matter, and the matter is over. Leaving it
-    # set means every closed card keeps pointing at a conversation nobody will resume, which is how a
-    # per-card agent pool would grow without bound.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Status": {"select": {"name": S["done"]}},
-        "Action": {"select": None}, "Subscription": {"rich_text": []},
-        "Session": {"rich_text": []}}})
+        "Action": {"select": None}, "Subscription": {"rich_text": []}}})
     print(json.dumps({"done": a.card}))
 
 
