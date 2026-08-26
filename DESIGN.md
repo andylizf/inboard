@@ -104,6 +104,14 @@ outward-facing — those are gated on *your approval* (but then agent-executed, 
   physically blocks sends, so "drafts only" is enforced by the tool, not just the prompt.
 
 ## Key mechanisms — and why
+- **Webhook events never echo the integration's own writes** (verified: an unsigned probe POST is
+  logged instantly; a board-CLI write produces no event at all). *Why it matters:* engine 2 fires on
+  the operator's edits only — engine-side code must never wait for a webhook echo, and a quiet
+  webhook log during heavy agent activity is normal, not an outage.
+- **Sessions are mortal by host policy.** Claude Code deletes transcripts after ~30 idle days
+  (default retention), so a card untouched that long resumes into a missing file and self-heals into
+  a fresh session. *Why it matters:* that IS the age-based rotation — deliberately not reimplemented
+  here — and the reason a card must stay self-sufficient: its session is guaranteed to die first.
 - **Scan read *and* unread** (`in:inbox newer_than:2d`, diffed against `processed.json`), not `is:unread`.
   *Why:* you often read a mail before the next cycle; keying on Gmail's read flag made those invisible.
   The seen-ledger is the source of truth.
