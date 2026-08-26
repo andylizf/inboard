@@ -64,7 +64,7 @@ lock_or_exit() {
 # an unreadable path must not silently rotate every card on every cycle.
 session_too_big() {
   local sid="${1:-}" limit_mb f bytes
-  limit_mb="$(cfg agent.session_rotate_mb 4)"
+  limit_mb="$(cfg agent.session_rotate_mb 1)"
   f="$HOME/.claude/projects/$(pwd | tr '/' '-')/$sid.jsonl"
   [ -f "$f" ] || return 1
   bytes=$(wc -c < "$f" 2>/dev/null | tr -d ' ')

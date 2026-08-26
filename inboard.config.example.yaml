@@ -77,7 +77,9 @@ agent:
   dispatch_max_turns: 30            # the dispatcher only lists and groups; it never opens a body
   card_max_turns: 45                # one matter's agent
   dispatch_parallel: 4              # concurrent card agents
-  session_rotate_mb: 4              # rotate a card's claude session once its transcript exceeds this;
+  session_rotate_mb: 1              # rotate a card's claude session once its transcript exceeds this;
+                                    # measured: the median per-card transcript is ~0.2 MB, so 1 MB is
+                                    # ~5x a typical matter — 4 MB had simply never fired;
                                     # the card and its state note carry the matter, so only working
                                     # memory is lost (see DESIGN.md 'State model')
 
