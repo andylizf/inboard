@@ -107,4 +107,7 @@ run_with_selfheal
 if [ -n "$CARD" ] && [ -n "$NEWSID" ] && [ "$RC" = 0 ]; then
   board session --card "$CARD" --set "$NEWSID" >>"$INBOARD_LOGS/webhook.log" 2>&1
 fi
+if [ -n "$CARD" ] && [ "$RC" != 0 ]; then
+  board reply --card "$CARD" --text "⚠️ Handling this comment failed (rc=$RC, log comment-$TS). Not completed — comment again to retry." >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
+fi
 echo "[$(date)] comment-handler done (card=${CARD:-?} sid=${SID:-${NEWSID:-none}}) rc=$RC" >> "$INBOARD_LOGS/webhook.log"
