@@ -67,7 +67,12 @@ schedule:
   stale_awaiting_days: 3            # a sent-but-unanswered card older than this gets surfaced for follow-up
 
 agent:
-  model: sonnet                     # Claude Code model for both engines (e.g. sonnet | opus)
+  model: sonnet
+  delivery: inprocess              # inprocess = one claude -p per event (default). daemon = queue each
+                                    # event to the card's persistent daemon-hosted agent via the
+                                    # control socket (lib/agent_deliver.py) — no dropped taps under
+                                    # contention, but needs a token-carrying Claude Code daemon running.
+                     # Claude Code model for both engines (e.g. sonnet | opus)
   pull_max_turns: 80                # tool-call budget for one pull-loop cycle
   interactive_max_turns: 45         # tool-call budget for a webhook (comment/action) run
   dispatch: false                   # false = one session per batch (engine 1);

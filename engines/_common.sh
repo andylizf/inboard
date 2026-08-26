@@ -27,6 +27,20 @@ fi
 # ---------- shared engine helpers (single source of truth — do NOT re-implement in engines) ----------
 
 # Goal-mode trailer appended to every event-driven /goal prompt (comment- and action-handler).
+# ---- daemon delivery (opt-in via agent.delivery: daemon) ----------------------------------------
+# card_agent_name <card-id> — the deterministic name of a card's persistent daemon-hosted agent.
+card_agent_name() { echo "inboard-card-${1:0:8}"; }
+
+# deliver_to_daemon <card> <cwd> <prompt> — queue PROMPT to the card's persistent agent through the
+# Claude Code daemon (lib/agent_deliver.py). Returns 0 when the daemon ACCEPTED it (queued to a live
+# session), non-zero if the daemon is down or the agent could not be reached. "Accepted" is not
+# "completed": the agent runs asynchronously and, per the mortality rule, writes its own results to
+# the card. Requires a token-carrying Claude Code daemon (see the deployment scripts) to be running.
+deliver_to_daemon() {
+  python3 "$INBOARD_HOME/lib/agent_deliver.py" deliver \
+    --name "$(card_agent_name "$1")" --cwd "$2" --text "$3" >>"$INBOARD_LOGS/webhook.log" 2>&1
+}
+
 GOAL_TRAILER="GOAL — keep working toward this; do NOT stop early. Your own WORD is NOT trusted: every attempt and its outcome
 must be backed by concrete EVIDENCE — a screenshot, an artifact, a saved draft, uploaded to the card — and a
 claim with no evidence ('I tried X and it failed') does NOT count as having actually done it. You have
