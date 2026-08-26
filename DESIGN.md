@@ -108,10 +108,17 @@ outward-facing — those are gated on *your approval* (but then agent-executed, 
   logged instantly; a board-CLI write produces no event at all). *Why it matters:* engine 2 fires on
   the operator's edits only — engine-side code must never wait for a webhook echo, and a quiet
   webhook log during heavy agent activity is normal, not an outage.
-- **Sessions are mortal by host policy.** Claude Code deletes transcripts after ~30 idle days
-  (default retention), so a card untouched that long resumes into a missing file and self-heals into
-  a fresh session. *Why it matters:* that IS the age-based rotation — deliberately not reimplemented
-  here — and the reason a card must stay self-sufficient: its session is guaranteed to die first.
+- **Sessions expire; transcripts don't.** A session past `session_rotate_mb`, or idle past
+  `session_max_idle_days`, is invalidated: the next touch starts fresh (told, via prompt, that it is
+  a successor and that the card holds the surviving memory), while the old transcript stays on disk
+  as history. *Why it matters:* rotation exists to shed stale working memory; deleting would also
+  destroy the audit trail. Mind the host: Claude Code's own retention sweep (`cleanupPeriodDays`,
+  default 30 days) deletes idle transcripts wholesale — a deployment that wants its history must
+  raise it in `~/.claude/settings.json`.
+- **Every per-card prompt says the agent is mortal.** The session can die mid-matter (turn cap,
+  crash, rotation), so prompts instruct writing state to the card as it is learned, never only at
+  the end. *Why:* a send once died at its turn cap with everything held in conversation — the
+  operator saw nothing for three days.
 - **Scan read *and* unread** (`in:inbox newer_than:2d`, diffed against `processed.json`), not `is:unread`.
   *Why:* you often read a mail before the next cycle; keying on Gmail's read flag made those invisible.
   The seen-ledger is the source of truth.

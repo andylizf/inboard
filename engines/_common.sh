@@ -58,6 +58,17 @@ lock_or_exit() {
   trap "rmdir '$lk' 2>/dev/null" EXIT
 }
 
+# Appended to every per-card agent prompt. The card outlives the agent by design, but that only
+# works if the agent behaves accordingly — a send once died at max-turns with its findings held
+# only in conversation, and the operator learned nothing for three days.
+MORTAL_TRAILER="You are MORTAL: this session can die at any turn (turn cap, crash, rotation) and your successor starts
+with NONE of this conversation. The card is the only memory that survives you — write to it AS YOU GO
+(board log / note the moment you learn or decide something), never only at the end: anything not on the
+card when you die never happened."
+# Set by prep_session when a card's session is rotated; every prompt may interpolate it, so it must
+# exist even when prep_session was never called (engines run under set -u).
+SESSION_NOTICE=""
+
 # session_too_big <session-id> — true when that transcript has outgrown agent.session_rotate_mb.
 # The transcript lives under ~/.claude/projects/<cwd with / turned into ->/<id>.jsonl; engines always run
 # from $INBOARD_HOME/agent, so the slug comes from the current directory. A missing file is NOT too big:
@@ -72,19 +83,39 @@ session_too_big() {
   [ "$bytes" -gt $(( limit_mb * 1024 * 1024 )) ]
 }
 
+# session_stale <session-id> — true when that transcript last moved more than
+# agent.session_max_idle_days ago. A stale session is invalidated, never deleted: the next touch
+# starts fresh (months-old working memory carries assumptions the card has since outgrown), while
+# the transcript stays on disk as history. A missing file is NOT stale — the resume-failure path
+# owns that case.
+session_stale() {
+  local sid="${1:-}" days f
+  days="$(cfg agent.session_max_idle_days 60)"
+  f="$HOME/.claude/projects/$(pwd | tr '/' '-')/$sid.jsonl"
+  [ -f "$f" ] || return 1
+  [ -n "$(find "$f" -mtime +"$days" -print 2>/dev/null)" ]
+}
+
 # prep_session — resume the card's per-card claude session, or mint a fresh id.
 # Reads CARD; sets SID, SESS (claude session flags), NEWSID (non-empty only when starting fresh).
 # Resume ONLY a well-formed UUID; any garbage must not wedge the card forever — fall through to fresh.
 # A transcript over the rotation limit also falls through: the card keeps its identity and its 📌 note,
 # and only the working memory turns over — which is the layer the state model says is disposable.
 prep_session() {
-  SID=$(board session --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log"); SESS=(); NEWSID=""
-  if valid_uuid "$SID" && ! session_too_big "$SID"; then
+  SID=$(board session --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log"); SESS=(); NEWSID=""; SESSION_NOTICE=""
+  if valid_uuid "$SID" && ! session_too_big "$SID" && ! session_stale "$SID"; then
     SESS=(--resume "$SID")
   else
-    valid_uuid "$SID" && session_too_big "$SID" \
-      && echo "[$(date)] rotating card $CARD session $SID (transcript over agent.session_rotate_mb)" \
-         >>"$INBOARD_LOGS/webhook.log"
+    local why=""
+    if valid_uuid "$SID" && session_too_big "$SID"; then why="its transcript outgrew agent.session_rotate_mb"
+    elif valid_uuid "$SID" && session_stale "$SID"; then why="it sat idle past agent.session_max_idle_days"
+    fi
+    if [ -n "$why" ]; then
+      echo "[$(date)] rotating card $CARD session $SID ($why; transcript kept)" >>"$INBOARD_LOGS/webhook.log"
+      # The successor must know it IS one: with no notice it reads the card as a cold open and
+      # re-derives (or contradicts) decisions its predecessor already logged there.
+      SESSION_NOTICE="NOTE: you are a FRESH session taking over an EXISTING matter — the previous session for card $CARD was retired ($why). Nothing it knew carried over: the card (state note + log) is the only surviving memory. Read the card fully before acting."
+    fi
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
   fi
 }

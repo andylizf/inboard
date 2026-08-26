@@ -31,11 +31,13 @@ prep_session
 # respelled here — CLAUDE.md §A is the single source of truth; a summary here WILL drift from it (it already
 # had: the daily-log step was missing).
 PROMPT="/goal The operator picked Action='$ACTION' on card $CARD (the inbox board) — a no-typing decision from the select. Read CLAUDE.md (this dir).
+$SESSION_NOTICE
 FIRST post a live plan so they can watch: \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 steps); \`board tick --card $CARD --n <0-based>\` the instant each step is done.
 Then read the card (subject, draft, needs, body) and handle Action='$ACTION' EXACTLY per CLAUDE.md §A — the actioned-card playbook there (including its daily-log step when a daily log is configured) is the single source of truth; do not improvise a different flow.
 Finish: \`board clear-action --card $CARD\` (so it can be re-triggered), then \`board reply --card $CARD --text '<one line: what you did>'\` so they see it in the thread.
 Email may leave ONLY when this Action is the send action, and ONLY via the +send-approved path in §A; for every other action, drafts only — never send.
-$GOAL_TRAILER"
+$GOAL_TRAILER
+$MORTAL_TRAILER"
 cap_goal_prompt
 runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/action-$TS.out" 2>> "$INBOARD_LOGS/action-$TS.log"; }
 run_with_selfheal

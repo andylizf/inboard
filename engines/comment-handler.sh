@@ -98,7 +98,9 @@ fi
 # already resolved above and the run reads live comments itself, so the payload adds nothing but bytes.
 PROMPT="/goal $TASK
 Event: ${ENT_TYPE:-unknown} ${ENT_ID:-?} (payload omitted; the card above is authoritative)
-$GOAL_TRAILER"
+$SESSION_NOTICE
+$GOAL_TRAILER
+$MORTAL_TRAILER"
 cap_goal_prompt
 runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
 run_with_selfheal

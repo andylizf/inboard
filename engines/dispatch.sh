@@ -168,6 +168,7 @@ run_group() {   # $1 = group index
     trap "rmdir '$LK' 2>/dev/null" RETURN
     prep_session
     PROMPT="You own ONE matter on the inbox board: card $CARD ('$matter'). Follow CLAUDE.md in this directory.
+$SESSION_NOTICE
 New mail on this matter, as <message-id>(<account>): $ids
 Read ONLY these messages' bodies (\`email <account> gmail +read --message-id <ID>\`), then handle them per
 CLAUDE.md steps 5c and 6 for THIS card only: ask memory before changing anything, update the card and its
@@ -178,7 +179,9 @@ if the card was waiting for him to send, that wait is over — move it to '⏳ �
 record what went out. If no reply is expected, close it. Log it to the daily log as a 📤 已发 entry, and
 write the fact into memory, because the other sessions that need to know a reply landed cannot read this card.
 Do not touch other cards — the dispatcher owns anything cross-card. Do not create a second card for this
-matter. NEVER send email (drafts only). Output one short line."
+matter. NEVER send email (drafts only).
+$MORTAL_TRAILER
+Output one short line."
   else
     # Mint the id BEFORE the prompt: only the agent learns the card id it creates, so it is the only one
     # that can attach the two. Without this a new matter's card is born with no Session, the next cycle
@@ -200,7 +203,9 @@ approves them all in one trip and wants one card.
 If you DO create a card, attach this conversation to it as the last thing you do:
 \`board session --card <the new card id> --set $NEWSID\`. That is what makes the next mail on this matter
 resume YOU instead of starting cold — you are the only one who knows the card id.
-NEVER send email (drafts only). Output one short line."
+NEVER send email (drafts only).
+$MORTAL_TRAILER
+Output one short line."
   fi
 
   runh() { claude -p "$PROMPT" "$@" --model "$MODEL" \
