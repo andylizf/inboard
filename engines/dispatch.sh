@@ -208,10 +208,17 @@ $MORTAL_TRAILER
 Output one short line."
   fi
 
-  runh() { claude -p "$PROMPT" "$@" --model "$MODEL" \
-    --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill" \
-    --max-turns "$CARD_TURNS" --output-format text < /dev/null >> "$glog" 2>&1; }
-  run_with_selfheal
+  if [ "$route" = "card" ] && valid_uuid "$CARD" && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
+    # Existing card with a persistent agent: queue new mail to it (async; it updates its own card).
+    if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0; else RC=1; fi
+    NEWSID=""
+    echo "[$(date)] g$idx dispatch delivered to daemon agent $(card_agent_name "$CARD") rc=$RC" >>"$LOG"
+  else
+    runh() { claude -p "$PROMPT" "$@" --model "$MODEL" \
+      --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill" \
+      --max-turns "$CARD_TURNS" --output-format text < /dev/null >> "$glog" 2>&1; }
+    run_with_selfheal
+  fi
   echo "[$(date)] g$idx route=$route card=${CARD:-new} rc=$RC matter='$matter'" >>"$LOG"
 
   if [ "$RC" = 0 ]; then
@@ -250,4 +257,5 @@ fi
 # Plans are debugging artifacts, not state anything reads back. Keep the recent ones and drop the
 # rest — an unpruned per-cycle file is the same monotonic pile the cards and the sessions were.
 ls -1t "$INBOARD_STATE"/dispatch-plan-*.json 2>/dev/null | tail -n +51 | while read -r f; do rm -f "$f"; done
+python3 "$INBOARD_HOME/lib/daemon_stall_check.py" >>"$LOG" 2>&1 || true
 echo "[$(date)] === dispatch cycle done (failed groups=$FAILED) ===" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"

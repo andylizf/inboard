@@ -43,7 +43,9 @@ if [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   # Async path: queue the prompt to the card's persistent daemon agent; it writes results to the card
   # itself. RC here is delivery-acceptance, not task completion — the loud-failure reply below still
   # fires when the daemon could not take it (daemon down / agent unreachable), stranding the tap.
-  if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0; else RC=1; fi
+  if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0;
+    python3 "$INBOARD_HOME/lib/daemon_pending.py" record "$CARD" "$ACTION" 2>>"$INBOARD_LOGS/webhook.log" || true
+  else RC=1; fi
   NEWSID=""  # the daemon owns the card's session; nothing for the shell to persist
   echo "[$(date)] action delivered to daemon agent $(card_agent_name "$CARD") rc=$RC (queued, async)" >> "$INBOARD_LOGS/webhook.log"
 else
