@@ -146,11 +146,38 @@ cap_goal_prompt() {
 # run_with_selfheal — run the caller-defined runh() with the SESS flags; a --resume of a stale/foreign
 # claude session fails ("No conversation found") → self-heal: retry ONCE with a fresh session id.
 # Uses/sets caller vars: SESS, NEWSID, RC, CARD.
+# deadline_run — run a runner function under a wall-clock ceiling (agent.deadline_min,
+# default 45; 0 disables). A wedged CLI can outlive its usefulness by hours while
+# ignoring SIGTERM (retry storms on 429/ECONNRESET), so the kill escalates
+# TERM -> KILL and walks the process tree: the backgrounded function is a subshell
+# whose CLI child would otherwise survive its parent's death.
+_kill_tree() { local c; for c in $(pgrep -P "$1" 2>/dev/null); do _kill_tree "$c" "$2"; done; kill "-$2" "$1" 2>/dev/null; }
+deadline_run() {
+  local budget; budget=$(( $(cfg agent.deadline_min 45) * 60 ))
+  if [ "$budget" -le 0 ]; then "$@"; return $?; fi
+  "$@" &
+  local pid=$! waited=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$waited" -ge "$budget" ]; then
+      echo "[$(date)] DEADLINE: agent run past $((budget/60))min, killing tree (card ${CARD:-?})" >> "$INBOARD_LOGS/webhook.log"
+      _kill_tree "$pid" TERM; sleep 20
+      kill -0 "$pid" 2>/dev/null && _kill_tree "$pid" KILL
+      wait "$pid" 2>/dev/null
+      return 124
+    fi
+    sleep 15; waited=$((waited+15))
+  done
+  wait "$pid"
+}
+
 run_with_selfheal() {
-  runh ${SESS[@]+"${SESS[@]}"}; RC=$?
+  deadline_run runh ${SESS[@]+"${SESS[@]}"}; RC=$?
+  # 124 = deadline kill, not resume staleness — a fresh-session retry would just
+  # burn a second budget under the same conditions.
+  if [ "$RC" = 124 ]; then return; fi
   if [ -z "$NEWSID" ] && [ "$RC" != 0 ]; then
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())')
     echo "[$(date)] resume failed (rc=$RC) card ${CARD:-?} -> fresh session, retry once" >> "$INBOARD_LOGS/webhook.log"
-    runh --session-id "$NEWSID"; RC=$?
+    deadline_run runh --session-id "$NEWSID"; RC=$?
   fi
 }

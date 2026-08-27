@@ -121,11 +121,11 @@ run_dispatch() { claude -p "$DPROMPT" "$@" --model "$MODEL" \
   --allowedTools "Bash,Read,Write,WebSearch,WebFetch,Skill" \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }
 
-run_dispatch "${DFLAG[@]}"; RC=$?
-if [ "$DRESUME" = 1 ] && [ "$RC" != 0 ]; then
+deadline_run run_dispatch "${DFLAG[@]}"; RC=$?
+if [ "$DRESUME" = 1 ] && [ "$RC" != 0 ] && [ "$RC" != 124 ]; then
   echo "[$(date)] dispatcher resume failed (rc=$RC) → fresh session, retry once" >>"$LOG"
   DSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); echo "$DSID" >"$SESS_FILE"
-  run_dispatch --session-id "$DSID"; RC=$?
+  deadline_run run_dispatch --session-id "$DSID"; RC=$?
 fi
 DRC=$RC   # the dispatcher's own result; card agents run in subshells and never set this
 
