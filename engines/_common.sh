@@ -29,7 +29,10 @@ fi
 # Goal-mode trailer appended to every event-driven /goal prompt (comment- and action-handler).
 # ---- daemon delivery (opt-in via agent.delivery: daemon) ----------------------------------------
 # card_agent_name <card-id> — the deterministic name of a card's persistent daemon-hosted agent.
-card_agent_name() { echo "inboard-card-${1:0:8}"; }
+# Full un-dashed id, NOT a prefix: Notion page ids are time/workspace-correlated, and three cards
+# created the same day were observed sharing their first 8 hex chars — a prefix would route two
+# cards' events into one agent.
+card_agent_name() { echo "inboard-card-${1//-/}"; }
 
 # deliver_to_daemon <card> <cwd> <prompt> — queue PROMPT to the card's persistent agent through the
 # Claude Code daemon (lib/agent_deliver.py). Returns 0 when the daemon ACCEPTED it (queued to a live
