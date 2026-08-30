@@ -378,7 +378,7 @@ def accounts(_):
     # The mailboxes this deployment watches (from config) — the agent reads this to know which
     # account ids/labels to use with the `email` CLI and the board's Account property.
     out = [{"id": x.get("id"), "label": x.get("label") or x.get("id"),
-            "address": x.get("address"), "calendar": x.get("calendar", False)} for x in C.accounts()]
+            "address": x.get("address"), "calendar": x.get("calendar", False)} for x in C.polled_accounts()]
     print(json.dumps(out, ensure_ascii=False))
 
 

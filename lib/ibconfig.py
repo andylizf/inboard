@@ -67,6 +67,18 @@ def accounts():
     return load().get("accounts") or []
 
 
+def polled_accounts():
+    """Accounts the engines should actually poll.
+
+    An account with `enabled: false` stays configured — `account()` still
+    resolves it, so cards already carrying its id keep working — but no cycle
+    queries it. Use it for a mailbox whose provider wiring cannot serve mail
+    (e.g. a Microsoft-hosted domain configured as gmail): polling it silently
+    re-reads whichever mailbox the credential really resolves to and bills a
+    triage call for a duplicate of another account."""
+    return [a for a in accounts() if a.get("enabled", True)]
+
+
 def account(account_id):
     for a in accounts():
         if a.get("id") == account_id:
