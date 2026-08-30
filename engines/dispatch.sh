@@ -258,4 +258,7 @@ fi
 # rest — an unpruned per-cycle file is the same monotonic pile the cards and the sessions were.
 ls -1t "$INBOARD_STATE"/dispatch-plan-*.json 2>/dev/null | tail -n +51 | while read -r f; do rm -f "$f"; done
 python3 "$INBOARD_HOME/lib/daemon_stall_check.py" >>"$LOG" 2>&1 || true
+# A tap Notion delivered while the engines were down is never redelivered, so the
+# card keeps showing an Action nobody will ever act on. Recover those here.
+python3 "$INBOARD_HOME/lib/orphan_action_sweep.py" >>"$LOG" 2>&1 || true
 echo "[$(date)] === dispatch cycle done (failed groups=$FAILED) ===" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"
