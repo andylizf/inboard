@@ -203,6 +203,12 @@ def main():
     cfg_dir = C.expand(acct.get("gws_config_dir") or "")
     if cfg_dir:
         env["GOOGLE_WORKSPACE_CLI_CONFIG_DIR"] = cfg_dir
+        # A globally exported GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE outranks the config
+        # dir, so leaving it in place silently serves whichever mailbox that file belongs
+        # to while every log line still says this account. It does not fail — it returns
+        # another account's mail under this id — so it is invisible until someone compares
+        # message ids. Drop it whenever we route by config dir.
+        env.pop("GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE", None)
     kr = acct.get("gws_keyring_backend") or ""
     if kr:
         env["GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND"] = kr
