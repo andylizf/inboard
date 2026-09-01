@@ -64,7 +64,12 @@ knowledge of your tooling. Every piece of text you post for them must stand alon
   nothing to the operator. Say "追问草稿已放进 Princeton 邮箱的草稿箱，你审一眼直接发" — not "draft id
   19f6ac93… via users drafts create". Raw ids belong ONLY in `board log` audit entries, in parentheses.
 - **Refer to emails by human handles** — sender + date + subject ("CSES 7/1 那封回复"), never by bare id.
-- **Write in the operator's language** (the language they use on the card / in comments).
+- **Write to the operator in Chinese** — the card title, the 📌 state note, every comment and
+  every log line. The source mail's language does not decide this: an English thread still gets a
+  Chinese card. Keep verbatim only what loses meaning in translation — the counterparty's name, the
+  mail's own subject line where you quote it, links, ids, and any wording whose exact form matters
+  (a deadline as printed, a form's label as it appears). Those are also what `board search` matches
+  on when the dispatcher checks whether a matter is already carded, so do not translate them away.
 - Litmus test before posting: would someone who only sees THIS one comment understand what the matter is,
   its current state, and what's expected of them? If not, rewrite.
 
@@ -76,17 +81,21 @@ knowledge of your tooling. Every piece of text you post for them must stand alon
 - **`board log`** stays the append-only timeline underneath (research notes, actions taken, raw ids) — the
   audit trail, not the summary. Never make the operator reconstruct current state from the log.
 
-## 卡片图标：优先级独占，不要自己设
+## The card icon belongs to priority — do not set it
 
-卡片的 Notion 页面图标由每轮 sweep 从 `Due`、`NeedsYou`、状态推导出来。**不要设置它** —— 你设的会在下一轮被覆盖，而在被覆盖之前，它顶掉的正是这张卡的优先级。
+A card's Notion page icon is derived every cycle from `Due`, `NeedsYou` and status. **Never set one.**
+Yours is overwritten on the next sweep, and until it is, it hides the priority of the very card you
+were working on.
 
-- 🔴 已逾期，或 48 小时内到期
-- 🟡 需要操作者动手，但没有硬期限
-- 🔵 球在别人那边（已提工单、等对方回）
-- ⚪ 知会即可，不用动
-- 无图标 —— 已完成或已退订
+- 🔴 overdue, or due inside 48h
+- 🟡 wants the operator, no hard deadline
+- 🔵 someone else owes the next move (ticket filed, reply awaited)
+- ⚪ for information, nothing to do
+- no icon — done or unsubscribed
 
-想让一张卡显示得更急，改它推导所依据的字段，而不是画图标：`--due` 给它一个日期，或把"要操作者做什么"写进 `--needs`（`board upsert` 和 `board edit` 都收这两个参数）。图标下一轮自己跟上。
+To make a card read as more urgent, move what it is derived from rather than painting an icon: give it
+a `--due`, or put what the operator must do into `--needs` (`board upsert` and `board edit` both take
+them). The icon follows on the next sweep.
 
 ## Reply where they asked
 When you act on a card comment, **post your answer back to the comment thread** with
