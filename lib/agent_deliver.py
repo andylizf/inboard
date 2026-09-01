@@ -169,6 +169,31 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
             respawn(short)
             time.sleep(4)
             sock = live_control_sock()
+        elif job.get("state") == "blocked":
+            # A blocked worker still accepts deliveries and never runs them, so every
+            # send returns ok and is silently swallowed — one that came up during an
+            # auth outage ate three of the operator's comments before anyone looked.
+            # Its block cannot clear on its own (it wants a login it cannot be given),
+            # so replace it rather than queue behind it. The card holds the state, so
+            # the replacement loses nothing but the live session's working memory.
+            subprocess.run(["claude", "stop", short], capture_output=True)
+            subprocess.run(["claude", "rm", short], capture_output=True)
+            spawn(name, cwd)
+            deadline = time.time() + ready_timeout
+            job = None
+            while time.time() < deadline:
+                time.sleep(3)
+                sock = live_control_sock()
+                job = find_job(name, sock)
+                if job and job.get("state") != "blocked":
+                    break
+            if job is None:
+                raise DaemonError(f"replaced blocked {name} but it never registered")
+            if job.get("state") == "blocked":
+                raise DaemonError(
+                    f"{name} came back blocked ({job.get('needs') or 'unknown'}) — "
+                    "the daemon itself is unauthenticated; check its env carries a token")
+            short = job["short"]
     return _reply_with_retry(short, text, sock)
 
 
