@@ -261,4 +261,7 @@ python3 "$INBOARD_HOME/lib/daemon_stall_check.py" >>"$LOG" 2>&1 || true
 # A tap Notion delivered while the engines were down is never redelivered, so the
 # card keeps showing an Action nobody will ever act on. Recover those here.
 python3 "$INBOARD_HOME/lib/orphan_action_sweep.py" >>"$LOG" 2>&1 || true
+# Priority is derived, not stored: recolour every card from Due/NeedsYou/Status so the
+# strip a glance lands on can never disagree with the properties underneath it.
+board covers >>"$LOG" 2>&1 || true
 echo "[$(date)] === dispatch cycle done (failed groups=$FAILED) ===" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"

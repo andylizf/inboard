@@ -374,6 +374,84 @@ def edit(a):
     print(json.dumps({"edited": a.card}))
 
 
+# --- Priority covers -------------------------------------------------------
+# Priority lives in the one place a glance already lands: the card's cover strip.
+# Nothing new is stored. The level is DERIVED on every sweep from the properties
+# that already decide urgency, so it cannot drift out of sync with them and costs
+# an agent no extra judgement. Notion ships exactly four solid-colour covers
+# (red/yellow/blue/beige — there is no green), which is why the low end is beige
+# rather than the traffic-light colour one might reach for first.
+COVER_URLS = {
+    "urgent":  "https://www.notion.so/images/page-cover/solid_red.png",
+    "soon":    "https://www.notion.so/images/page-cover/solid_yellow.png",
+    "waiting": "https://www.notion.so/images/page-cover/solid_blue.png",
+    "fyi":     "https://www.notion.so/images/page-cover/solid_beige.png",
+}
+_COVER_OWNED = set(COVER_URLS.values())
+
+
+def _cover_level(page, now):
+    """urgent > soon > waiting > fyi, or None for a closed card."""
+    props = page.get("properties", {})
+
+    def sel(name):
+        return ((props.get(name) or {}).get("select") or {}).get("name") or ""
+
+    def txt(name):
+        return "".join(t.get("plain_text", "")
+                       for t in ((props.get(name) or {}).get("rich_text") or []))
+
+    status = sel("Status")
+    if status in (C.status_name("done"), C.status_name("unsub")):
+        return None                      # closed — a colour here is just noise
+
+    due = ((props.get("Due") or {}).get("date") or {}).get("start")
+    if due:
+        try:
+            d = datetime.fromisoformat(due.replace("Z", "+00:00"))
+            if d.tzinfo is None:
+                d = d.replace(tzinfo=now.tzinfo)
+            if (d - now).total_seconds() <= 48 * 3600:
+                return "urgent"          # overdue, or lands inside two days
+        except ValueError:
+            pass
+    if txt("NeedsYou").strip():
+        return "soon"                    # wants him, but no clock on it
+    if status == C.status_name("awaiting"):
+        return "waiting"                 # someone else owes the next move
+    return "fyi"
+
+
+def covers(a):
+    now = datetime.now().astimezone()
+    cursor, changed, seen, skipped = None, 0, 0, 0
+    while True:
+        body = {"page_size": 100}
+        if cursor:
+            body["start_cursor"] = cursor
+        r = api("POST", f"/databases/{DB}/query", body)
+        for page in r.get("results", []):
+            seen += 1
+            current = ((page.get("cover") or {}).get("external") or {}).get("url")
+            # Never touch a cover somebody chose by hand — only ours or none.
+            if current and current not in _COVER_OWNED:
+                skipped += 1
+                continue
+            level = _cover_level(page, now)
+            want = COVER_URLS.get(level) if level else None
+            if want == current:
+                continue
+            if not getattr(a, "dry", False):
+                api("PATCH", f"/pages/{page['id']}",
+                    {"cover": {"type": "external", "external": {"url": want}} if want else None})
+            changed += 1
+        if not r.get("has_more"):
+            break
+        cursor = r.get("next_cursor")
+    print(json.dumps({"scanned": seen, "recoloured": changed, "hand-set left alone": skipped,
+                      "dry": bool(getattr(a, "dry", False))}, ensure_ascii=False))
+
+
 def accounts(_):
     # The mailboxes this deployment watches (from config) — the agent reads this to know which
     # account ids/labels to use with the `email` CLI and the board's Account property.
@@ -415,6 +493,7 @@ def main():
     sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
     ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
     ed.add_argument("--due"); ed.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818
+    cv = sub.add_parser("covers"); cv.add_argument("--dry", action="store_true")
     sub.add_parser("accounts")
     sub.add_parser("whoami")
     a = ap.parse_args()
@@ -428,7 +507,7 @@ def main():
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
      "subscriptions": subscriptions, "search": search, "stale-awaiting": stale_awaiting, "edit": edit,
-     "accounts": accounts, "whoami": whoami}[a.cmd](a)
+     "accounts": accounts, "whoami": whoami, "covers": covers}[a.cmd](a)
 
 
 if __name__ == "__main__":
