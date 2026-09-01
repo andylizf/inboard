@@ -387,7 +387,13 @@ COVER_URLS = {
     "waiting": "https://www.notion.so/images/page-cover/solid_blue.png",
     "fyi":     "https://www.notion.so/images/page-cover/solid_beige.png",
 }
+# The icon is what actually reaches the eye: Notion shows it on every card without
+# any view setting, while a cover only appears once the view's card preview is set to
+# "Page cover". Both are written from the same derived level in one PATCH, so they can
+# never disagree; an unset icon is the grey placeholder Notion draws anyway.
+COVER_ICONS = {"urgent": "🔴", "soon": "🟡", "waiting": "🔵", "fyi": "⚪"}
 _COVER_OWNED = set(COVER_URLS.values())
+_ICONS_OWNED = set(COVER_ICONS.values())
 
 
 def _cover_level(page, now):
@@ -432,23 +438,28 @@ def covers(a):
         r = api("POST", f"/databases/{DB}/query", body)
         for page in r.get("results", []):
             seen += 1
-            current = ((page.get("cover") or {}).get("external") or {}).get("url")
-            # Never touch a cover somebody chose by hand — only ours or none.
-            if current and current not in _COVER_OWNED:
+            cur_cover = ((page.get("cover") or {}).get("external") or {}).get("url")
+            cur_icon = ((page.get("icon") or {}).get("emoji")
+                        if (page.get("icon") or {}).get("type") == "emoji" else None)
+            # Never touch a cover or icon somebody chose by hand — only ours, or none.
+            if (cur_cover and cur_cover not in _COVER_OWNED) or (cur_icon and cur_icon not in _ICONS_OWNED):
                 skipped += 1
                 continue
             level = _cover_level(page, now)
-            want = COVER_URLS.get(level) if level else None
-            if want == current:
+            want_cover = COVER_URLS.get(level) if level else None
+            want_icon = COVER_ICONS.get(level) if level else None
+            if want_cover == cur_cover and want_icon == cur_icon:
                 continue
             if not getattr(a, "dry", False):
-                api("PATCH", f"/pages/{page['id']}",
-                    {"cover": {"type": "external", "external": {"url": want}} if want else None})
+                api("PATCH", f"/pages/{page['id']}", {
+                    "cover": {"type": "external", "external": {"url": want_cover}} if want_cover else None,
+                    "icon": {"type": "emoji", "emoji": want_icon} if want_icon else None,
+                })
             changed += 1
         if not r.get("has_more"):
             break
         cursor = r.get("next_cursor")
-    print(json.dumps({"scanned": seen, "recoloured": changed, "hand-set left alone": skipped,
+    print(json.dumps({"scanned": seen, "restyled": changed, "hand-set left alone": skipped,
                       "dry": bool(getattr(a, "dry", False))}, ensure_ascii=False))
 
 
