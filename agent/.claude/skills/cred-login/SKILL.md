@@ -1,46 +1,49 @@
 ---
 name: cred-login
-description: Fetch a saved login/password and get a site past a login wall using Bitwarden Agent Access (`aac`) — the secret NEVER enters your context. Load this the moment `browser` pauses on a login page, or whenever you need any saved credential. Covers the request-and-approval model, the shell-expansion gotcha, and what to do when the operator's listener is not running.
+description: Fetch a saved login/password with the `cred` broker — the secret NEVER enters your context. Load this the moment `browser` pauses on a login page, or whenever you need any saved credential. Covers the fetch-into-a-command model, the $CRED-shell gotcha, and what a locked vault looks like.
 ---
 
-Need a saved login/password? Use **`aac`** (Bitwarden Agent Access). The vault lives on the operator's
-laptop, not on this machine. You ask for one credential, they approve it there, and it comes back through
-an encrypted tunnel that closes afterwards. This is the ONLY way you may touch a secret.
+Need a saved login/password? Use the **`cred`** broker. It holds the vault session in memory on this
+machine and hands a secret only into a command's environment — never onto your stdout. This is the ONLY
+way you may touch a secret.
 
-**Fetch by domain, into a command — never into your own output:**
-
-```sh
-aac run --domain <domain> --env-all -- sh -c '<command that uses "$password">'
-```
-
-`--env-all` puts the item's fields in the child's environment: `username`, `password`, `totp`, `uri`,
-`notes`, `domain`, `credential_id`. Use `--id <vault-item-id>` instead of `--domain` when you know the
-exact item; the two flags are mutually exclusive.
-
-**NEVER run `aac connect --domain … --output json`.** That prints the credential to stdout, which is your
-context — the one thing this whole mechanism exists to prevent. `aac run` is the only fetch you use.
-
-**The shell-expansion gotcha (the same one that cost a session under the old broker):** `aac run … -- <cmd>`
-execs `<cmd>` DIRECTLY, with no shell, so `"$password"` expands only if `<cmd>` IS a shell. Writing
-`aac run --domain x.com --env-all -- web-plane lane L fill e5 "$password"` types the literal 9 characters
-`$password` into the field — a wrong login that LOOKS right, dots in the box and all, then "password does
-not match". Always wrap it:
+**Look it up first (free, no secrets):**
 
 ```sh
-aac run --domain x.com --env-all -- sh -c 'web-plane lane L fill e5 "$password"'
+cred find <site>
 ```
 
-**Getting a site past a login wall:**
-1. Drive the browser to the real login URL (a bare domain often redirects when logged out).
-2. Snapshot to get the field refs, then fill username and password through `aac run` as above. If the item
-   carries a TOTP, `"$totp"` is a valid code at that moment — fill it in the same command, not a later one.
-3. Carry on in the same browser session; it is now logged in, and it stays logged in, so the next task on
-   that site needs no credential at all.
+Returns item id, username and the real login URL. Use that URL, not a bare domain — a bare domain often
+redirects when logged out.
 
-**Approval takes as long as it takes.** The operator approves each request in a terminal on their laptop.
-Let the command wait — never wrap it in a `timeout`, which kills the request mid-approval.
+**Then fetch it INTO a command, never into your own output:**
 
-**When the listener is not running** the request fails rather than hanging: they are asleep, or the laptop
-is shut. Do NOT retry in a loop and do NOT treat it as a broken credential. Say so on the card, in one
-line, naming what you need — then follow the HUMAN GATE procedure in CLAUDE.md, whose readiness probe here
-is a cheap `aac connections list`, never a login attempt.
+```sh
+cred with <id> -- bash -c '<command that uses "$CRED">'
+```
+
+**The $CRED-shell gotcha (it cost a whole session once):** `cred with … -- <cmd>` runs `<cmd>` DIRECTLY,
+with no shell, so `"$CRED"` expands only if `<cmd>` IS a shell. Writing
+`cred with <id> -- web-plane lane L fill e5 "$CRED"` types the literal 5 characters `$CRED` into the
+field — a wrong login that LOOKS right, dots in the box and all, then "password does not match". Always
+wrap it:
+
+```sh
+cred with <id> -- bash -c 'web-plane lane L fill e5 "$CRED"'
+```
+
+`cred get` prints the raw secret and is refused to a non-TTY; agents always use `cred with`.
+
+**Getting a site past a login wall:** drive the browser to the login URL, snapshot for the field refs,
+fill username and password through `cred with` as above, then carry on in the same browser session. It
+stays logged in afterwards, so the next task on that site needs no credential at all.
+
+**When the vault is locked** every fetch fails until a human unlocks it, and it stays locked until then —
+there is no timer that will clear it. Do NOT retry in a loop. Say so on the card in one line and follow
+the HUMAN GATE procedure in CLAUDE.md; the cheap readiness probe there is `cred status`, never a login
+attempt. The operator unlocks with `ssh -t mac-mini "cred unlock '*'"`.
+
+**Read cred's full output, never grep it away** — it is progressive-disclosure and tells you the exact
+next step. One error deserves suspicion rather than belief: `item has no login.password field` can mean
+the broker's session has been invalidated rather than that the item is passwordless. If several items
+report it at once, the session is dead — relay the unlock, do not conclude anything about the vault.
