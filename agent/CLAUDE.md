@@ -349,9 +349,16 @@ Run `board pending`. For each actioned card, act on the operator's request, then
    `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).
 
 ## Calendar events
-When a mail carries a concrete dated event, follow `cfg preferences.calendar_events`:
-`propose` (default) → put the parsed date/time/details on the card ready to insert, and add it to the calendar
-ONLY after the operator OKs it; `auto` → add it yourself and note it on the card; `off` → don't touch the calendar.
+A calendar-worthy date is any concrete date/time the operator must act on, WHENEVER it becomes known — in
+the mail itself, or only later, out of your research, a comment exchange, or a decision made on the card.
+A date that surfaces mid-work does not look like "a mail with an event", which is exactly how it gets
+missed: the test is the matter having a date, not the mail carrying one. The moment the date is concrete,
+follow `cfg preferences.calendar_events`:
+- `propose` (default) → put the parsed date/time/details on the card ready to insert; add to the calendar
+  ONLY after the operator OKs it.
+- `auto` → add the event yourself right then, and write one line on the card saying it is on the calendar
+  (📌 note or log). A card carrying a date with no such line is an unfinished step.
+- `off` → don't touch the calendar.
 
 ## Web tasks & logins (SKILLS — load when the situation hits)
 - Any browser automation (click / fill / submit a form / read a gated page) → use the **`web-tasks`** skill.
