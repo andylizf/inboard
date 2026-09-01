@@ -26,9 +26,23 @@ def _actionof(card):
     return r.stdout.strip()
 
 
+def _agent_alive(card):
+    """Is this card's worker still running? A busy agent is not a stalled one — real card
+    work (a login, a page to read, a form) routinely outruns any timeout worth setting,
+    and calling that a stall puts a warning on a card that is being handled correctly."""
+    try:
+        sys.path.insert(0, str(INBOARD / "lib"))
+        import agent_deliver as A
+        job = A.find_job("inboard-card-" + card.replace("-", ""))
+        return bool(job) and job.get("state") in ("working", "running", "adopted")
+    except Exception:
+        return False          # cannot tell → fall back to the timeout alone
+
+
 def main():
-    stall_min = int(_cfg("agent.daemon_stall_min", "15"))
-    stalled = P.sweep(_actionof, stall_min * 60)
+    stall_min = int(_cfg("agent.daemon_stall_min", "45"))
+    stalled = [s for s in P.sweep(_actionof, stall_min * 60)
+               if not _agent_alive(s["card"])]
     for s in stalled:
         subprocess.run(["board", "reply", "--card", s["card"], "--text",
                         f"⚠️ Action '{s['action']}' was delivered to this card's agent but it did not "

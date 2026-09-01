@@ -93,15 +93,14 @@ per CLAUDE.md's writing rules>'\` so they see it, refresh the 📌 note (\`board
 NEVER send email (drafts only)."
 fi
 
-# NOTE: the full Event JSON is deliberately NOT embedded — /goal hard-caps its condition at 4000 chars
+# NOTE: the full Event JSON is deliberately NOT embedded — the prompt is already near the size
 # (CLI prints "Goal condition is limited to 4000 characters" and exits 0 = silent no-op run). The card is
 # already resolved above and the run reads live comments itself, so the payload adds nothing but bytes.
-PROMPT="/goal $TASK
+PROMPT="$TASK
 Event: ${ENT_TYPE:-unknown} ${ENT_ID:-?} (payload omitted; the card above is authoritative)
 $SESSION_NOTICE
 $GOAL_TRAILER
 $MORTAL_TRAILER"
-cap_goal_prompt
 if [ -n "${CARD:-}" ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   # Async: queue to the card's persistent daemon agent (it writes its own reply to the card).
   if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0; else RC=1; fi

@@ -26,7 +26,7 @@ fi
 
 # ---------- shared engine helpers (single source of truth — do NOT re-implement in engines) ----------
 
-# Goal-mode trailer appended to every event-driven /goal prompt (comment- and action-handler).
+# Persistence trailer appended to every event-driven prompt (comment- and action-handler).
 # ---- daemon delivery (opt-in via agent.delivery: daemon) ----------------------------------------
 # card_agent_name <card-id> — the deterministic name of a card's persistent daemon-hosted agent.
 # Full un-dashed id, NOT a prefix: Notion page ids are time/workspace-correlated, and three cards
@@ -137,14 +137,11 @@ prep_session() {
   fi
 }
 
-# cap_goal_prompt — /goal hard-caps its condition at 4000 chars and the CLI exits 0 on that error (a SILENT
-# no-op run). Never send an oversized goal: degrade to a plain prompt (strip /goal) and WARN loudly instead.
-cap_goal_prompt() {
-  if [ "${#PROMPT}" -gt 3900 ]; then
-    echo "[$(date)] WARN: prompt ${#PROMPT} chars > /goal 4000 cap → stripped /goal, running plain (card=${CARD:-?})" >> "$INBOARD_LOGS/webhook.log"
-    PROMPT="${PROMPT#/goal }"
-  fi
-}
+# /goal was removed 2026-09-02. Its condition is hard-capped at 4000 chars while these
+# prompts are a fixed 4167, so every single run tripped the cap and degraded to a plain
+# prompt anyway — the branch never once ran in goal mode, and it logged a warning each
+# time. If goal mode is wanted again the prompt has to get smaller first, not the guard
+# bigger.
 
 # run_with_selfheal — run the caller-defined runh() with the SESS flags; a --resume of a stale/foreign
 # claude session fails ("No conversation found") → self-heal: retry ONCE with a fresh session id.
