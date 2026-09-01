@@ -441,8 +441,12 @@ def covers(a):
             cur_cover = ((page.get("cover") or {}).get("external") or {}).get("url")
             cur_icon = ((page.get("icon") or {}).get("emoji")
                         if (page.get("icon") or {}).get("type") == "emoji" else None)
-            # Never touch a cover or icon somebody chose by hand — only ours, or none.
-            if (cur_cover and cur_cover not in _COVER_OWNED) or (cur_icon and cur_icon not in _ICONS_OWNED):
+            # The icon belongs to priority, unconditionally. Agents set emoji icons on
+            # cards as they work (🔎 while researching, and so on), so exempting a
+            # "hand-set" icon means the cards being actively worked — exactly the ones
+            # worth ranking — are the ones that never get a dot. A cover is different:
+            # nothing else writes one, so an unrecognised cover really was a person.
+            if cur_cover and cur_cover not in _COVER_OWNED:
                 skipped += 1
                 continue
             level = _cover_level(page, now)
