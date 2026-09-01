@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# twofa-gate — one outstanding push at a time, across every card agent.
+#
+# A second factor that rings the operator's phone is not rate-limited by trying once.
+# Card agents run in parallel and each sees only its own card, so six of them each
+# behaving perfectly still rings six times, and an unanswered push counts as a timed-out
+# attempt. Princeton's security office locked the account over exactly that on
+# 2026-09-01. The gate is shared state, because the rule cannot be enforced from inside
+# a single agent's prompt.
+#
+#   twofa-gate acquire <service>          exit 0 = go ahead; exit 1 = do NOT push
+#   twofa-gate release <service> ok       cleared, it worked
+#   twofa-gate release <service> timeout  nobody answered → cooldown for everyone
+#   twofa-gate status
+set -uo pipefail
+STATE="${INBOARD_STATE:-$HOME/Projects/inboard/state}/2fa"
+COOLDOWN_MIN="${TWOFA_COOLDOWN_MIN:-90}"   # after an unanswered push
+OUTSTANDING_MIN="${TWOFA_OUTSTANDING_MIN:-10}"  # a push nobody released is assumed dead
+mkdir -p "$STATE"
+now=$(date +%s)
+cmd="${1:-status}"; svc="${2:-any}"
+lock="$STATE/outstanding"; cool="$STATE/cooldown"
+
+read_ts() { [ -f "$1" ] && head -1 "$1" 2>/dev/null | tr -cd '0-9' || echo 0; }
+
+case "$cmd" in
+  acquire)
+    c=$(read_ts "$cool"); c=${c:-0}
+    if [ "$c" -gt 0 ] && [ $((now - c)) -lt $((COOLDOWN_MIN * 60)) ]; then
+      left=$(( (COOLDOWN_MIN * 60 - (now - c)) / 60 ))
+      echo "2fa-gate: BLOCKED — a push went unanswered $(( (now - c) / 60 )) min ago; cooling down ${left} more min."
+      echo "  Do NOT push. Say on the card that it needs the operator at their phone, and stop."
+      exit 1
+    fi
+    o=$(read_ts "$lock"); o=${o:-0}
+    if [ "$o" -gt 0 ] && [ $((now - o)) -lt $((OUTSTANDING_MIN * 60)) ]; then
+      echo "2fa-gate: BLOCKED — another card already has a push outstanding ($(( (now - o) / 60 )) min ago)."
+      echo "  Do NOT push. Say on the card that it is queued behind another 2FA, and stop."
+      exit 1
+    fi
+    { echo "$now"; echo "$svc"; } > "$lock"
+    echo "2fa-gate: OK — you hold the only outstanding push ($svc). Release it when you know the outcome."
+    ;;
+  release)
+    outcome="${3:-timeout}"
+    rm -f "$lock"
+    if [ "$outcome" = ok ]; then
+      rm -f "$cool"; echo "2fa-gate: released ($svc, answered)"
+    else
+      echo "$now" > "$cool"
+      echo "2fa-gate: released ($svc, UNANSWERED) — everyone is blocked for ${COOLDOWN_MIN} min."
+    fi
+    ;;
+  *)
+    o=$(read_ts "$lock"); c=$(read_ts "$cool")
+    echo "outstanding: $([ "${o:-0}" -gt 0 ] && echo "$(( (now - o) / 60 )) min ago" || echo none)"
+    echo "cooldown   : $([ "${c:-0}" -gt 0 ] && echo "$(( (now - c) / 60 )) min ago (of ${COOLDOWN_MIN})" || echo none)"
+    ;;
+esac

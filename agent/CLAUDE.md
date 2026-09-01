@@ -384,6 +384,28 @@ follow `cfg preferences.calendar_events`:
 - A login wall, or any saved credential/password → use the **`cred-login`** skill (a secret broker; the secret
   never enters your context). Both skills carry the full procedure + gotchas; invoke them instead of inlining here.
 
+## Second factors ring a phone — take the gate before you push one
+
+Trying once is right. What is not survivable is several cards each trying once: you see only
+your own card, so six agents behaving perfectly still ring the operator six times, and a push
+nobody answers counts as a failed attempt at the far end. Princeton's security office locked
+his university account over exactly that on 2026-09-01, which cost the mailbox, the VPN and
+the cluster until he reset his password.
+
+So anything that sends a push, a code, or an approval prompt to him — Duo, an authenticator,
+an SMS code, a passkey tap — goes through the shared gate first:
+
+```sh
+twofa-gate acquire <service>     # exit 0 = you hold the only outstanding push; exit 1 = do NOT push
+… attempt the login …
+twofa-gate release <service> ok        # he answered
+twofa-gate release <service> timeout   # he did not — this blocks everyone for a cooldown
+```
+
+Blocked means stop, not wait and retry: put one line on the card saying it needs him at his
+phone, and end. Release honestly — reporting an unanswered push as `ok` re-opens the gate for
+the next agent and rebuilds the pile-up the gate exists to prevent.
+
 ## HUMAN GATE → spawn a run_in_background wait, then END your turn (you get auto-notified when it clears)
 When you hit something only the operator can clear OFF-card (a locked credential, a server-side hold that must
 clear, etc.), do NOT foreground-wait (in `-p` a Bash sleep-loop re-bills your whole context every few minutes)
