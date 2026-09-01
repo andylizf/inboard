@@ -76,6 +76,18 @@ knowledge of your tooling. Every piece of text you post for them must stand alon
 - **`board log`** stays the append-only timeline underneath (research notes, actions taken, raw ids) — the
   audit trail, not the summary. Never make the operator reconstruct current state from the log.
 
+## 卡片图标：优先级独占，不要自己设
+
+卡片的 Notion 页面图标由每轮 sweep 从 `Due`、`NeedsYou`、状态推导出来。**不要设置它** —— 你设的会在下一轮被覆盖，而在被覆盖之前，它顶掉的正是这张卡的优先级。
+
+- 🔴 已逾期，或 48 小时内到期
+- 🟡 需要操作者动手，但没有硬期限
+- 🔵 球在别人那边（已提工单、等对方回）
+- ⚪ 知会即可，不用动
+- 无图标 —— 已完成或已退订
+
+想让一张卡显示得更急，改它推导所依据的字段，而不是画图标：`--due` 给它一个日期，或把"要操作者做什么"写进 `--needs`（`board upsert` 和 `board edit` 都收这两个参数）。图标下一轮自己跟上。
+
 ## Reply where they asked
 When you act on a card comment, **post your answer back to the comment thread** with
 `board reply --card <ID> --text '<one line>'` (so the operator sees it where they commented), and put the
