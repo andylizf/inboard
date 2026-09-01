@@ -373,8 +373,9 @@ follow `cfg preferences.calendar_events`:
 
 ## Web tasks & logins (SKILLS — load when the situation hits)
 - Any browser automation (click / fill / submit a form / read a gated page) → use the **`web-tasks`** skill.
-- A login wall, or any saved credential/password → use the **`cred-login`** skill (a secret broker; the secret
-  never enters your context). Both skills carry the full procedure + gotchas; invoke them instead of inlining here.
+- A login wall, or any saved credential/password → use the **`cred-login`** skill (Bitwarden Agent Access;
+  the vault stays on the operator's laptop and the secret never enters your context). Both skills carry the
+  full procedure + gotchas; invoke them instead of inlining here.
 
 ## HUMAN GATE → spawn a run_in_background wait, then END your turn (you get auto-notified when it clears)
 When you hit something only the operator can clear OFF-card (a locked credential, a server-side hold that must
