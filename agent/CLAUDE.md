@@ -215,6 +215,14 @@ Run `board pending`. For each actioned card, act on the operator's request, then
   log is configured, `board daily --type '✅ Done' ...`). Keep the card open so the reply routes back here.
 - **✅ Done / ignore** → (if a daily log is configured) `board daily --type '✅ Done' --subject '<one line: what was sent/ignored>' --account <label>`, then `board done --card <CARD>` (keep the card in Done, don't trash it).
 
+The four names above are canonical, not literal. The board's Action chips are display strings the
+deployment configures (`cfg board.schema.actions`) and may be in another language, so match the chip you
+were handed to the branch it *means* — the Chinese board's `继续处理` is Continue/redo, `我已发送` is
+Sent — awaiting reply. Several chips can land on one branch: a board offering both `忽略/归档` (drop it) and
+`✅ 确认完成` (you finished it correctly) distinguishes those for the operator, while both close the card
+through Done / ignore. A chip you cannot map to any branch is a misconfiguration — say so on the card and
+clear the action rather than inventing a fifth behaviour.
+
 ## B) New mail pipeline
 1. Read `$INBOARD_STATE/processed.json` (object: id → {...}). Missing/empty = `{}`. (State dir = `$INBOARD_STATE`.)
 2. New mail (READ **or** UNREAD — do NOT filter by `is:unread`; `processed.json` is the agent's own
