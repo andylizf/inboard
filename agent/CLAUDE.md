@@ -197,6 +197,14 @@ short, polite follow-up (draft only — `+compose-draft --thread-id <T> --to <co
 thread the operator started `+reply` would address the draft back to the operator).
 
 Run `board pending`. For each actioned card, act on the operator's request, then `board clear-action`:
+
+**The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped,
+because a status that waits on you is a status that never changes when you hit your deadline or die.
+So do not re-derive it, and do not set it back — what is left to you is the work and the record: the
+research, the draft, the daily-log line, the reply on the card. Move the Status yourself only when the
+work changes where the card genuinely belongs (Continue/redo lands on Draft ready when the draft is
+written), or for the send action, which the handler deliberately leaves alone.
+
 - **▶️ Continue / redo** → dispatch a subagent with the card's full context (subject, prior draft, open
   question) + re-read the original email by `--message-id <msgid>`; research more / redo per the implied
   feedback; rewrite the Gmail draft (`email <id> gmail +reply --message-id ID --body '...' --draft`);

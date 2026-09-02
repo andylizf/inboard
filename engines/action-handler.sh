@@ -24,6 +24,21 @@ lock_or_exit "$LK" 15 "$INBOARD_LOGS/webhook.log" "$LK busy (same card already h
 ACTION=$(board actionof --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log")
 { [ -z "$ACTION" ] || [ "$ACTION" = "$ACTION_PLACEHOLDER" ]; } && exit 0
 
+# Move the card NOW, before the agent is asked to do anything. Until this existed the agent was the
+# only thing that ever changed a Status, so a run that hit its deadline, died, or read the action
+# differently left the card exactly where it was — the operator saw a tap that did nothing. The status
+# a tap implies is not a judgement call, so it should not depend on a process staying alive.
+# `board status-for` returns nothing for the send action: mail can fail to leave, and only a completed
+# send may move a card to awaiting.
+NEWSTATUS=$(board status-for --action "$ACTION" 2>>"$INBOARD_LOGS/webhook.log")
+if [ -n "$NEWSTATUS" ]; then
+  if board edit --card "$CARD" --status "$NEWSTATUS" >>"$INBOARD_LOGS/webhook.log" 2>&1; then
+    echo "[$(date)] action '$ACTION' → status $NEWSTATUS (card=$CARD)" >> "$INBOARD_LOGS/webhook.log"
+  else
+    echo "[$(date)] WARN could not set status $NEWSTATUS on $CARD; agent still runs" >> "$INBOARD_LOGS/webhook.log"
+  fi
+fi
+
 # Resume the card's per-card session (validate UUID; any garbage → fresh session).
 prep_session
 

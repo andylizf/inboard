@@ -353,6 +353,13 @@ def stale_awaiting(a):
     print(json.dumps(out, ensure_ascii=False))
 
 
+def status_for(a):
+    # Where a tapped Action leaves the card. Printed as a status KEY (or nothing when the action
+    # should not move the card by itself), so the handler can apply it without parsing a config
+    # path out of an Action name — those carry spaces, slashes and emoji.
+    print(C.ACTION_STATUS.get(a.action, ""))
+
+
 def edit(a):
     # Generic property tweak on an EXISTING card BY CARD-ID (unlike `upsert`, which keys on msgid and can
     # create). Only the fields you pass change; everything else (incl. Subscription/Action) is left intact.
@@ -508,6 +515,7 @@ def main():
     sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
     ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
     ed.add_argument("--due"); ed.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818
+    sf = sub.add_parser("status-for"); sf.add_argument("--action", required=True)
     cv = sub.add_parser("covers"); cv.add_argument("--dry", action="store_true")
     sub.add_parser("accounts")
     sub.add_parser("whoami")
@@ -521,7 +529,7 @@ def main():
     {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
-     "subscriptions": subscriptions, "search": search, "stale-awaiting": stale_awaiting, "edit": edit,
+     "subscriptions": subscriptions, "search": search, "stale-awaiting": stale_awaiting, "edit": edit, "status-for": status_for,
      "accounts": accounts, "whoami": whoami, "covers": covers}[a.cmd](a)
 
 

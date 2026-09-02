@@ -119,6 +119,16 @@ _ACTIONS_DEFAULT = ["▶️ Continue / redo", "📤 Sent — awaiting reply", "�
 # Non-empty placeholder so Notion always renders the Action property as a tappable chip in its lightweight
 # preview (it hides EMPTY properties there). Handlers treat it as no-action.
 _ACTION_PLACEHOLDER_DEFAULT = "👉 Pick action"
+# Where a tapped Action leaves the card, applied by the handler BEFORE the agent runs. The agent used
+# to be the only thing that moved a card, so a run that timed out or died left the status untouched and
+# the tap looked like it had never happened. Keys are the deployment's own Action display strings.
+# The send action is deliberately absent: mail can fail to leave, and only a completed send may move a
+# card to awaiting.
+_ACTION_STATUS_DEFAULT = {
+    "▶️ Continue / redo": "researching",
+    "📤 Sent — awaiting reply": "awaiting",
+    "✅ Done / ignore": "done",
+}
 _DAILY_TYPES_DEFAULT = {"unsub": "🚫 Unsubscribe", "done": "✅ Done", "draft": "✉️ Draft", "fyi": "ℹ️ FYI"}
 _DAILY_PROPS_DEFAULT = {"item": "Item", "date": "Date", "type": "Type", "account": "Account", "detail": "Detail"}
 
@@ -133,6 +143,7 @@ def __getattr__(name):  # PEP 562 — resolve these from config lazily (no confi
     if name == "STATUS_NAMES":      s = _schema("status", _STATUS_DEFAULT); return [s.get(k, k) for k in STATUS_ORDER]
     if name == "ACTIONS":           return _schema("actions", _ACTIONS_DEFAULT)
     if name == "ACTION_PLACEHOLDER":return _schema("action_placeholder", _ACTION_PLACEHOLDER_DEFAULT)
+    if name == "ACTION_STATUS":     return _schema("action_status", _ACTION_STATUS_DEFAULT)
     if name == "DAILY_TYPES":       return _schema("daily_types", _DAILY_TYPES_DEFAULT)
     if name == "DAILY_PROPS":       return _schema("daily_props", _DAILY_PROPS_DEFAULT)
     raise AttributeError(name)
