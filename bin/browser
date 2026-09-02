@@ -28,6 +28,16 @@ fi
 # into the wrong page on 2026-09-02. The lane key is the owning `claude` process, which is
 # stable for an agent's whole life and differs between agents, unlike $PPID (a fresh shell
 # per command) or the card id (not in this process's environment under daemon delivery).
+# Duo defaults to a security key for this account and this browser has none, so the
+# WebAuthn call raises a macOS system dialog outside the page that nothing here can
+# reach, wedging the tab until Chrome is killed. The shim puts a credential-less
+# virtual authenticator on every page so the call fails fast and Duo's "Other options"
+# stays clickable. See bin/webauthn-shim.
+if ! pgrep -f "webauthn-shim $PORT" >/dev/null 2>&1; then
+  nohup uv run --quiet --with websockets python3 "$(dirname "${BASH_SOURCE[0]}")/webauthn-shim" "$PORT" \
+    >>"${INBOARD_LOGS:-/tmp}/webauthn-shim.log" 2>&1 &
+fi
+
 lane="${INBOARD_BROWSER_LANE:-}"
 if [ -z "$lane" ]; then
   pid=$$

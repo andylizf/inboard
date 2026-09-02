@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""Keep a virtual authenticator on every page of the agent's Chrome.
+
+Duo's default factor for this account is a security key. This browser has none, so
+the WebAuthn call has nowhere to go and macOS raises a system dialog *outside* the
+page — which no click, no keystroke and no snapshot can reach. The tab then sits
+there forever: "Other options" stops responding, and the only way out is killing
+Chrome. That is what burned three Duo passcodes and two pushes on 2026-09-02.
+
+A virtual authenticator keeps the call inside Chrome. It holds no credential, so it
+FAILS instead of succeeding — which is the whole point: Duo draws "Couldn't use
+security key" with a working "Show other options", and push or passcode is reachable
+again. This shim never authenticates anything; it only converts a hang into an error.
+
+Deliberately NOT using Target.setAutoAttach(waitForDebuggerOnStart): that pauses every
+new page until this process resumes it, so if the shim died every tab in the shared
+browser would hang. Discovery + attach can only ever be late, never fatal.
+"""
+import asyncio, json, sys, urllib.request, urllib.error
+
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 9223
+POLL = 2.0
+
+OPTIONS = {"protocol": "ctap2", "transport": "internal", "hasResidentKey": True,
+           "hasUserVerification": True, "isUserVerified": True,
+           "automaticPresenceSimulation": True}
+
+
+def log(m):
+    print(m, flush=True)
+
+
+def page_targets():
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json", timeout=5) as r:
+            return [t for t in json.load(r) if t.get("type") == "page"]
+    except (urllib.error.URLError, OSError, ValueError):
+        return []
+
+
+async def equip(target):
+    """Attach to one page and leave a virtual authenticator on it.
+
+    The authenticator lives only as long as this connection, so the coroutine holds
+    the socket open for the life of the tab rather than returning."""
+    import websockets
+    async with websockets.connect(target["webSocketDebuggerUrl"], max_size=None) as ws:
+        n = 0
+
+        async def cmd(method, params=None):
+            nonlocal n
+            n += 1
+            await ws.send(json.dumps({"id": n, "method": method, "params": params or {}}))
+            while True:
+                m = json.loads(await ws.recv())
+                if m.get("id") == n:
+                    return m
+
+        await cmd("WebAuthn.enable", {"enableUI": False})
+        r = await cmd("WebAuthn.addVirtualAuthenticator", {"options": OPTIONS})
+        if "error" in r:
+            log(f"equip failed {target['id'][:8]}: {r['error']}")
+            return
+        log(f"equipped {target['id'][:8]} {target.get('url','')[:60]}")
+        async for _ in ws:      # hold until the tab closes
+            pass
+
+
+async def main():
+    log(f"webauthn-shim watching CDP :{PORT}")
+    held = {}
+    while True:
+        for t in page_targets():
+            tid = t["id"]
+            if tid in held and not held[tid].done():
+                continue
+            held[tid] = asyncio.create_task(equip(t))
+        for tid in [k for k, v in held.items() if v.done()]:
+            held.pop(tid, None)
+        await asyncio.sleep(POLL)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
