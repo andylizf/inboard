@@ -22,4 +22,23 @@ if ! curl -s --max-time 3 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1;
     sleep 1
   done
 fi
-exec "$AB" --cdp "$PORT" "$@"
+# Every card agent shares this one Chrome, and agent-browser tracks a single active tab
+# per SESSION — so without a session per agent they all steer the same tab: one navigates,
+# another types into whatever landed there. That is not hypothetical, it put a password
+# into the wrong page on 2026-09-02. The lane key is the owning `claude` process, which is
+# stable for an agent's whole life and differs between agents, unlike $PPID (a fresh shell
+# per command) or the card id (not in this process's environment under daemon delivery).
+lane="${INBOARD_BROWSER_LANE:-}"
+if [ -z "$lane" ]; then
+  pid=$$
+  for _ in 1 2 3 4 5 6 7 8; do
+    parent=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    [ -n "$parent" ] && [ "$parent" != 0 ] && [ "$parent" != 1 ] || break
+    case "$(ps -o comm= -p "$parent" 2>/dev/null)" in
+      *claude*) lane="agent$parent"; break ;;
+    esac
+    pid=$parent
+  done
+fi
+lane="${lane:-shared}"
+exec "$AB" --cdp "$PORT" --session "$lane" --pin-tab "$@"
