@@ -65,10 +65,14 @@ SESS_FILE="$INBOARD_STATE/main-session-$(date +%Y%m%d)"
 if [ -f "$SESS_FILE" ]; then DSID=$(cat "$SESS_FILE"); DFLAG=(--resume "$DSID"); DRESUME=1
 else DSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); echo "$DSID" >"$SESS_FILE"; DFLAG=(--session-id "$DSID"); DRESUME=0; fi
 
-# The standing rules live in engines/dispatcher-role.md and go in as system prompt, not here: they are
-# true every cycle, so repeating them in the task prompt spends tokens re-teaching what the role already
-# knows. CLAUDE.md is not named either — it auto-loads from the working directory.
-DROLE=$(cat "$INBOARD_HOME/engines/dispatcher-role.md")
+# The standing rules live in engines/dispatcher-role.md and go in as SYSTEM prompt, not here: they are
+# true every cycle, so repeating them in the task prompt spends tokens re-teaching a role that never
+# changes. System prompt rather than a CLAUDE.md because CLAUDE.md loads for every agent sharing this
+# directory, and the card agents have no use for dispatcher rules — and because CLAUDE.md arrives as a
+# user message while this lands in the system prompt itself. CLAUDE.md is not named in the prompt
+# either: it auto-loads from the working directory, so pointing at it spends tokens on something
+# already in context.
+DROLE_FILE="$INBOARD_HOME/engines/dispatcher-role.md"
 
 DPROMPT="Dispatch this cycle. Do exactly this:
 1. \`board accounts\` for the mailbox ids and addresses.
@@ -91,7 +95,7 @@ Then also do the cross-card work your role describes."
 # stdin is closed explicitly: without it the CLI waits 3s for piped input on EVERY invocation, which
 # is one stall for the dispatcher plus one per card agent.
 run_dispatch() { claude -p "$DPROMPT" "$@" --model "$MODEL" \
-  --append-system-prompt "$DROLE" \
+  --append-system-prompt-file "$DROLE_FILE" \
   --allowedTools "Bash,Read,Write,WebSearch,WebFetch,Skill" \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }
 
