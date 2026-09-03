@@ -267,4 +267,10 @@ board covers >>"$LOG" 2>&1 || true
 # The operator edits preferences in the Notion panel; pull them in each cycle so a
 # value changed anywhere else — including by an agent — does not outlive the pass.
 python3 "$INBOARD_HOME/lib/settings_sync.py" >>"$LOG" 2>&1 || true
+
+# Keep the card-body index warm. `board search` reads the body, which Notion cannot query, so a cold
+# index means fetching every card at the moment an agent is trying to decide where a mail belongs:
+# measured at 2m23s cold against 2.7s warm. Refreshing here costs nothing — only cards edited since
+# the last cycle are re-fetched — and it keeps that cost off the path where it would be felt.
+board search --query '' --warm >>"$LOG" 2>&1 || true
 echo "[$(date)] === dispatch cycle done (failed groups=$FAILED) ===" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"

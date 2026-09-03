@@ -368,21 +368,102 @@ def comments(a):
     print(json.dumps(out, ensure_ascii=False))
 
 
+def _card_text(card, last_edited):
+    """The card's body as plain text, cached on disk.
+
+    Notion has no full-text search over page content, so a body search means fetching blocks per
+    card — far too slow to redo every query. The cache is keyed on the page's own last_edited_time,
+    so it refreshes exactly when the card changed and never goes stale."""
+    d = os.path.join(os.environ.get("INBOARD_STATE") or
+                     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "state"),
+                     "cardtext")
+    f = os.path.join(d, card + ".txt")
+    stamp = os.path.join(d, card + ".at")
+    try:
+        if os.path.exists(f) and open(stamp).read().strip() == last_edited:
+            return open(f).read()
+    except OSError:
+        pass
+    parts = []
+    try:
+        cur = None
+        while True:
+            q = f"/blocks/{card}/children?page_size=100" + (f"&start_cursor={cur}" if cur else "")
+            r = api("GET", q)
+            for b in r.get("results", []):
+                t = b.get("type")
+                for x in (b.get(t, {}) or {}).get("rich_text") or []:
+                    parts.append(x.get("plain_text", ""))
+            if not r.get("has_more"):
+                break
+            cur = r["next_cursor"]
+    except Exception:
+        return ""                       # a body we cannot read must not fail the whole search
+    text = "\n".join(parts)
+    try:
+        os.makedirs(d, exist_ok=True)
+        open(f, "w").write(text)
+        open(stamp, "w").write(last_edited)
+    except OSError:
+        pass
+    return text
+
+
 def search(a):
-    # Fuzzy dedup lookup: existing cards whose Subject OR Sender contains the query, so the agent can
-    # route a follow-up to an EXISTING card instead of duplicating — even for matters with no active sub.
-    q = a.query
-    r = api("POST", f"/databases/{DB}/query", {
-        "filter": {"or": [{"property": "Subject", "title": {"contains": q}},
-                          {"property": "Sender", "rich_text": {"contains": q}}]},
-        "sorts": [{"timestamp": "last_edited_time", "direction": "descending"}], "page_size": 20})
+    # Find existing cards so a follow-up joins one instead of duplicating. Matches the properties AND
+    # the card body — the body is where the research, the drafts and the decisions live, and a search
+    # that could not see it missed the only place most of a matter is written down.
+    q = (a.query or "").lower()
+    rows, cur = [], None
+    while True:
+        body = {"page_size": 100, "sorts": [{"timestamp": "last_edited_time", "direction": "descending"}]}
+        if cur:
+            body["start_cursor"] = cur
+        r = api("POST", f"/databases/{DB}/query", body)
+        rows += r["results"]
+        if not r.get("has_more") or len(rows) >= int(a.max_scan):
+            break
+        cur = r["next_cursor"]
+
+    if a.warm:
+        # Refresh the body index and say nothing else. Only cards edited since the last pass are
+        # re-fetched, so a cycle costs a couple of seconds; the point is that the cost never lands
+        # on an agent mid-decision, where it measured 2m23s cold.
+        n = sum(1 for p in rows if _card_text(p["id"], p["last_edited_time"]) is not None)
+        print(json.dumps({"warmed": n}))
+        return
+
+    closed = {C.STATUS.get(k) for k in ("done", "unsub", "expired") if C.STATUS.get(k)}
     out = []
-    for p in r["results"]:
+    for p in rows[:int(a.max_scan)]:
         pr = p["properties"]
-        out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "subject": _g(pr, "Subject", "title"),
-                    "status": _g(pr, "Status", "select"), "sender": _g(pr, "Sender", "rich_text"),
-                    "account": _g(pr, "Account", "select"), "subscription": _g(pr, "Subscription", "rich_text"),
-                    "edited": p["last_edited_time"][:10]})
+        st = _g(pr, "Status", "select")
+        if a.open_only and st in closed:
+            continue
+        if a.status and st != C.status_name(a.status):
+            continue
+        if a.account and _g(pr, "Account", "select") != a.account:
+            continue
+        if a.since and p["last_edited_time"][:10] < a.since:
+            continue
+        fields = {"subject": _g(pr, "Subject", "title"), "sender": _g(pr, "Sender", "rich_text"),
+                  "needs": _g(pr, "NeedsYou", "rich_text"), "subscription": _g(pr, "Subscription", "rich_text")}
+        where = [k for k, v in fields.items() if q and q in (v or "").lower()]
+        snippet = ""
+        if q and not a.no_body:
+            text = _card_text(p["id"], p["last_edited_time"])
+            i = text.lower().find(q)
+            if i >= 0:
+                where.append("body")
+                snippet = " ".join(text[max(0, i - 90):i + 150].split())
+        if q and not where:
+            continue
+        out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "subject": fields["subject"],
+                    "status": st, "sender": fields["sender"], "account": _g(pr, "Account", "select"),
+                    "subscription": fields["subscription"], "edited": p["last_edited_time"][:10],
+                    "matched": where, "snippet": snippet})
+        if len(out) >= int(a.limit):
+            break
     print(json.dumps(out, ensure_ascii=False))
 
 
@@ -571,6 +652,11 @@ def main():
     sb = sub.add_parser("subscribe"); sb.add_argument("--card", required=True); sb.add_argument("--desc", required=True)
     sub.add_parser("subscriptions")
     sr = sub.add_parser("search"); sr.add_argument("--query", required=True)
+    sr.add_argument("--status"); sr.add_argument("--account"); sr.add_argument("--since")
+    sr.add_argument("--open-only", action="store_true", dest="open_only")
+    sr.add_argument("--no-body", action="store_true", dest="no_body")
+    sr.add_argument("--limit", default="20"); sr.add_argument("--max-scan", default="300", dest="max_scan")
+    sr.add_argument("--warm", action="store_true")
     sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
     ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
     ed.add_argument("--due"); ed.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818

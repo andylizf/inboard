@@ -234,9 +234,13 @@ detail in the card body via `board log`. The body alone is easy to miss.
     (a mistaken/duplicate card), never for normal completion.
   - **`board subscriptions`** → JSON of ACTIVE matters that registered a follow-up subscription
     (`card, subject, subscription, status, sender`). **Read this in the pipeline BEFORE creating any card.**
-  - **`board search --query '<sender / key subject words>'`** → SUBSTRING match on Subject or Sender across
-    EVERY card, `✅ Done` included. Use when `subscriptions` has no match. It answers "what cards mention
-    this?", never "does this mail belong there" — a bank's name matches every card that bank appeared on.
+  - **`board search --query '<words>'`** → substring match across EVERY card, `✅ Done` included, over the
+    Subject, Sender, NeedsYou and Subscription **and the card body** — the research, the drafts and the
+    decisions live in the body, so a name that was only ever written in a log line is findable. Each hit
+    reports `matched` (which fields) and a `snippet` around a body hit. Filters: `--open-only`, `--status`,
+    `--account`, `--since YYYY-MM-DD`, `--limit`. Use `--no-body` when you only want a title sweep.
+    It still answers "what cards mention this?", never "does this mail belong there" — a bank's name
+    matches every card that bank ever appeared on, finished ones included.
   - **`board stale-awaiting --days N`** → JSON of `⏳ Awaiting reply` cards that have gone N+ days with NO reply.
     The follow-up sweep in §A uses it so a sent-but-unanswered matter doesn't rot silently.
   - **`board subscribe --card CARD_ID --desc '<natural language: which follow-up mail belongs here, until when>'`**
