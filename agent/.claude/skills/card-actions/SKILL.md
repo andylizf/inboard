@@ -34,6 +34,11 @@ written), or for the send action, which the handler deliberately leaves alone.
   him tap again — never work around the check. After a successful send: `board awaiting` if a reply is
   expected, otherwise `board done`; then log it to the daily log under the sent type from
   `cfg board.schema.daily_types.sent`, one line saying what went out and to whom.
+  **If the send fails for any other reason** — the draft is gone, Gmail refused, the network — nothing
+  left and nothing has changed: the Action stays set, so his approval is not spent and one more tap
+  retries it. Say so on the card in plain words (`board reply`: what you tried, what came back, that
+  the mail did NOT go out, and that tapping again retries), leave the Status alone, and do NOT clear the
+  Action. Never re-send by another route to work around it.
 - **📤 Sent — awaiting reply** → `board awaiting --card <CARD> --desc '<the reply you await>'` (and, if a daily
   log is configured, `board daily --type '✅ Done' ...`). Keep the card open so the reply routes back here.
 - **✅ Done / ignore** → (if a daily log is configured) `board daily --type '✅ Done' --subject '<one line: what was sent/ignored>' --account <label>`, then `board done --card <CARD>` (keep the card in Done, don't trash it).

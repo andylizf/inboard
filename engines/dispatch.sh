@@ -250,7 +250,19 @@ fi
 # Plans are debugging artifacts, not state anything reads back. Keep the recent ones and drop the
 # rest — an unpruned per-cycle file is the same monotonic pile the cards and the sessions were.
 ls -1t "$INBOARD_STATE"/dispatch-plan-*.json 2>/dev/null | tail -n +51 | while read -r f; do rm -f "$f"; done
-python3 "$INBOARD_HOME/lib/daemon_stall_check.py" >>"$LOG" 2>&1 || true
+# The stall check is the ONLY completion signal on the async path — the shell learns "queued" and
+# nothing else — so it failing silently means a dead agent is never noticed. A single failure is
+# allowed to pass, because the check is idempotent and the next cycle catches up; a persistent one
+# fails the cycle, which is the condition the liveness watchdog already alerts on.
+STALL_FAILS="$INBOARD_STATE/.stall-check-fails"
+if python3 "$INBOARD_HOME/lib/daemon_stall_check.py" >>"$LOG" 2>&1; then
+  rm -f "$STALL_FAILS"
+else
+  n=$(( $(cat "$STALL_FAILS" 2>/dev/null || echo 0) + 1 ))
+  printf '%s' "$n" > "$STALL_FAILS"
+  echo "[$(date)] WARN daemon_stall_check failed ($n in a row) — stranded taps go unnoticed while this is down" >>"$LOG"
+  [ "$n" -ge 3 ] && { echo "[$(date)] daemon_stall_check has failed $n cycles running" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"; exit 1; }
+fi
 # A tap Notion delivered while the engines were down is never redelivered, so the
 # card keeps showing an Action nobody will ever act on. Recover those here.
 python3 "$INBOARD_HOME/lib/orphan_action_sweep.py" >>"$LOG" 2>&1 || true
