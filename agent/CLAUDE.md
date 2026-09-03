@@ -313,8 +313,15 @@ clear the action rather than inventing a fifth behaviour.
      `cfg preferences.ci_notifications` — `noise` (default) = do NOT put them on the board; `surface` = card them.
      Real PRs / issues / @-mentions / review requests are always IMPORTANT. Auto-close/stale-bot notices = NOISE.
 5b. **Dedup — route follow-ups to an EXISTING matter first** (before creating ANY card):
-    - **Find it.** Run `board subscriptions`; if nothing matches but the sender/subject looks familiar, also
-      `board search --query '<sender / key subject words>'`, which returns closed cards too.
+    - **Find it — and notice which of the two you got, because they are not the same kind of answer.**
+      · `board subscriptions` — the **watchlist**: open cards that have written down, in their own words,
+        what mail they are still expecting (set by `board subscribe` or `board awaiting --desc`, cleared by
+        `board done`). A hit here is a card saying *this mail is mine*, so it decides on its own.
+      · `board search --query '<sender / key subject words>'` — a **substring match** on Subject and Sender
+        over every card, closed ones included. It produces candidates, not evidence: a bank's name matches
+        every card that bank ever appeared on, and a hit whose Subscription is empty is a matter that
+        already declared itself finished.
+      So route straight off a watchlist hit. A search hit still has to earn it under the two rules below.
     - **A closed card is context, never a destination.** `board done` clears the Subscription precisely so
       that later mail stops routing there — reopening a matter he finished, and had stopped thinking about,
       costs him more than a second card ever would. So read the closed card, then open a new one and name it
