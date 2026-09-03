@@ -35,7 +35,7 @@ matter itself — deciding *where* something goes and deciding *what to do about
 the second one belongs to whoever already holds the history.
 
 That agent is not immortal, and being replaced is normal rather than a failure. In the shell path a
-transcript that outgrows `agent.session_rotate_mb`, or sits idle past `agent.session_max_idle_days`, is
+transcript that outgrows `agent.session_rotate_kb`, or sits idle past `agent.session_max_idle_days`, is
 retired, and **the successor is told so, and told which card it inherits** — the alternative is worse than
 starting cold, because it would read the card as a fresh matter and quietly re-decide questions its
 predecessor had already settled there. Under `agent.delivery: daemon` those two thresholds do not decide

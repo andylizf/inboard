@@ -108,7 +108,7 @@ outward-facing — those are gated on *your approval* (but then agent-executed, 
   logged instantly; a board-CLI write produces no event at all). *Why it matters:* engine 2 fires on
   the operator's edits only — engine-side code must never wait for a webhook echo, and a quiet
   webhook log during heavy agent activity is normal, not an outage.
-- **Sessions expire; transcripts don't.** A session past `session_rotate_mb`, or idle past
+- **Sessions expire; transcripts don't.** A session past `session_rotate_kb`, or idle past
   `session_max_idle_days`, is invalidated: the next touch starts fresh (told, via prompt, that it is
   a successor and that the card holds the surviving memory), while the old transcript stays on disk
   as history. *Why it matters:* rotation exists to shed stale working memory; deleting would also

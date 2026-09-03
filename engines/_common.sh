@@ -100,18 +100,23 @@ card when you die never happened."
 # exist even when prep_session was never called (engines run under set -u).
 SESSION_NOTICE=""
 
-# session_too_big <session-id> — true when that transcript has outgrown agent.session_rotate_mb.
+# session_too_big <session-id> — true when that transcript has outgrown agent.session_rotate_kb.
 # The transcript lives under ~/.claude/projects/<cwd with / turned into ->/<id>.jsonl; engines always run
 # from $INBOARD_HOME/agent, so the slug comes from the current directory. A missing file is NOT too big:
 # an unreadable path must not silently rotate every card on every cycle.
 session_too_big() {
-  local sid="${1:-}" limit_mb f bytes
-  limit_mb="$(cfg agent.session_rotate_mb 1)"
+  # KB, not MB, because the threshold has to sit where context actually turns over. Measured across
+  # 505 working sessions: a fresh agent's floor is ~60k context tokens (standing orders + tools +
+  # the card) whatever it does, transcripts under 64 KB peak at ~14k, 64-256 KB at ~83k, 256 KB-1 MB
+  # at ~112k, and past 1 MB at ~269k. A megabyte therefore only fired once a session was carrying
+  # four times the floor; 256 KB is the knee.
+  local sid="${1:-}" limit_kb f bytes
+  limit_kb="$(cfg agent.session_rotate_kb 256)"
   f="$HOME/.claude/projects/$(pwd | tr '/' '-')/$sid.jsonl"
   [ -f "$f" ] || return 1
   bytes=$(wc -c < "$f" 2>/dev/null | tr -d ' ')
   [ -n "$bytes" ] || return 1
-  [ "$bytes" -gt $(( limit_mb * 1024 * 1024 )) ]
+  [ "$bytes" -gt $(( limit_kb * 1024 )) ]
 }
 
 # session_stale <session-id> — true when that transcript last moved more than
@@ -134,11 +139,29 @@ session_stale() {
 # and only the working memory turns over — which is the layer the state model says is disposable.
 prep_session() {
   SID=$(board session --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log"); SESS=(); NEWSID=""; SESSION_NOTICE=""
+  # Under daemon delivery the live session belongs to the daemon's worker, not to the id recorded on
+  # the card, and the two thresholds below were being computed from the card and then thrown away —
+  # which is how transcripts reached 20 MB against a 1 MB limit. Measure what is actually running.
+  if [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
+    local dname dlive dwhy
+    dname="$(card_agent_name "$CARD")"
+    dlive=$(python3 "$INBOARD_HOME/lib/agent_deliver.py" session --name "$dname" 2>>"$INBOARD_LOGS/webhook.log")
+    if valid_uuid "$dlive"; then
+      dwhy=""
+      if session_too_big "$dlive"; then dwhy="its transcript outgrew agent.session_rotate_kb"
+      elif session_stale "$dlive"; then dwhy="it sat idle past agent.session_max_idle_days"; fi
+      if [ -n "$dwhy" ] && [ "$(python3 "$INBOARD_HOME/lib/agent_deliver.py" retire --name "$dname" 2>>"$INBOARD_LOGS/webhook.log")" = "retired" ]; then
+        echo "[$(date)] retired daemon agent $dname session $dlive ($dwhy; transcript kept)" >>"$INBOARD_LOGS/webhook.log"
+        SESSION_NOTICE="NOTE: you are a FRESH session taking over an EXISTING matter — the previous session for card $CARD was retired ($dwhy). Nothing it knew carried over: the card (state note + log) is the only surviving memory. Read the card fully before acting."
+      fi
+    fi
+    return 0
+  fi
   if valid_uuid "$SID" && ! session_too_big "$SID" && ! session_stale "$SID"; then
     SESS=(--resume "$SID")
   else
     local why=""
-    if valid_uuid "$SID" && session_too_big "$SID"; then why="its transcript outgrew agent.session_rotate_mb"
+    if valid_uuid "$SID" && session_too_big "$SID"; then why="its transcript outgrew agent.session_rotate_kb"
     elif valid_uuid "$SID" && session_stale "$SID"; then why="it sat idle past agent.session_max_idle_days"
     fi
     if [ -n "$why" ]; then

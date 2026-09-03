@@ -144,6 +144,28 @@ def _reply_with_retry(short, text, sock, tries=8, gap=4.0):
     raise last
 
 
+def session_of(name: str) -> str:
+    """The session the daemon currently holds for `name`, or empty."""
+    j = find_job(name)
+    return (j or {}).get("sessionId", "") or ""
+
+
+def retire(name: str) -> bool:
+    """Drop the daemon's worker for `name` so the next delivery spawns a fresh one.
+
+    The transcript file is left alone — it is the audit trail; what is being retired is the
+    live context, not the record."""
+    j = find_job(name)
+    if not j:
+        return False
+    if j.get("state") == "working":
+        return False        # mid-turn; rotating now would throw away work already done
+    short = j["short"]
+    subprocess.run(["claude", "stop", short], capture_output=True)
+    subprocess.run(["claude", "rm", short], capture_output=True)
+    return True
+
+
 def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60.0) -> dict:
     """The one call inboard needs: make sure agent `name` exists & is reachable,
     then deliver `text` to it. Handles all four lifecycle states, and waits out a
@@ -211,6 +233,8 @@ if __name__ == "__main__":
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("ping")
     sub.add_parser("list")
+    se = sub.add_parser("session"); se.add_argument("--name", required=True)
+    rt = sub.add_parser("retire"); rt.add_argument("--name", required=True)
     d = sub.add_parser("deliver"); d.add_argument("--name", required=True); d.add_argument("--cwd", default=os.getcwd()); d.add_argument("--text", required=True)
     args = ap.parse_args()
     if args.cmd == "ping":
@@ -218,5 +242,9 @@ if __name__ == "__main__":
     elif args.cmd == "list":
         for j in list_jobs():
             print(f"{j['short']}  {j.get('state','?'):9s}  {j.get('name','')}")
+    elif args.cmd == "session":
+        print(session_of(args.name))
+    elif args.cmd == "retire":
+        print("retired" if retire(args.name) else "no-such-agent")
     elif args.cmd == "deliver":
         print(json.dumps(ensure_and_deliver(args.name, args.cwd, args.text)))

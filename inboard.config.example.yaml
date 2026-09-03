@@ -82,11 +82,14 @@ agent:
   dispatch_max_turns: 30            # the dispatcher only lists and groups; it never opens a body
   card_max_turns: 45                # one matter's agent
   dispatch_parallel: 4              # concurrent card agents
-  session_rotate_mb: 1              # rotate a card's claude session once its transcript exceeds this;
-                                    # measured: the median per-card transcript is ~0.2 MB, so 1 MB is
-                                    # ~5x a typical matter — 4 MB had simply never fired;
-                                    # the card and its state note carry the matter, so only working
-                                    # memory is lost (see DESIGN.md 'State model')
+  session_rotate_kb: 256            # rotate a card's claude session once its transcript exceeds this.
+                                    # Sized from 505 working sessions: a fresh agent costs ~60k context
+                                    # tokens whatever it does (standing orders + tools + the card), and
+                                    # transcripts peak at ~14k context under 64 KB, ~83k at 64-256 KB,
+                                    # ~112k at 256 KB-1 MB, ~269k past 1 MB. 256 KB is where a session
+                                    # starts carrying real weight above that floor; the old 1 MB only
+                                    # fired at ~4x it. The card and its state note carry the matter, so
+                                    # only working memory is lost (see DESIGN.md 'State model')
   session_max_idle_days: 60         # a session idle this long is invalidated on next touch: the agent
                                     # starts fresh (stale working memory carries assumptions the card
                                     # has outgrown) but the transcript stays on disk — rotation never
