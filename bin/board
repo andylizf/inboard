@@ -298,8 +298,29 @@ def resolve(a):
 
 
 def session(a):
+    """Session = where the work is happening now. PastSessions = every session it happened in before.
+
+    Two fields because they answer different questions. `Session` has to be overwritten or it stops
+    pointing at anything live — the daemon replaces a worker and the card would keep naming a dead
+    transcript. But overwriting alone loses the trail: the transcripts stay on disk named by uuid, and
+    with nothing pointing at them a card's earlier work becomes unfindable. So the outgoing id is
+    appended here first."""
     if a.set:
-        api("PATCH", f"/pages/{a.card}", {"properties": {"Session": {"rich_text": rt(a.set)}}})
+        r = api("GET", f"/pages/{a.card}")
+        pr = r["properties"]
+        cur = "".join(x.get("plain_text", "") for x in pr.get("Session", {}).get("rich_text", []))
+        props = {"Session": {"rich_text": rt(a.set)}}
+        if cur and cur != a.set:
+            past = "".join(x.get("plain_text", "") for x in pr.get("PastSessions", {}).get("rich_text", []))
+            ids = [i for i in past.split() if i] + [cur]
+            # rich_text caps at 2000 chars; drop the oldest rather than fail, and say so, because a
+            # silently truncated history reads as a complete one.
+            while len(" ".join(ids)) > 1800:
+                ids.pop(0)
+                if ids and ids[0] != "…":
+                    ids.insert(0, "…")
+            props["PastSessions"] = {"rich_text": rt(" ".join(ids))}
+        api("PATCH", f"/pages/{a.card}", {"properties": props})
         print(a.set)
     else:
         r = api("GET", f"/pages/{a.card}")

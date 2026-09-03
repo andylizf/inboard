@@ -43,8 +43,11 @@ anything: the daemon keeps one worker per agent name, and the session lasts exac
 A worker that was reaped, or a daemon that restarted, means the next delivery spawns a cold agent — with no
 notice, because nothing measured a transcript to trigger one.
 
-So do not read the card's `Session` as a promise of continuity. It records where the last run happened, for
-whoever needs to find that transcript; it does not tell you whether you are that run's continuation. **The
+So do not read the card's `Session` as a promise of continuity. It records where the run happening NOW is,
+for whoever needs to find that transcript; it does not tell you whether you are that run's continuation.
+`PastSessions` holds the ones before it, oldest first — overwriting `Session` is what keeps it pointing at
+something live, and appending to `PastSessions` is what stops the earlier transcripts becoming unreachable,
+since they sit on disk named only by that id. **The
 card body is what tells you, and it is the only thing that does.** Read the 📌 note and the log before
 acting on any matter you do not remember working — and if you do not remember it, assume you are new to it,
 whatever the card's `Session` says.
