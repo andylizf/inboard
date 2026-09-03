@@ -201,6 +201,22 @@ def daily(a):
     print(json.dumps({"logged-daily": r["id"]}))
 
 
+CLOSED_KEYS = ("done", "unsub", "expired")
+
+
+def closing_props(status_display):
+    """Extra properties when a card lands in a status that ends the matter.
+
+    A Subscription is a standing claim on future mail, so it has to die with the matter that made
+    it — otherwise a finished card keeps catching replies and the operator is handed back something
+    he closed. `done` always did this; `edit --status` did not, which is how three closed cards were
+    still advertising for mail."""
+    closed = {C.STATUS.get(k) for k in CLOSED_KEYS if C.STATUS.get(k)}
+    if status_display in closed:
+        return {"Action": {"select": None}, "Subscription": {"rich_text": []}}
+    return {}
+
+
 def archive(a):
     api("PATCH", f"/pages/{a.card}", {"archived": True})
     print(json.dumps({"archived": a.card}))
@@ -386,6 +402,8 @@ def edit(a):
     _due_props(a, props)  # DUE-20260818
     if not props:
         sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender/--due/--lapses")
+    if a.status is not None:
+        props.update(closing_props(C.status_name(a.status)))
     api("PATCH", f"/pages/{a.card}", {"properties": {**props, **touched()}})
     print(json.dumps({"edited": a.card}))
 

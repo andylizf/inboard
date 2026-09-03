@@ -221,6 +221,10 @@ detail in the card body via `board log`. The body alone is easy to miss.
     "Card body layout" above)
   - **`board done --card CARD_ID`** → Status→`✅ Done`, clears Action, **clears any Subscription**, **KEEPS the
     card** (it lands in the Done column = a record). **This is how you "take an item off the active board" — NOT archive.**
+    Landing in any ending status does this now, `board edit --status` included, so a card cannot end while
+    still advertising for mail. **A Subscription is only ever cleared by a card ending, or by being replaced
+    with a new one** (`board subscribe`, `board awaiting --desc`) — nothing expires it on a timer, so a matter
+    that quietly stops mattering keeps its claim on the inbox until someone closes the card.
   - **`board awaiting --card CARD_ID --desc '<what reply to watch for>'`** → when you SENT/submitted your part
     and now WAIT on the other side: Status→`⏳ Awaiting reply`, clears Action, **keeps/sets a Subscription** so
     their reply routes back to THIS card (not a new one). Use this — NOT `done` — whenever a reply is expected;
@@ -230,9 +234,9 @@ detail in the card body via `board log`. The body alone is easy to miss.
     (a mistaken/duplicate card), never for normal completion.
   - **`board subscriptions`** → JSON of ACTIVE matters that registered a follow-up subscription
     (`card, subject, subscription, status, sender`). **Read this in the pipeline BEFORE creating any card.**
-  - **`board search --query '<sender / key subject words>'`** → find EXISTING cards (ANY status, incl. `✅ Done`)
-    whose Subject or Sender contains the text. Use when `subscriptions` has no match — a reply from a known
-    sender, or a `done` matter resurfacing — so you route onto the existing card instead of duplicating.
+  - **`board search --query '<sender / key subject words>'`** → SUBSTRING match on Subject or Sender across
+    EVERY card, `✅ Done` included. Use when `subscriptions` has no match. It answers "what cards mention
+    this?", never "does this mail belong there" — a bank's name matches every card that bank appeared on.
   - **`board stale-awaiting --days N`** → JSON of `⏳ Awaiting reply` cards that have gone N+ days with NO reply.
     The follow-up sweep in §A uses it so a sent-but-unanswered matter doesn't rot silently.
   - **`board subscribe --card CARD_ID --desc '<natural language: which follow-up mail belongs here, until when>'`**

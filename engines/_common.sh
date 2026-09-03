@@ -146,14 +146,36 @@ prep_session() {
     local dname dlive dwhy
     dname="$(card_agent_name "$CARD")"
     dlive=$(python3 "$INBOARD_HOME/lib/agent_deliver.py" session --name "$dname" 2>>"$INBOARD_LOGS/webhook.log")
+    local dmark
+    dmark="$INBOARD_STATE/.retiring-$CARD"
     if valid_uuid "$dlive"; then
+      # Phase 2 — the outgoing session was warned last time and has had a turn to write itself
+      # down. Now it goes.
+      if [ -f "$dmark" ] && [ "$(cat "$dmark" 2>/dev/null)" = "$dlive" ]; then
+        if [ "$(python3 "$INBOARD_HOME/lib/agent_deliver.py" retire --name "$dname" 2>>"$INBOARD_LOGS/webhook.log")" = "retired" ]; then
+          rm -f "$dmark"
+          echo "[$(date)] retired daemon agent $dname session $dlive (was warned; transcript kept)" >>"$INBOARD_LOGS/webhook.log"
+          SESSION_NOTICE="NOTE: you are a FRESH session taking over an EXISTING matter — the previous session for card $CARD was retired. Nothing it knew carried over: the card (state note + log) is the only surviving memory, and it was asked to bring that note current before it went. Read the card fully before acting."
+        fi
+        return 0
+      fi
+      [ -f "$dmark" ] && rm -f "$dmark"   # marker names a session that is already gone
       dwhy=""
       if session_too_big "$dlive"; then dwhy="its transcript outgrew agent.session_rotate_kb"
       elif session_stale "$dlive"; then dwhy="it sat idle past agent.session_max_idle_days"; fi
-      if [ -n "$dwhy" ] && [ "$(python3 "$INBOARD_HOME/lib/agent_deliver.py" retire --name "$dname" 2>>"$INBOARD_LOGS/webhook.log")" = "retired" ]; then
-        echo "[$(date)] retired daemon agent $dname session $dlive ($dwhy; transcript kept)" >>"$INBOARD_LOGS/webhook.log"
-        SESSION_NOTICE="NOTE: you are a FRESH session taking over an EXISTING matter — the previous session for card $CARD was retired ($dwhy). Nothing it knew carried over: the card (state note + log) is the only surviving memory. Read the card fully before acting."
+      if [ -n "$dwhy" ]; then
+        # Phase 1 — do NOT retire yet. Whatever this session knows that never reached the card is
+        # about to be destroyed, and it is the only thing that can still write it down. Retiring it
+        # first is the one order that guarantees the loss. Ask now, retire on the next touch: the
+        # ask is async, so blocking here to wait for it would stall an operator's tap instead.
+        if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" \
+            "HANDOVER — you are being retired after this turn ($dwhy) and a fresh session will take card $CARD over. Nothing you know survives except what is written on the card. Do NOT start new work. Do this and stop: bring the 📌 state note fully up to date, then append what a successor would otherwise have to rediscover — what you already tried that did not work, what you are part-way through, and any decision you made whose reason is not obvious from the result."; then
+          printf '%s' "$dlive" > "$dmark"
+          echo "[$(date)] warned daemon agent $dname session $dlive ($dwhy) — retires on next touch" >>"$INBOARD_LOGS/webhook.log"
+        fi
       fi
+    elif [ -f "$dmark" ]; then
+      rm -f "$dmark"
     fi
     return 0
   fi
