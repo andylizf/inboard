@@ -39,6 +39,25 @@ def api(method, path, body=None):
         raise
 
 
+def remember_status(card, display):
+    """Record the Status this tool just wrote, so a later change can be recognised as not ours.
+
+    Notion does not deliver a webhook for a change made by the same integration, so every
+    properties_updated event we receive came from a person. Comparing against this file is how the
+    guard knows WHICH status to put back."""
+    if not card or not display:
+        return
+    d = os.path.join(os.environ.get("INBOARD_STATE") or
+                     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "state"),
+                     "status")
+    try:
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, card), "w") as f:
+            f.write(display)
+    except OSError:
+        pass          # a lost record only means the guard declines to act, never that it acts wrongly
+
+
 def touched():
     # Every write that changes what a card says must stamp this. Until it did, only `upsert`
     # set Updated, so a follow-up appended to an existing card (the 5b path) left the one
@@ -119,10 +138,12 @@ def upsert(a):
     ex = find_card(a.msgid)
     if ex:
         api("PATCH", f"/pages/{ex['id']}", {"properties": props})
+        remember_status(ex["id"], C.status_name(a.status))
         print(json.dumps({"updated": ex["id"]}))
     else:
         props["Action"] = {"select": {"name": ACTION_PLACEHOLDER}}  # show the tappable chip in preview
         r = api("POST", "/pages", {"parent": {"database_id": DB}, "properties": props})
+        remember_status(r["id"], C.status_name(a.status))
         print(json.dumps({"created": r["id"]}))
 
 
@@ -146,6 +167,12 @@ def actionof(a):
     # The Action currently set on one card (empty if none). Cheap gate for the webhook.
     r = api("GET", f"/pages/{a.card}")
     print((r["properties"].get("Action", {}).get("select") or {}).get("name") or "")
+
+
+def statusof(a):
+    # The Status currently on one card. Cheap read for the status guard.
+    r = api("GET", f"/pages/{a.card}")
+    print((r["properties"].get("Status", {}).get("select") or {}).get("name") or "")
 
 
 def clear_action(a):
@@ -227,6 +254,7 @@ def done(a):
     # Subscription (matter resolved → future matching mail becomes noise). This is a record, NOT archive.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Status": {"select": {"name": S["done"]}},
         "Action": {"select": None}, "Subscription": {"rich_text": []}, **touched()}})
+    remember_status(a.card, S["done"])
     print(json.dumps({"done": a.card}))
 
 
@@ -238,6 +266,7 @@ def awaiting(a):
     if a.desc is not None:
         props["Subscription"] = {"rich_text": ([{"text": {"content": a.desc[:1900]}}] if a.desc else [])}
     api("PATCH", f"/pages/{a.card}", {"properties": props})
+    remember_status(a.card, S["awaiting"])
     print(json.dumps({"awaiting": a.card}))
 
 
@@ -405,6 +434,8 @@ def edit(a):
     if a.status is not None:
         props.update(closing_props(C.status_name(a.status)))
     api("PATCH", f"/pages/{a.card}", {"properties": {**props, **touched()}})
+    if a.status is not None:
+        remember_status(a.card, C.status_name(a.status))
     print(json.dumps({"edited": a.card}))
 
 
@@ -523,6 +554,7 @@ def main():
     sub.add_parser("pending")
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
+    so = sub.add_parser("statusof"); so.add_argument("--card", required=True)
     l = sub.add_parser("log"); l.add_argument("--card", required=True); l.add_argument("--text", required=True)
     nt = sub.add_parser("note"); nt.add_argument("--card", required=True); nt.add_argument("--text", required=True)
     dl = sub.add_parser("daily"); [dl.add_argument("--" + x) for x in ["subject", "type", "account", "detail"]]
@@ -553,7 +585,7 @@ def main():
             sys.exit("board: Notion token not configured — put it in .env (run `inboard init`).")
         if not DB and a.cmd != "whoami":
             sys.exit("board: board.database_id not configured — run `inboard init`.")
-    {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "log": log, "note": note,
+    {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
      "subscriptions": subscriptions, "search": search, "stale-awaiting": stale_awaiting, "edit": edit, "status-for": status_for,

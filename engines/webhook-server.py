@@ -84,6 +84,11 @@ class H(BaseHTTPRequestHandler):
             if eid:
                 subprocess.Popen(["bash", os.path.join(ENGINES, "action-handler.sh"), eid],
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                # Notion sends nothing for this integration's own writes, so an event here is a
+                # person editing the card. Only the Action chips are meant to move a card; a dragged
+                # Status is invisible to every engine, which is why it gets put back.
+                subprocess.Popen(["bash", os.path.join(ENGINES, "status-guard.sh"), eid],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def log_message(self, *a):
         pass

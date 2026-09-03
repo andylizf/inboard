@@ -326,10 +326,10 @@ clear the action rather than inventing a fifth behaviour.
         every card that bank ever appeared on, and a hit whose Subscription is empty is a matter that
         already declared itself finished.
       So route straight off a watchlist hit. A search hit still has to earn it under the two rules below.
-    - **A closed card is context, never a destination.** `board done` clears the Subscription precisely so
+    - **A closed card is context, never a destination.** Ending a card clears the Subscription precisely so
       that later mail stops routing there — reopening a matter he finished, and had stopped thinking about,
       costs him more than a second card ever would. So read the closed card, then open a new one and name it
-      in the first line. The exception is identity, below.
+      in the first line. There is no exception.
     - **If it belongs to an ongoing matter** (semantic match to a subscription — a reminder / follow-up for
       something tracked, or a continuing reply thread) → do **NOT** open a new card. Append to it:
       `board log --card <ID> --text '<one-line update>'`, then set that card's Status to match reality:
@@ -340,12 +340,15 @@ clear the action rather than inventing a fifth behaviour.
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed as `handled` — the disposition for mail that belonged to an
       existing card — and move on.
-    - **Same thread is identity; a resemblance is not.** If the mail carries the card's `threadId`, or
-      replies to a message the card tracks, it belongs on that card however old it is — a bank answering in
-      October the question you asked in July is still that conversation, and age has nothing to do with it.
-      One matter, one card, for the life of the matter. A *semantic* resemblance has no such backing: it says
-      the new mail looks like the old matter, which is not the same claim. Route a resemblance onto an OPEN
-      card; against a closed one, treat it as the paragraph above says.
+    - **Same thread is identity; a resemblance is not — but neither one revives a closed card.** If the
+      mail carries an OPEN card's `threadId`, or replies to a message it tracks, it belongs there however old
+      the card is: a bank answering in October the question you asked in July is that conversation, and age
+      has nothing to do with it. A *semantic* resemblance is a weaker claim — that the mail looks like the
+      matter — so it too may only land on an open card.
+      **Closed is terminal, thread or no thread.** A finished card is a record of something he stopped
+      carrying; mail that arrives afterwards is new work, so it gets a new card that names the closed one in
+      its first line and carries the thread forward. That keeps the board a state machine you can trust —
+      `✅ Done` means done, and nothing on the board silently un-finishes.
     - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
 5c. **Ask memory before opening ANY new card.** Only for mail that survived triage as important or
     actionable — never for noise, and never when 5b already routed it to an existing card.
