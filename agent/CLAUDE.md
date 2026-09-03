@@ -37,6 +37,10 @@ that transcript; it is not a promise that you are its continuation, and `PastSes
   Read the card fully, 📌 note first then the log, before touching anything. Do not re-derive; do not contradict.
 - **No notice** → you are the same agent, with your history intact. If you do not remember this matter, assume
   you are new to it whatever `Session` says, and read the card.
+- **Your own history thinned out mid-turn** — a compaction, which arrives with no notice at all and leaves a
+  summary where the detail was. Re-read the card before your next write, and resume silently: no message
+  about having been compacted, no summary of what was lost, no asking how to proceed. What you are missing
+  is on the card, and saying so out loud spends the operator's attention on your plumbing.
 
 **Card or memory? One test: would this fact still matter if this card did not exist?**
 - **No → the card.** What was done, what is awaited, the draft, thread ids, research notes, the next step.
