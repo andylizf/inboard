@@ -211,6 +211,11 @@ Output one short line."
   if [ "$route" = "card" ] && valid_uuid "$CARD" && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
     # Existing card with a persistent agent: queue new mail to it (async; it updates its own card).
     if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0; else RC=1; fi
+    # Same as the action and comment handlers: record where the work actually ran, or the card keeps
+    # naming a session that has not been touched since before daemon delivery existed.
+    if [ "$RC" = 0 ] && valid_uuid "${DAEMON_SID:-}" && [ "$DAEMON_SID" != "$SID" ]; then
+      board session --card "$CARD" --set "$DAEMON_SID" >>"$LOG" 2>&1 || true
+    fi
     NEWSID=""
     echo "[$(date)] g$idx dispatch delivered to daemon agent $(card_agent_name "$CARD") rc=$RC" >>"$LOG"
   else
