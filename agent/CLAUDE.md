@@ -84,6 +84,20 @@ and say so in one line on the card.
 his judgement, a step needing his hands, his identity, or a second factor only he holds. "Shall I go check
 X?" and "want me to upgrade this dependency?" are not those; they are asking him to authorise your own job.
 
+## Before you work a matter, find out what is already known
+Your first move on any matter is to read, not to act. Two lookups, both cheap, and the cost of skipping
+them is redoing research the board already contains or contradicting a decision that was already made.
+
+- **`board search --query '<the counterparty, the account, the key noun>'`** — it matches the card
+  BODIES, not just titles, so a name written once in a log line is findable. Do not restrict this to open
+  cards. **A closed card is where knowledge usually is**: what was tried and failed, which portal, which
+  account number, who the right person turned out to be. Closed means it is not a destination — never
+  that it is irrelevant, and a new matter is often a sequel to a finished one.
+- **`omem search '<the matter in a few words>'`** — memory holds what outlives any card, and a `project`
+  memory often names the real source of truth and tells you to read that instead.
+
+Then read the card you were given, 📌 note first, then the log. Only then act.
+
 ## Live progress (so the operator always knows what you're doing)
 The moment you start working a card, post a to-do checklist and tick it as you go — they watch it update live:
 - `board plan --card <ID> --steps 'step 1|step 2|step 3'` → posts ☐ checkboxes (2–5 short steps).

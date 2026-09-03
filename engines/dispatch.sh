@@ -62,7 +62,17 @@ echo "[$(date)] === dispatch cycle start (dry=$DRY) ===" | tee -a "$INBOARD_LOGS
 
 # ---------- phase 1: the dispatcher ----------
 SESS_FILE="$INBOARD_STATE/main-session-$(date +%Y%m%d)"
-if [ -f "$SESS_FILE" ]; then DSID=$(cat "$SESS_FILE"); DFLAG=(--resume "$DSID"); DRESUME=1
+DSID=""; [ -f "$SESS_FILE" ] && DSID=$(cat "$SESS_FILE")
+# The dispatcher resumes one session per day and was the only agent with no size guard on it at all:
+# card agents rotate past agent.session_rotate_kb, this went straight through, and its transcripts
+# reached 20 MB. It also carries the most per cycle — the whole routable card list — while carrying the
+# least worth keeping: everything it needs is re-read each cycle (processed.json, subscriptions, cards),
+# and its output is the plan file. So a rotation here loses nothing.
+if valid_uuid "$DSID" && session_too_big "$DSID"; then
+  echo "[$(date)] dispatcher session $DSID outgrew agent.session_rotate_kb → fresh (transcript kept)" >>"$LOG"
+  DSID=""
+fi
+if valid_uuid "$DSID"; then DFLAG=(--resume "$DSID"); DRESUME=1
 else DSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); echo "$DSID" >"$SESS_FILE"; DFLAG=(--session-id "$DSID"); DRESUME=0; fi
 
 # The standing rules live in engines/dispatcher-role.md and go in as SYSTEM prompt, not here: they are
