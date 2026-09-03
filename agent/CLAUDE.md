@@ -268,7 +268,8 @@ clear the action rather than inventing a fifth behaviour.
         after a reply resolved it); note what resolved it via `board reply --card <ID> --text '...'`.
       · **it still needs their action** → `board edit --card <ID> --status '📥 New' --needs '<what they must do>'`.
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
-      Then mark the message processed and move on.
+      Then mark the message processed as `handled` — the disposition for mail that belonged to an
+      existing card — and move on.
     - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
 5c. **Ask memory before opening ANY new card.** Only for mail that survived triage as important or
     actionable — never for noise, and never when 5b already routed it to an existing card.
@@ -380,7 +381,7 @@ clear the action rather than inventing a fifth behaviour.
      mailto-only / non-one-click → never send; just mark `noise`.
    - **plain NOISE** (no unsubscribe action) → just mark processed, no card.
 7. Update `$INBOARD_STATE/processed.json`: add every handled id →
-   `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
+   `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
    Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
 8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. FIRST post the
    📌 state note (`board note`, see "Card body layout"), then append your **research notes, the drafted
