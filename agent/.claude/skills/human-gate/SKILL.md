@@ -10,7 +10,7 @@ and do NOT end with a bare "can't". Instead:
 
 **A. There IS a cheap, SAFE readiness signal** — a one-line shell check that confirms it WITHOUT doing the
 risky op (a login retried on a timer = account LOCKOUT, so NEVER poll that):
-1. `board reply --card <id> --text '<exactly what the operator must do — e.g. approve the credential fetch / the 2FA push>'`
+1. `board reply --card <id> --text '<中文，写清楚他要做的那一件事>'`
 2. Spawn ONE Bash with `run_in_background: true` that polls the signal with its OWN ~30-min timeout, so it always completes and notifies you:
    ```
    for i in $(seq 30); do <cheap probe> && { echo READY; exit 0; }; sleep 60; done; echo TIMEOUT; exit 1

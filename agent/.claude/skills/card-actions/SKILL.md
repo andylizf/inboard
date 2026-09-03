@@ -1,17 +1,19 @@
 ---
 name: card-actions
-description: What to do when the operator taps an Action chip on a card, plus the stale-awaiting follow-up sweep that opens every cycle. Load this at the start of any run that resumes work from the board, and whenever you are handed an Action. Covers each chip's meaning, the send-approved path that is the only way mail leaves, and why the Status is already set before you arrive.
+description: What to do when the operator taps an Action chip on a card, plus the stale-awaiting follow-up sweep that opens every cycle. Load this at the START OF EVERY RUN, not only when an Action is waiting: it opens with the stale-awaiting sweep, which is the only thing that catches a matter that was sent and never answered, and a run that skips it leaves no trace of having done so. Also load it whenever you are handed an Action. Covers each chip's meaning, the send-approved path that is the only way mail leaves, and why the Status is already set before you arrive.
 ---
 
-## A) Resume from the board (do this FIRST)
+## Resume from the board — do this first, every run
 **Follow-up sweep FIRST:** run `board stale-awaiting --days <cfg schedule.stale_awaiting_days>`. Each card
 returned was SENT but has had NO reply for that many days — about to rot silently. For each, surface it:
-`board edit --card <CARD> --status '📥 New' --needs 'Waited <days_waited> days with no reply — draft a nudge?'`
+`board edit --card <CARD> --status '📥 New' --needs '<中文：已等 N 天没有回音 — 要不要我起草一封追问？>'`
 (keeps the Subscription intact; Notion pushes the status change). If it's clearly worth chasing, also draft a
 short, polite follow-up (draft only — `+compose-draft --thread-id <T> --to <counterparty>`, since on a
 thread the operator started `+reply` would address the draft back to the operator).
 
-Run `board pending`. For each actioned card, act on the operator's request, then `board clear-action`:
+Run `board pending`. For each actioned card, act on the operator's request, then `board clear-action` —
+**except where the branch below says not to**, which is any failure that left his approval unspent: clearing
+it there throws away the tap he made and the retry it was holding open.
 
 **The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped,
 because a status that waits on you is a status that never changes when you hit your deadline or die.

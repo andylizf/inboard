@@ -40,8 +40,9 @@ once**, so duplicates collapse here or not at all.
 A group's `kind` is `sent` when the From address is one of the operator's own (`board accounts`).
 
 Sent mail routes by the same rules with one exception: **a sent group matching NO card is `noise`,
-never `new`**. inboard only ever saves drafts, so anything in the sent folder was sent by the operator
-or another session — it is news about a matter, not a request to open one.
+never `new`** — sent mail reports on a matter, it does not ask for one to be opened. The exception is mail
+the operator started himself that no card covers: a first message to a landlord, a clinic, an office. That
+is a real matter nobody is tracking, and it routes `new` so its reply has somewhere to land.
 
 A sent message that DOES match a card is the most valuable event on the board: it means the reply the
 card was waiting for has gone out, and nothing else can tell it that.

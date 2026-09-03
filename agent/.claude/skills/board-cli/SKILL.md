@@ -4,7 +4,7 @@ description: Every `board` and `email` command with its arguments — the refere
 ---
 
 ## Tools (PATH + proxy + Notion token already set by the runner)
-- Gmail per account → `email <account-id> gmail ...` (account ids from `board accounts`). Sends are blocked; drafts only.
+- Gmail per account → `email <account-id> gmail ...` (account ids from `board accounts`). Every send is blocked except one: `email <account> gmail +send-approved --card <CARD> --draft-id <ID>`, which requires the operator to have tapped the send chip on that card and is specified in `card-actions`. Everything else you write is a draft.
   - **Drafting — pick the right helper:**
     - `+reply --draft --message-id <ID>` ONLY when replying to a message SOMEONE ELSE sent (To = that sender, correct).
     - **`+compose-draft --to <addr> --subject S --body TEXT [--cc] [--thread-id T] [--in-reply-to <Message-ID>]`**
@@ -16,8 +16,7 @@ description: Every `board` and `email` command with its arguments — the refere
   context — not repeated here. What that spec does NOT cover:
   - **The injected index is a fraction of the pool** — most of it is memories you will never see
     unless you ask. **`omem search '<a few words>'`** is how you actually reach it: it returns whole
-    matching memories, most relevant first, each stamped with its age. Use it deliberately (see 5c),
-    not on every message.
+    matching memories, most relevant first, each stamped with its age. Use it deliberately, not on every message.
   - **Never ask the operator a personal fact without checking memory first** — their program/role,
     where they study or work, preferences, decisions already made. Asking something already on
     record ("are you a grad student or a postdoc?") reads as never having listened.
@@ -34,10 +33,11 @@ description: Every `board` and `email` command with its arguments — the refere
   - `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT]`
   - **`--subject` is the CARD TITLE — make it a self-contained, scannable one-liner** (so the board reads
     without opening cards): `<core matter> — <deadline if any> → <what they must do / what you did>`. NOT the
-    raw email subject. e.g. `Insurance waiver due 6/30 → confirm dental/vision on the portal`.
+    raw email subject. Write it in Chinese, like every other thing he reads: `保险 waiver 6/30 截止 → 上门户确认牙科/视力`.
   - `board clear-action --card CARD_ID` · `board log --card CARD_ID --text TXT` · `board note --card CARD_ID --text TXT`
-    (`note` = the 📌 current-state summary, rewritten in place; `log` = append-only timeline — see
-    "Card body layout" above)
+    (`note` = the card's single 📌 current-state summary, REWRITTEN in place every time and kept under
+    ~1500 characters; `log` = the append-only timeline underneath it. Reading the note alone must be enough
+    to understand the card.)
   - **`board done --card CARD_ID`** → Status→`✅ Done`, clears Action, **clears any Subscription**, **KEEPS the
     card** (it lands in the Done column = a record). **This is how you "take an item off the active board" — NOT archive.**
     Landing in any ending status does this now, `board edit --status` included, so a card cannot end while
@@ -48,7 +48,9 @@ description: Every `board` and `email` command with its arguments — the refere
     and now WAIT on the other side: Status→`⏳ Awaiting reply`, clears Action, **keeps/sets a Subscription** so
     their reply routes back to THIS card (not a new one). Use this — NOT `done` — whenever a reply is expected;
     `done` is only for a matter truly closed out. When the awaited reply arrives, route it here (via the
-    subscription) AND set the card back to `📥 New` so the operator sees it.
+    subscription); set the card back to `📥 New` so he sees it, **unless the reply resolves the matter**, in
+    which case close it — a card he still thinks is open, after the answer arrived, is the one that costs
+    him most.
   - `board archive --card CARD_ID` → **trashes** the card (recoverable ~30d). Use ONLY for true cleanup
     (a mistaken/duplicate card), never for normal completion.
   - **`board subscriptions`** → JSON of ACTIVE matters that registered a follow-up subscription
@@ -61,7 +63,7 @@ description: Every `board` and `email` command with its arguments — the refere
     It still answers "what cards mention this?", never "does this mail belong there" — a bank's name
     matches every card that bank ever appeared on, finished ones included.
   - **`board stale-awaiting --days N`** → JSON of `⏳ Awaiting reply` cards that have gone N+ days with NO reply.
-    The follow-up sweep in §A uses it so a sent-but-unanswered matter doesn't rot silently.
+    The follow-up sweep in `card-actions` uses it so a sent-but-unanswered matter doesn't rot silently.
   - **`board subscribe --card CARD_ID --desc '<natural language: which follow-up mail belongs here, until when>'`**
     → when a matter will keep getting follow-up mail (recurring reminders / an ongoing thread), register it so
     future matching mail routes onto THIS card's feed instead of spawning a duplicate. `done` auto-clears it.

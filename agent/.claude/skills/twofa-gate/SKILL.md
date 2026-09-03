@@ -19,6 +19,10 @@ twofa-gate acquire <service>     # exit 0 = you hold the only outstanding push; 
 … attempt the login …
 twofa-gate release <service> ok        # he answered
 twofa-gate release <service> timeout   # he did not — this blocks everyone for a cooldown
+
+**Release on every exit, including an error.** A push you never resolved holds the gate against every other
+card until it expires on its own (10 minutes), and until then they all stop. "He did not answer" means the
+page stopped waiting — a timed-out prompt, an expired transaction — not that you grew impatient.
 ```
 
 Blocked means stop, not wait and retry: put one line on the card saying it needs him at his

@@ -3,13 +3,14 @@ name: mail-pipeline
 description: The full new-mail pipeline: what counts as new, how to classify it, how to route a follow-up onto the matter that already owns it, when to ask memory and what to write back, and how to record the result. Load this the moment you are handed new mail to handle — it is the procedure, and working from memory of it instead skips the steps that keep one matter from becoming three cards.
 ---
 
-## B) New mail pipeline
+## New mail pipeline
 1. Read `$INBOARD_STATE/processed.json` (object: id → {...}). Missing/empty = `{}`. (State dir = `$INBOARD_STATE`.)
 2. New mail (READ **or** UNREAD — do NOT filter by `is:unread`; `processed.json` is the agent's own
    seen-ledger, so mail the operator already opened is still handled), EVERY account from `board accounts`:
    `email <id> gmail +triage --query 'in:inbox newer_than:2d' --max 100 --format json`.
    NEW = triage ids not in `processed.json`.
-3. **If no pending actions (A) AND no new messages → output NOTHING and stop.** (Silent empty cycles.)
+3. **Nothing new after step 2 → output NOTHING and stop.** An empty cycle is silent; there is no tally to
+   post and no card to touch.
 4. For each NEW message: `email <id> gmail +read --message-id <ID>` → body + headers.
    - **Has an image, or looks empty?** If it has an image attachment, its text points to a figure (`see below` /
      `attached` / `as shown`), OR the text body is suspiciously empty/thin → use the **`email-images`** skill
@@ -71,7 +72,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       followed this step.
     - **"Was this you?" — per `cfg preferences.identity_alerts` (default `assume-self`): assume it was him
       and do not ask.** A sign-in from a new device or place, a third-party app authorization, a password
-      reset he requested, a new API token, a login code — these are notices that an event happened, and
+      reset he requested, a new API token — these are notices that an event happened, and
       the operator is the overwhelmingly likely cause of every one. Record it (`board daily --type 'ℹ️ FYI'`)
       and move on. If memory happens to name the app or device, say so in the log line; do NOT make the
       lookup a precondition, because memory cannot hold every service he has ever touched and its silence
@@ -175,7 +176,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
    Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
 8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. FIRST post the
-   📌 state note (`board note`, see "Card body layout"), then append your **research notes, the drafted
+   📌 state note (`board note` — the single current-state summary, rewritten in place, under ~1500
+   characters), then append your **research notes, the drafted
    reply, and what you did/decided** underneath: `board log --card <CARD_ID> --text '...'` (call it several
    times). Refresh the 📌 note whenever the state changes. The card body is the only record of this
    item's research and drafts — where the matter STANDS goes to memory as well (see 5c/6).
