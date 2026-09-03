@@ -12,7 +12,7 @@ import os
 import sys
 import urllib.request
 import urllib.error
-from datetime import datetime
+from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
                                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
@@ -275,6 +275,42 @@ def subscribe(a):
     # routes follow-ups onto THIS card instead of duplicating. Cleared automatically by `done`.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Subscription": {"rich_text": rt(a.desc)}}})
     print(json.dumps({"subscribed": a.card, "desc": (a.desc or "")[:80]}, ensure_ascii=False))
+
+
+def cards(a):
+    """Every card the dispatcher could route to, compactly.
+
+    A keyword search cannot answer "is this matter already on the board" — it answers "which cards
+    contain this string", and a follow-up rarely repeats the words of the card it belongs to. Reading
+    the list is what answers it, and the reader is a model. Closed cards past `--closed-days` are left
+    out: they are not destinations, so listing them only adds candidates that must then be rejected.
+    """
+    rows, cur = [], None
+    while True:
+        b = {"page_size": 100, "sorts": [{"timestamp": "last_edited_time", "direction": "descending"}]}
+        if cur:
+            b["start_cursor"] = cur
+        r = api("POST", f"/databases/{DB}/query", b)
+        rows += r["results"]
+        if not r.get("has_more"):
+            break
+        cur = r["next_cursor"]
+    closed = {C.STATUS.get(k) for k in ("done", "unsub", "expired") if C.STATUS.get(k)}
+    cutoff = (datetime.now().astimezone() - timedelta(days=int(a.closed_days))).date().isoformat()
+    out = []
+    for p in rows:
+        pr = p["properties"]
+        st = _g(pr, "Status", "select")
+        ed = p["last_edited_time"][:10]
+        if st in closed and ed < cutoff:
+            continue
+        # Enough to RECOGNISE a matter, not to read it. The subscription text is omitted because
+        # `board subscriptions` carries it, and repeating it here doubled the size of a list the
+        # dispatcher pays for on every cycle.
+        out.append({"card": p["id"], "status": st, "subject": _g(pr, "Subject", "title")[:90],
+                    "sender": _g(pr, "Sender", "rich_text")[:50],
+                    "account": _g(pr, "Account", "select"), "edited": ed})
+    print(json.dumps(out, ensure_ascii=False))
 
 
 def subscriptions(_):
@@ -672,6 +708,7 @@ def main():
     im = sub.add_parser("image"); im.add_argument("--card", required=True); im.add_argument("--file", required=True); im.add_argument("--caption", default="")
     sb = sub.add_parser("subscribe"); sb.add_argument("--card", required=True); sb.add_argument("--desc", required=True)
     sub.add_parser("subscriptions")
+    cd = sub.add_parser("cards"); cd.add_argument("--closed-days", default="7", dest="closed_days")
     sr = sub.add_parser("search"); sr.add_argument("--query", required=True)
     sr.add_argument("--status"); sr.add_argument("--account"); sr.add_argument("--since")
     sr.add_argument("--open-only", action="store_true", dest="open_only")
@@ -695,7 +732,7 @@ def main():
     {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
-     "subscriptions": subscriptions, "search": search, "stale-awaiting": stale_awaiting, "edit": edit, "status-for": status_for,
+     "subscriptions": subscriptions, "cards": cards, "search": search, "stale-awaiting": stale_awaiting, "edit": edit, "status-for": status_for,
      "accounts": accounts, "whoami": whoami, "covers": covers}[a.cmd](a)
 
 

@@ -41,13 +41,9 @@ if [ -s "$WM_FILE" ]; then
   SINCE="$(cat "$WM_FILE" 2>/dev/null)"
   FLOOR="$(python3 -c 'import datetime;print((datetime.date.today()-datetime.timedelta(days=30)).strftime("%Y/%m/%d"))')"
   [ "$SINCE" \< "$FLOOR" ] && SINCE="$FLOOR"
-  MAIL_WINDOW="(in:inbox OR in:sent) after:$SINCE"
-  SENT_SINCE="in:sent after:$SINCE"
-  INBOX_SINCE="in:inbox after:$SINCE"
+  MAIL_WINDOW="{in:inbox in:sent} after:$SINCE"
 else
-  MAIL_WINDOW="(in:inbox OR in:sent) newer_than:2d"
-  SENT_SINCE="in:sent newer_than:2d"
-  INBOX_SINCE="in:inbox newer_than:2d"
+  MAIL_WINDOW="{in:inbox in:sent} newer_than:2d"
 fi
 export INBOARD_MAIL_WINDOW="$MAIL_WINDOW"
 
@@ -69,55 +65,33 @@ SESS_FILE="$INBOARD_STATE/main-session-$(date +%Y%m%d)"
 if [ -f "$SESS_FILE" ]; then DSID=$(cat "$SESS_FILE"); DFLAG=(--resume "$DSID"); DRESUME=1
 else DSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); echo "$DSID" >"$SESS_FILE"; DFLAG=(--session-id "$DSID"); DRESUME=0; fi
 
-DPROMPT="You are the DISPATCHER for the inbox board. Read CLAUDE.md in this directory for the board's vocabulary,
-but do NOT run the full pipeline yourself — your whole job this cycle is to GROUP and ROUTE.
+# The standing rules live in engines/dispatcher-role.md and go in as system prompt, not here: they are
+# true every cycle, so repeating them in the task prompt spends tokens re-teaching what the role already
+# knows. CLAUDE.md is not named either — it auto-loads from the working directory.
+DROLE=$(cat "$INBOARD_HOME/engines/dispatcher-role.md")
 
-Do exactly this:
-1. \`board accounts\` for the mailbox ids.
-2. For EACH account, run TWO triage calls — the header listing carries no label, so which query found a
-   message is the only thing that says whether it was received or sent:
-     inbound: \`email <id> gmail +triage --query '$INBOX_SINCE' --max 100 --format json\`   → kind='inbox'
-     outbound: \`email <id> gmail +triage --query '$SENT_SINCE' --max 100 --format json\`   → kind='sent'
-   Headers only. Do NOT open message bodies — reading bodies is the card agents' job, not yours.
+DPROMPT="Dispatch this cycle. Do exactly this:
+1. \`board accounts\` for the mailbox ids and addresses.
+2. For EACH account, ONE triage call covering received and sent together:
+   \`email <id> gmail +triage --query '$MAIL_WINDOW' --max 200 --format json\`
+   Mark each message kind='sent' when its From is that account's own address, else kind='inbox'.
 3. Subtract ids already in \$INBOARD_STATE/processed.json.
-4. \`board subscriptions\` — every active card's own declaration of what belongs to it. This is only the
-   FIRST hop and it is far from complete: it returns nothing for a card that never registered a
-   subscription, and most of the board is in that state, so a card missing here is NOT evidence the
-   matter is new.
-4b. For any group you are about to route 'new', run \`board search --query '<sender or key subject words>'\`
-   first — it searches every card's Subject and Sender regardless of status or subscription, and it is the
-   only way to see the cards step 4 hides. If it returns the matter, route 'card' with that id instead.
-   A message that announces itself as a repeat — 'reminder', '2nd notice', 'still awaiting', 'final
-   notice' — is by definition not new: search before believing otherwise. Three cards were opened for one
-   GitHub App permission request on 2026-08-22 in three consecutive cycles, the third one labelled '3rd
-   notice, still no card' by the dispatcher that then opened it anyway.
-5. Group the remaining messages into MATTERS. Several messages about one thing are ONE group. This
-   grouping is the only place the whole batch is visible at once, so collapse duplicates here.
-6. Route each group:
-     route='card'  + card=<card id>  — a semantic match to a subscription, or an obvious follow-up.
-     route='new'                     — a genuinely new matter that deserves its own card.
-     route='noise'                   — nothing to do; no card, no agent. If a noise group looks like a
-                                       real unsubscribe candidate, route it 'new' with a matter naming
-                                       the sender, and its agent will do the holistic judgement.
-   SENT mail routes by the same rules with one exception: a sent group that matches NO card is 'noise',
-   never 'new'. inboard only ever saves drafts, so everything in the sent folder was sent by the operator
-   or another session — it is news about a matter, not a request to open one. A sent message that DOES
-   match a card is the most valuable event on the board: it means the reply the card was waiting for has
-   gone out, which nothing else can tell it.
-7. Write ONLY this JSON to $PLAN — no prose, no code fence:
+4. \`board subscriptions\`, then \`board cards\`. Read both before deciding anything is new.
+5. Group the remaining messages into MATTERS and route each one.
+6. Write ONLY this JSON to $PLAN — no prose, no code fence:
 {\"groups\":[{\"matter\":\"<short name>\",\"route\":\"card|new|noise\",\"card\":\"<id or null>\",
   \"reason\":\"<one line>\",\"messages\":[{\"id\":\"..\",\"account\":\"<account id>\",\"subject\":\"..\",
   \"from\":\"..\",\"kind\":\"inbox|sent\"}]}]}
    Every field must be copied from the triage output. Do NOT invent a threadId — you never saw one.
 Output one short line for the run log, nothing else."
-# Cross-card work WRITES, so it is appended only on a real run — a dry run must leave the board untouched.
+# A dry run must leave the board untouched, and cross-card work WRITES.
 [ "$DRY" = 0 ] && DPROMPT="$DPROMPT
-Then also handle anything CROSS-CARD that this batch makes obvious (two cards that are the same matter, a
-card this batch proves is finished) — you are the only agent that can see across cards."
+Then also do the cross-card work your role describes."
 
 # stdin is closed explicitly: without it the CLI waits 3s for piped input on EVERY invocation, which
 # is one stall for the dispatcher plus one per card agent.
 run_dispatch() { claude -p "$DPROMPT" "$@" --model "$MODEL" \
+  --append-system-prompt "$DROLE" \
   --allowedTools "Bash,Read,Write,WebSearch,WebFetch,Skill" \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }
 
@@ -167,7 +141,7 @@ run_group() {   # $1 = group index
     fi
     trap "rmdir '$LK' 2>/dev/null" RETURN
     prep_session
-    PROMPT="You own ONE matter on the inbox board: card $CARD ('$matter'). Follow CLAUDE.md in this directory.
+    PROMPT="You own ONE matter on the inbox board: card $CARD ('$matter').
 $SESSION_NOTICE
 New mail on this matter, as <message-id>(<account>): $ids
 Read ONLY these messages' bodies (\`email <account> gmail +read --message-id <ID>\`), then handle them per
@@ -187,7 +161,7 @@ Output one short line."
     # that can attach the two. Without this a new matter's card is born with no Session, the next cycle
     # starts it cold, and one-card-one-agent silently does not hold for anything newly created.
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
-    PROMPT="You own ONE new matter from the inbox: '$matter'. Follow CLAUDE.md in this directory.
+    PROMPT="You own ONE new matter from the inbox: '$matter'.
 Its messages, as <message-id>(<account>): $ids
 Read ONLY these messages' bodies, then handle them per CLAUDE.md steps 5b, 5c and 6: check it is really not
 an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no

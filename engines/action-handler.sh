@@ -45,7 +45,7 @@ prep_session
 # The per-Action semantics (continue/redo, sent-awaiting, done/ignore, daily-log step) are deliberately NOT
 # respelled here — CLAUDE.md §A is the single source of truth; a summary here WILL drift from it (it already
 # had: the daily-log step was missing).
-PROMPT="The operator picked Action='$ACTION' on card $CARD (the inbox board) — a no-typing decision from the select. Read CLAUDE.md (this dir).
+PROMPT="The operator picked Action='$ACTION' on card $CARD (the inbox board) — a no-typing decision from the select.
 $SESSION_NOTICE
 FIRST post a live plan so they can watch: \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 steps); \`board tick --card $CARD --n <0-based>\` the instant each step is done.
 Then read the card (subject, draft, needs, body) and handle Action='$ACTION' EXACTLY per CLAUDE.md §A — the actioned-card playbook there (including its daily-log step when a daily log is configured) is the single source of truth; do not improvise a different flow.

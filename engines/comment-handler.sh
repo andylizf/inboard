@@ -58,7 +58,7 @@ SESS=(); NEWSID=""
 if [ -n "$CARD" ]; then prep_session; fi
 
 if [ -n "$CARD" ]; then
-  TASK="A Notion comment fired on card $CARD (the inbox board). Read CLAUDE.md (this dir).
+  TASK="A Notion comment fired on card $CARD (the inbox board).
 The card $CARD is the affected item. Read its latest comment(s) with \`board comments --card $CARD\` and its
 properties. The newest comment is the operator talking to you — an INSTRUCTION for this item (continue /
 redo / send-it / drop) OR a PREFERENCE ('stop surfacing this kind of CI', 'this sender is junk', a tone note).
@@ -85,7 +85,7 @@ matter this is in plain words, what you did/found, what they must do next — no
 Put longer detail in the body via \`board log\`.
 NEVER send email (drafts only)."
 else
-  TASK="A Notion comment fired but I couldn't resolve the card. Read CLAUDE.md (this dir).
+  TASK="A Notion comment fired but I couldn't resolve the card.
 Scan actionable cards (\`board pending\` + read comments on the awaiting/draft cards), find the one with a fresh
 comment from the operator, and handle it (instruction or preference). If they say drop/done → \`board done --card <ID>\`
 (keep the card, do NOT archive). Reply in-thread with \`board reply --card <ID> --text '<short + self-contained
