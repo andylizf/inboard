@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""Enroll this browser as a Duo authenticator, and persist the credential.
+
+A CDP virtual authenticator holds its credentials only for the life of the connection,
+so registering one and walking away leaves nothing behind. This holds the socket, polls
+every authenticator it made, and the moment a credential appears it writes the private
+key to the store the shim reads at each browser start. Losing the connection before that
+loses the enrollment.
+
+Two authenticators, because Duo's registration screens ask for different things and a
+mismatched one leaves the page waiting forever with no error: "Touch ID" requests a
+platform authenticator (transport internal), "Security key" a cross-platform one
+(transport usb). Which one the credential lands on is Duo's choice, so poll both.
+
+  webauthn-enroll [minutes] [tab-id]   tab-id attaches to an EXISTING tab, so an
+                                       already-authenticated Duo session is reused
+                                       instead of costing another push.
+
+The store is a real second factor on disk: 0600, outside the repository, never committed.
+"""
+import asyncio, json, os, sys, time, urllib.request, websockets
+
+PORT = 9223
+STORE = os.path.expanduser("~/.config/inboard/webauthn-credentials.json")
+KINDS = [("internal", "platform / Touch ID"), ("usb", "cross-platform / security key")]
+
+
+def base(transport):
+    return {"protocol": "ctap2", "transport": transport, "hasResidentKey": True,
+            "hasUserVerification": True, "isUserVerified": True,
+            "automaticPresenceSimulation": True}
+
+
+def find_target(tab_id):
+    targets = json.load(urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json"))
+    if tab_id:
+        for t in targets:
+            if t["id"].lower().startswith(tab_id.lower()):
+                return t
+        sys.exit(f"no target starting {tab_id}")
+    return json.load(urllib.request.urlopen(urllib.request.Request(
+        f"http://127.0.0.1:{PORT}/json/new?about:blank", method="PUT")))
+
+
+async def main(minutes, tab_id):
+    t = find_target(tab_id)
+    print("tab:", t["id"], t.get("url", "")[:60], flush=True)
+    async with websockets.connect(t["webSocketDebuggerUrl"], max_size=None) as ws:
+        n = 0
+        async def cmd(method, params=None):
+            nonlocal n; n += 1
+            await ws.send(json.dumps({"id": n, "method": method, "params": params or {}}))
+            while True:
+                m = json.loads(await ws.recv())
+                if m.get("id") == n: return m
+        await cmd("WebAuthn.enable", {"enableUI": False})
+        ids = {}
+        for transport, label in KINDS:
+            r = await cmd("WebAuthn.addVirtualAuthenticator", {"options": base(transport)})
+            if "result" in r:
+                ids[r["result"]["authenticatorId"]] = (transport, label)
+                print(f"authenticator {r['result']['authenticatorId'][:8]} — {label}", flush=True)
+            else:
+                print(f"could not add {label}: {r.get('error')}", flush=True)
+        print("READY — drive this tab; polling for an enrolled credential", flush=True)
+        deadline, seen = time.time() + minutes * 60, 0
+        while time.time() < deadline:
+            found = []
+            for aid, (transport, label) in ids.items():
+                r = await cmd("WebAuthn.getCredentials", {"authenticatorId": aid})
+                for c in r.get("result", {}).get("credentials", []):
+                    found.append({**c, "transport": transport})
+            if len(found) > seen:
+                seen = len(found)
+                os.makedirs(os.path.dirname(STORE), exist_ok=True)
+                fd = os.open(STORE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                with os.fdopen(fd, "w") as f:
+                    json.dump({"credentials": found}, f, indent=2)
+                print(f"SAVED {len(found)} credential(s) -> {STORE}", flush=True)
+                for c in found:
+                    print("   rpId=%s transport=%s id=%s" % (
+                        c.get("rpId"), c["transport"], c.get("credentialId", "")[:24]), flush=True)
+            await asyncio.sleep(3)
+        print("window closed", flush=True)
+
+asyncio.run(main(float(sys.argv[1]) if len(sys.argv) > 1 else 25,
+                 sys.argv[2] if len(sys.argv) > 2 else None))

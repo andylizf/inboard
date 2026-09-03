@@ -1,33 +1,58 @@
 #!/usr/bin/env python3
-"""Keep a virtual authenticator on every page of the agent's Chrome.
+"""Give every page in the agent's Chrome an authenticator that can answer Duo.
 
-Duo's default factor for this account is a security key. This browser has none, so
-the WebAuthn call has nowhere to go and macOS raises a system dialog *outside* the
-page — which no click, no keystroke and no snapshot can reach. The tab then sits
-there forever: "Other options" stops responding, and the only way out is killing
-Chrome. That is what burned three Duo passcodes and two pushes on 2026-09-02.
+Two jobs, and the first matters even with no credential on disk.
 
-A virtual authenticator keeps the call inside Chrome. It holds no credential, so it
-FAILS instead of succeeding — which is the whole point: Duo draws "Couldn't use
-security key" with a working "Show other options", and push or passcode is reachable
-again. This shim never authenticates anything; it only converts a hang into an error.
+1. Duo's default factor for this account is a security key. With no authenticator at
+   all, the WebAuthn call raises a macOS system dialog *outside* the page — no click,
+   no keystroke and no snapshot can reach it, "Other options" stops responding, and the
+   tab is dead until Chrome is killed. An empty virtual authenticator makes the call
+   FAIL instead of hang, which is enough to get the fallback list back.
 
-Deliberately NOT using Target.setAutoAttach(waitForDebuggerOnStart): that pauses every
-new page until this process resumes it, so if the shim died every tab in the shared
-browser would hang. Discovery + attach can only ever be late, never fatal.
+2. With a credential in the store (put there by bin/webauthn-enroll, which registers
+   this browser as a Duo security key) the call SUCCEEDS, and Princeton logins stop
+   needing a phone at all.
+
+CDP authenticators are per-connection and hold nothing across restarts, so this process
+has to stay attached for the life of each tab — that is why it holds sockets rather than
+attaching and exiting.
+
+Deliberately NOT Target.setAutoAttach(waitForDebuggerOnStart): that pauses every new page
+until this process resumes it, so a dead shim would hang the whole browser. Polling can
+only ever attach late, which is merely the old behaviour.
 """
-import asyncio, json, sys, urllib.request, urllib.error
+import asyncio, json, os, sys, urllib.request, urllib.error
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 9223
+STORE = os.path.expanduser("~/.config/inboard/webauthn-credentials.json")
 POLL = 2.0
-
-OPTIONS = {"protocol": "ctap2", "transport": "internal", "hasResidentKey": True,
-           "hasUserVerification": True, "isUserVerified": True,
-           "automaticPresenceSimulation": True}
+KINDS = ("internal", "usb")   # platform and cross-platform; Duo asks for either
 
 
 def log(m):
     print(m, flush=True)
+
+
+def options(transport):
+    return {"protocol": "ctap2", "transport": transport, "hasResidentKey": True,
+            "hasUserVerification": True, "isUserVerified": True,
+            "automaticPresenceSimulation": True}
+
+
+def stored():
+    """Credentials to inject, grouped by the transport they were enrolled on.
+
+    A missing or unreadable store is not an error: the shim still converts the hang into
+    a failure, which is the half that must never depend on a file being present."""
+    try:
+        with open(STORE) as f:
+            creds = json.load(f).get("credentials", [])
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for c in creds:
+        out.setdefault(c.get("transport", "usb"), []).append(c)
+    return out
 
 
 def page_targets():
@@ -38,11 +63,7 @@ def page_targets():
         return []
 
 
-async def equip(target):
-    """Attach to one page and leave a virtual authenticator on it.
-
-    The authenticator lives only as long as this connection, so the coroutine holds
-    the socket open for the life of the tab rather than returning."""
+async def equip(target, creds_by_transport):
     import websockets
     async with websockets.connect(target["webSocketDebuggerUrl"], max_size=None) as ws:
         n = 0
@@ -57,24 +78,39 @@ async def equip(target):
                     return m
 
         await cmd("WebAuthn.enable", {"enableUI": False})
-        r = await cmd("WebAuthn.addVirtualAuthenticator", {"options": OPTIONS})
-        if "error" in r:
-            log(f"equip failed {target['id'][:8]}: {r['error']}")
-            return
-        log(f"equipped {target['id'][:8]} {target.get('url','')[:60]}")
+        loaded = 0
+        for transport in KINDS:
+            r = await cmd("WebAuthn.addVirtualAuthenticator", {"options": options(transport)})
+            if "error" in r:
+                log(f"equip {target['id'][:8]}: {transport}: {r['error']}")
+                continue
+            aid = r["result"]["authenticatorId"]
+            for c in creds_by_transport.get(transport, []):
+                cred = {k: c[k] for k in ("credentialId", "isResidentCredential", "rpId",
+                                          "privateKey", "signCount") if k in c}
+                if c.get("userHandle"):
+                    cred["userHandle"] = c["userHandle"]
+                a = await cmd("WebAuthn.addCredential", {"authenticatorId": aid, "credential": cred})
+                if "error" in a:
+                    log(f"addCredential failed ({c.get('rpId')}): {a['error']}")
+                else:
+                    loaded += 1
+        log(f"equipped {target['id'][:8]} creds={loaded} {target.get('url','')[:55]}")
         async for _ in ws:      # hold until the tab closes
             pass
 
 
 async def main():
-    log(f"webauthn-shim watching CDP :{PORT}")
+    creds = stored()
+    total = sum(len(v) for v in creds.values())
+    log(f"webauthn-shim watching CDP :{PORT} — {total} stored credential(s)")
     held = {}
     while True:
         for t in page_targets():
             tid = t["id"]
             if tid in held and not held[tid].done():
                 continue
-            held[tid] = asyncio.create_task(equip(t))
+            held[tid] = asyncio.create_task(equip(t, creds))
         for tid in [k for k, v in held.items() if v.done()]:
             held.pop(tid, None)
         await asyncio.sleep(POLL)
