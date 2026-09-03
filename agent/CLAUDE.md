@@ -270,6 +270,13 @@ clear the action rather than inventing a fifth behaviour.
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed as `handled` — the disposition for mail that belonged to an
       existing card — and move on.
+    - **Same thread is identity; a resemblance is not.** If the mail carries the card's `threadId`, or
+      replies to a message the card tracks, it belongs there however old the card is — a bank answering in
+      October the question you asked in July is still that conversation. A *semantic* match has no such
+      backing, so bound it: route onto a card that is still open, or one closed within the last two weeks.
+      Further back than that, the resemblance is doing all the work — open a new card and name the old one
+      in its first line, rather than reopening a matter the operator finished and stopped thinking about.
+      `board search` returns each hit's status and `edited` date; that is what this judgement reads.
     - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
 5c. **Ask memory before opening ANY new card.** Only for mail that survived triage as important or
     actionable — never for noise, and never when 5b already routed it to an existing card.

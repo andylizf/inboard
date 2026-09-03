@@ -39,6 +39,14 @@ def api(method, path, body=None):
         raise
 
 
+def touched():
+    # Every write that changes what a card says must stamp this. Until it did, only `upsert`
+    # set Updated, so a follow-up appended to an existing card (the 5b path) left the one
+    # property that could say "this moved" frozen at the card's creation — and the operator
+    # had no way to tell a card that gained a development today from one untouched for weeks.
+    return {"Updated": {"date": {"start": datetime.now().astimezone().isoformat()}}}
+
+
 def rt(s):
     return [{"type": "text", "text": {"content": (s or "")[:1900]}}] if s else []
 
@@ -150,6 +158,7 @@ def log(a):
     api("PATCH", f"/blocks/{a.card}/children", {"children": [
         {"object": "block", "type": "bulleted_list_item",
          "bulleted_list_item": {"rich_text": md(f"{datetime.now().strftime('%m-%d %H:%M')} — {a.text}")}}]})
+    api("PATCH", f"/pages/{a.card}", {"properties": touched()})
     print(json.dumps({"logged": a.card}))
 
 
@@ -201,7 +210,7 @@ def done(a):
     # Mark complete but KEEP the card (lands in the Done column) + clear any Action + clear the
     # Subscription (matter resolved → future matching mail becomes noise). This is a record, NOT archive.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Status": {"select": {"name": S["done"]}},
-        "Action": {"select": None}, "Subscription": {"rich_text": []}}})
+        "Action": {"select": None}, "Subscription": {"rich_text": []}, **touched()}})
     print(json.dumps({"done": a.card}))
 
 
@@ -209,7 +218,7 @@ def awaiting(a):
     # "I sent/submitted my part — now WAITING on the other party's reply." Keeps the card ACTIVE in
     # 'Awaiting reply' and keeps/sets a Subscription so their reply routes back to THIS card instead of
     # opening a disconnected new one. NOT `done`. Pass --desc to (re)set what to watch for.
-    props = {"Status": {"select": {"name": S["awaiting"]}}, "Action": {"select": None}}
+    props = {"Status": {"select": {"name": S["awaiting"]}}, "Action": {"select": None}, **touched()}
     if a.desc is not None:
         props["Subscription"] = {"rich_text": ([{"text": {"content": a.desc[:1900]}}] if a.desc else [])}
     api("PATCH", f"/pages/{a.card}", {"properties": props})
@@ -377,7 +386,7 @@ def edit(a):
     _due_props(a, props)  # DUE-20260818
     if not props:
         sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender/--due/--lapses")
-    api("PATCH", f"/pages/{a.card}", {"properties": props})
+    api("PATCH", f"/pages/{a.card}", {"properties": {**props, **touched()}})
     print(json.dumps({"edited": a.card}))
 
 
