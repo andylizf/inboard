@@ -171,3 +171,83 @@ each; new providers are a later phase, not a blocker.
 ## Not here (deliberately)
 - No chat/notification surface — the board is the surface.
 - Not a hosted SaaS, not a full email client — inboard drives Gmail + Notion, it doesn't replace them.
+
+
+## One matter, one card, one agent — and why it is shaped this way
+
+Moved out of `agent/CLAUDE.md` on 2026-09-04. It explains the design rather than telling an agent what
+to do on a turn, and it was being re-read by every card agent on every run.
+
+One matter is one card, for the life of the matter. One card is one agent, whose name is the card's own
+id (`inboard-card-<32 hex>`), so the mail that arrives on a matter in October reaches the same agent that
+worked it in July. Above both sits **one dispatcher session per day**, the only agent that is not a card:
+it reads the new mail, decides which matter each piece belongs to, and hands off. It does not develop a
+matter itself — deciding *where* something goes and deciding *what to do about it* are different jobs, and
+the second one belongs to whoever already holds the history.
+
+That agent is not immortal, and being replaced is normal rather than a failure. In the shell path a
+transcript that outgrows `agent.session_rotate_kb`, or sits idle past `agent.session_max_idle_days`, is
+retired, and **the successor is told so, and told which card it inherits** — the alternative is worse than
+starting cold, because it would read the card as a fresh matter and quietly re-decide questions its
+predecessor had already settled there. Under `agent.delivery: daemon` those two thresholds do not decide
+anything: the daemon keeps one worker per agent name, and the session lasts exactly as long as that worker.
+A worker that was reaped, or a daemon that restarted, means the next delivery spawns a cold agent — with no
+notice, because nothing measured a transcript to trigger one.
+
+So do not read the card's `Session` as a promise of continuity. It records where the run happening NOW is,
+for whoever needs to find that transcript; it does not tell you whether you are that run's continuation.
+`PastSessions` holds the ones before it, oldest first — overwriting `Session` is what keeps it pointing at
+something live, and appending to `PastSessions` is what stops the earlier transcripts becoming unreachable,
+since they sit on disk named only by that id. **The
+card body is what tells you, and it is the only thing that does.** Read the 📌 note and the log before
+acting on any matter you do not remember working — and if you do not remember it, assume you are new to it,
+whatever the card's `Session` says.
+
+So, concretely, when you begin a turn:
+
+- **A notice says you are a fresh session taking over card X.** Everything the previous agent knew is gone
+  and the card is all that survived. Read the card fully — the 📌 note first, then the log — before you
+  touch anything, and continue from where it says the matter stands. Do not re-derive; do not contradict.
+- **No notice.** You are the same agent that worked this card before, with your own history intact. The
+  card is still the record, but you are not starting cold.
+
+Either way the card id is in your prompt. It is the only durable name you have: your session can end
+between any two tool calls, but the card is still there afterwards, which is why anything worth surviving
+goes onto the card at the moment you learn it, not at the end of the run.
+
+**Worked example — the ICBC card.** July 29: mail from the bank asks for compliance details. A card opens,
+its agent researches, drafts a reply, and sets a Subscription saying it now awaits the bank's answer.
+September 1, five weeks later: the bank replies in the same thread. The dispatcher sees a thread the card
+already tracks, routes it there rather than opening a second ICBC card, and hands it to that card's agent —
+which reads its own July notes, appends what changed (account converted, a $15 monthly fee now accruing,
+two new compliance questions), rewrites the 📌 note, and sets the card back to needing the operator. One
+matter, one card, five weeks apart, and nothing had to be reconstructed.
+
+**The same example, gone wrong in three ways worth recognising:**
+
+- *A second card.* The reply is treated as new mail about a new subject, so the board now shows two ICBC
+  cards and neither one tells the whole story. The Subscription exists to prevent exactly this.
+- *A stranger writing on the card.* The dispatcher appends the update itself instead of handing off. The
+  line lands on the right card, so it looks fine — but the agent holding five weeks of context on that
+  matter never learns its reply arrived, and the next thing it does is act on a stale picture.
+- *A silent append.* The update lands and nothing about the card's appearance changes, because it was
+  already in the same column. It is on the board and still effectively invisible. `board log` and
+  `board edit` stamp `Updated` for this reason; a matter that moved today must be distinguishable from
+  thirty that have not moved in weeks.
+
+**Card or memory? One test: would this fact still matter if this card did not exist?**
+- **No → the card.** What has been done, what is being waited on, the draft text, thread ids, research
+  notes, the next step. It dies with the matter, and that is correct.
+- **Yes → memory.** Facts about the world that outlive this matter: who a counterparty is and what they
+  are responsible for, an account id, a policy, a decision other matters will cite. Other sessions read
+  these long after the card they came from is gone.
+- **A decision usually goes to BOTH, written differently.** The card records the transaction — "they
+  offered A or B, we chose B on <date>". Memory records the resulting state of the world — "this
+  project's storage plan is B".
+
+**The 📌 note is capped; the log is not.** Keep the note under ~1500 characters and REWRITE it: when it
+is full, delete what no longer decides anything instead of appending. The cap is what forces that edit —
+without one the note quietly becomes a second log and stops being readable in one pass, which is the only
+property that made it worth writing. Detail you cannot bear to delete goes to `board log`, which is
+append-only and unbounded on purpose.
+

@@ -43,12 +43,13 @@ fi
 prep_session
 
 # The per-Action semantics (continue/redo, sent-awaiting, done/ignore, daily-log step) are deliberately NOT
-# respelled here — CLAUDE.md §A is the single source of truth; a summary here WILL drift from it (it already
-# had: the daily-log step was missing).
+# respelled here — the card-actions skill is the single source of truth; a summary here WILL drift from it
+# (it already had: the daily-log step was missing). The prompt names the skill rather than leaving it to the
+# model's judgement, which the docs say is not guaranteed to fire in -p mode.
 PROMPT="The operator picked Action='$ACTION' on card $CARD (the inbox board) — a no-typing decision from the select.
 $SESSION_NOTICE
 FIRST post a live plan so they can watch: \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 steps); \`board tick --card $CARD --n <0-based>\` the instant each step is done.
-Then read the card (subject, draft, needs, body) and handle Action='$ACTION' EXACTLY per CLAUDE.md §A — the actioned-card playbook there (including its daily-log step when a daily log is configured) is the single source of truth; do not improvise a different flow.
+Then read the card (subject, draft, needs, body) and handle Action='$ACTION' EXACTLY per the **card-actions** skill (load it) — that playbook, including its daily-log step when a daily log is configured, is the single source of truth; do not improvise a different flow.
 Finish: \`board clear-action --card $CARD\` (so it can be re-triggered), then \`board reply --card $CARD --text '<one line: what you did>'\` so they see it in the thread.
 Email may leave ONLY when this Action is the send action, and ONLY via the +send-approved path in §A; for every other action, drafts only — never send.
 $GOAL_TRAILER
