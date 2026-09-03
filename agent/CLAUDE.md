@@ -89,8 +89,8 @@ Your first move on any matter is to read, not to act. Two lookups, both cheap, a
 them is redoing research the board already contains or contradicting a decision that was already made.
 
 - **`board search --query '<the counterparty, the account, the key noun>'`** — it matches the card
-  BODIES, not just titles, so a name written once in a log line is findable. Do not restrict this to open
-  cards. **A closed card is where knowledge usually is**: what was tried and failed, which portal, which
+  BODIES, not just titles, so a name written once in a log line is findable, and it covers every card
+  whatever its status. **A closed card is where knowledge usually is**: what was tried and failed, which portal, which
   account number, who the right person turned out to be. Closed means it is not a destination — never
   that it is irrelevant, and a new matter is often a sequel to a finished one.
 - **`omem search '<the matter in a few words>'`** — memory holds what outlives any card, and a `project`

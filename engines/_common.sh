@@ -104,13 +104,49 @@ SESSION_NOTICE=""
 # The transcript lives under ~/.claude/projects/<cwd with / turned into ->/<id>.jsonl; engines always run
 # from $INBOARD_HOME/agent, so the slug comes from the current directory. A missing file is NOT too big:
 # an unreadable path must not silently rotate every card on every cycle.
+# session_context_pct <session-id> — how much of the model's context window that session's last turn
+# actually used, 0-100. Bytes on disk were a proxy and a poor one: a transcript records everything that
+# ever happened, including the parts compaction has already dropped, so a compacted session reads as huge
+# while carrying little. The last usage record is the truth — it is what the next turn will re-send.
+# Reads only the tail: these files reach tens of megabytes and this runs on every touch of a card.
+session_context_pct() {
+  local sid="${1:-}" f win
+  f="$HOME/.claude/projects/$(pwd | tr '/' '-')/$sid.jsonl"
+  [ -f "$f" ] || { echo 0; return 0; }
+  win="$(cfg agent.context_window 200000)"
+  tail -c 400000 "$f" 2>/dev/null | python3 -c '
+import json, sys
+win = int(sys.argv[1]); last = 0
+for line in sys.stdin:
+    if """usage""" not in line:
+        continue
+    try:
+        o = json.loads(line)
+    except Exception:
+        continue                      # a tail can start mid-line; skip the fragment
+    u = ((o.get("message") or {}).get("usage")) or o.get("usage")
+    if isinstance(u, dict):
+        ctx = ((u.get("cache_read_input_tokens") or 0)
+               + (u.get("cache_creation_input_tokens") or 0)
+               + (u.get("input_tokens") or 0))
+        if ctx:
+            last = ctx
+print(min(100, round(100 * last / win)) if win else 0)
+' "$win" 2>/dev/null || echo 0
+}
+
+# session_too_big <session-id> — true when the session should hand over.
+# The threshold is a share of the context window, following the pattern long-horizon agent systems
+# converged on: sync state out while there is still room to do it coherently, then hand off. A session
+# with no usage record yet (too new, or a transcript we cannot parse) falls back to the byte cap, so a
+# runaway is still caught when the precise measure is unavailable.
 session_too_big() {
-  # KB, not MB, because the threshold has to sit where context actually turns over. Measured across
-  # 505 working sessions: a fresh agent's floor is ~60k context tokens (standing orders + tools +
-  # the card) whatever it does, transcripts under 64 KB peak at ~14k, 64-256 KB at ~83k, 256 KB-1 MB
-  # at ~112k, and past 1 MB at ~269k. A megabyte therefore only fired once a session was carrying
-  # four times the floor; 256 KB is the knee.
-  local sid="${1:-}" limit_kb f bytes
+  local sid="${1:-}" pct limit_kb f bytes
+  pct="$(session_context_pct "$sid")"
+  if [ "${pct:-0}" -gt 0 ]; then
+    [ "$pct" -ge "$(cfg agent.session_handover_pct 65)" ]
+    return $?
+  fi
   limit_kb="$(cfg agent.session_rotate_kb 256)"
   f="$HOME/.claude/projects/$(pwd | tr '/' '-')/$sid.jsonl"
   [ -f "$f" ] || return 1
@@ -161,7 +197,7 @@ prep_session() {
       fi
       [ -f "$dmark" ] && rm -f "$dmark"   # marker names a session that is already gone
       dwhy=""
-      if session_too_big "$dlive"; then dwhy="its transcript outgrew agent.session_rotate_kb"
+      if session_too_big "$dlive"; then dwhy="its context passed agent.session_handover_pct"
       elif session_stale "$dlive"; then dwhy="it sat idle past agent.session_max_idle_days"; fi
       if [ -n "$dwhy" ]; then
         # Phase 1 — do NOT retire yet. Whatever this session knows that never reached the card is
@@ -183,7 +219,7 @@ prep_session() {
     SESS=(--resume "$SID")
   else
     local why=""
-    if valid_uuid "$SID" && session_too_big "$SID"; then why="its transcript outgrew agent.session_rotate_kb"
+    if valid_uuid "$SID" && session_too_big "$SID"; then why="its context passed agent.session_handover_pct"
     elif valid_uuid "$SID" && session_stale "$SID"; then why="it sat idle past agent.session_max_idle_days"
     fi
     if [ -n "$why" ]; then

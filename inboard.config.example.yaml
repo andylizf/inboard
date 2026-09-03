@@ -82,7 +82,14 @@ agent:
   dispatch_max_turns: 30            # the dispatcher only lists and groups; it never opens a body
   card_max_turns: 45                # one matter's agent
   dispatch_parallel: 4              # concurrent card agents
-  session_rotate_kb: 256            # rotate a card's claude session once its transcript exceeds this.
+  session_handover_pct: 65          # hand a card's session over once its last turn used this share of
+                                    # the context window. Measured from the transcript's own usage record,
+                                    # which is what the next turn re-sends — a 19 MB transcript sat at 61%
+                                    # because compaction had already dropped most of it, while a 10 MB one
+                                    # was at 100%. Long-horizon agent systems converge on syncing state out
+                                    # around this point, while there is still room to do it coherently.
+  context_window: 200000            # tokens; what the percentage above is a share of
+  session_rotate_kb: 256            # FALLBACK only, for a session with no usable usage record yet.
                                     # Sized from 505 working sessions: a fresh agent costs ~60k context
                                     # tokens whatever it does (standing orders + tools + the card), and
                                     # transcripts peak at ~14k context under 64 KB, ~83k at 64-256 KB,
