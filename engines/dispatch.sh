@@ -149,7 +149,7 @@ run_group() {   # $1 = group index
 $SESSION_NOTICE
 New mail on this matter, as <message-id>(<account>): $ids
 Read ONLY these messages' bodies (\`email <account> gmail +read --message-id <ID>\`), then handle them per
-CLAUDE.md steps 5c and 6 for THIS card only: ask memory before changing anything, update the card and its
+the **mail-pipeline** skill (load it), steps 5c and 6, for THIS card only: ask memory before changing anything, update the card and its
 📌 note, write back what memory now needs to know, and set Due/Lapses if a deadline appeared.
 Any message marked kind='sent' in the plan is mail that WENT OUT on this matter — sent by the operator or
 another session, never by you (you only ever save drafts). So it answers the card rather than asking it:
@@ -167,8 +167,8 @@ Output one short line."
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
     PROMPT="You own ONE new matter from the inbox: '$matter'.
 Its messages, as <message-id>(<account>): $ids
-Read ONLY these messages' bodies, then handle them per CLAUDE.md steps 5b, 5c and 6: check it is really not
-an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
+Read ONLY these messages' bodies, then handle them per the **mail-pipeline** skill (load it), steps 5b,
+5c and 6: check it is really not an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
 subscription and are invisible to the latter), ask memory, then either create ONE card (with 📌 note,
 Due/Lapses if a deadline appeared) or — if it turns out to be noise or a clean unsubscribe — do that and
 create no card.
