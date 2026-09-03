@@ -34,10 +34,20 @@ it reads the new mail, decides which matter each piece belongs to, and hands off
 matter itself — deciding *where* something goes and deciding *what to do about it* are different jobs, and
 the second one belongs to whoever already holds the history.
 
-That agent is not immortal, and being replaced is normal rather than a failure: a transcript that outgrows
-`agent.session_rotate_mb`, or sits idle past `agent.session_max_idle_days`, is retired. **A successor is
-told so, and told which card it inherits**, because the alternative is worse than starting cold — it would
-read the card as a fresh matter and quietly re-decide questions its predecessor had already settled there.
+That agent is not immortal, and being replaced is normal rather than a failure. In the shell path a
+transcript that outgrows `agent.session_rotate_mb`, or sits idle past `agent.session_max_idle_days`, is
+retired, and **the successor is told so, and told which card it inherits** — the alternative is worse than
+starting cold, because it would read the card as a fresh matter and quietly re-decide questions its
+predecessor had already settled there. Under `agent.delivery: daemon` those two thresholds do not decide
+anything: the daemon keeps one worker per agent name, and the session lasts exactly as long as that worker.
+A worker that was reaped, or a daemon that restarted, means the next delivery spawns a cold agent — with no
+notice, because nothing measured a transcript to trigger one.
+
+So do not read the card's `Session` as a promise of continuity. It records where the last run happened, for
+whoever needs to find that transcript; it does not tell you whether you are that run's continuation. **The
+card body is what tells you, and it is the only thing that does.** Read the 📌 note and the log before
+acting on any matter you do not remember working — and if you do not remember it, assume you are new to it,
+whatever the card's `Session` says.
 
 So, concretely, when you begin a turn:
 

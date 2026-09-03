@@ -60,7 +60,13 @@ if [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0;
     python3 "$INBOARD_HOME/lib/daemon_pending.py" record "$CARD" "$ACTION" 2>>"$INBOARD_LOGS/webhook.log" || true
   else RC=1; fi
-  NEWSID=""  # the daemon owns the card's session; nothing for the shell to persist
+  # Record where the work actually happened. The daemon owns the session, but the CARD is what a
+  # human (or a later run) reads to find the transcript, and an unrecorded one is worse than none:
+  # it keeps naming a session that has been dead for weeks.
+  if [ "$RC" = 0 ] && valid_uuid "${DAEMON_SID:-}" && [ "$DAEMON_SID" != "$SID" ]; then
+    board session --card "$CARD" --set "$DAEMON_SID" >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
+  fi
+  NEWSID=""  # the daemon owns the session id; the line above is what puts it on the card
   echo "[$(date)] action delivered to daemon agent $(card_agent_name "$CARD") rc=$RC (queued, async)" >> "$INBOARD_LOGS/webhook.log"
 else
   runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/action-$TS.out" 2>> "$INBOARD_LOGS/action-$TS.log"; }

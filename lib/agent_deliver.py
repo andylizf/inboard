@@ -194,7 +194,15 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
                     f"{name} came back blocked ({job.get('needs') or 'unknown'}) — "
                     "the daemon itself is unauthenticated; check its env carries a token")
             short = job["short"]
-    return _reply_with_retry(short, text, sock)
+    r = _reply_with_retry(short, text, sock)
+    # Hand the caller the session this actually landed in. The card records a session id, and
+    # under daemon delivery nothing was writing it back — so a card kept naming the session that
+    # last ran it in the shell, which on one bank card meant a July transcript, dead for five
+    # weeks, while every September run happened somewhere the card never mentioned.
+    if isinstance(r, dict):
+        r.setdefault("short", short)
+        r.setdefault("sessionId", (job or {}).get("sessionId", ""))
+    return r
 
 
 if __name__ == "__main__":

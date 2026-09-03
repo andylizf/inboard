@@ -39,9 +39,23 @@ card_agent_name() { echo "inboard-card-${1//-/}"; }
 # session), non-zero if the daemon is down or the agent could not be reached. "Accepted" is not
 # "completed": the agent runs asynchronously and, per the mortality rule, writes its own results to
 # the card. Requires a token-carrying Claude Code daemon (see the deployment scripts) to be running.
+# Sets DAEMON_SID to the session the delivery actually landed in, so the caller can record it on
+# the card. Without it the card's Session names whoever ran it last in the shell, which after the
+# switch to daemon delivery meant a months-dead transcript while the real work happened elsewhere.
 deliver_to_daemon() {
-  python3 "$INBOARD_HOME/lib/agent_deliver.py" deliver \
-    --name "$(card_agent_name "$1")" --cwd "$2" --text "$3" >>"$INBOARD_LOGS/webhook.log" 2>&1
+  local out rc
+  DAEMON_SID=""
+  out=$(python3 "$INBOARD_HOME/lib/agent_deliver.py" deliver \
+    --name "$(card_agent_name "$1")" --cwd "$2" --text "$3" 2>&1)
+  rc=$?
+  printf '%s\n' "$out" >>"$INBOARD_LOGS/webhook.log"
+  [ "$rc" = 0 ] && DAEMON_SID=$(printf '%s' "$out" | python3 -c \
+    'import json,sys
+try:
+    print(json.loads(sys.stdin.read().strip().splitlines()[-1]).get("sessionId",""))
+except Exception:
+    print("")' 2>/dev/null)
+  return $rc
 }
 
 GOAL_TRAILER="GOAL — keep working toward this; do NOT stop early. Your own WORD is NOT trusted: every attempt and its outcome

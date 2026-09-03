@@ -104,6 +104,11 @@ $MORTAL_TRAILER"
 if [ -n "${CARD:-}" ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   # Async: queue to the card's persistent daemon agent (it writes its own reply to the card).
   if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0; else RC=1; fi
+  # Same reason as in action-handler: the card is where a human looks for the transcript, so it has
+  # to name the session the work actually ran in, not the one that ran it before daemon delivery.
+  if [ "$RC" = 0 ] && valid_uuid "${DAEMON_SID:-}" && [ "$DAEMON_SID" != "$SID" ]; then
+    board session --card "$CARD" --set "$DAEMON_SID" >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
+  fi
   NEWSID=""
   echo "[$(date)] comment delivered to daemon agent $(card_agent_name "$CARD") rc=$RC (queued, async)" >> "$INBOARD_LOGS/webhook.log"
 else
