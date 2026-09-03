@@ -282,8 +282,13 @@ def cards(a):
 
     A keyword search cannot answer "is this matter already on the board" — it answers "which cards
     contain this string", and a follow-up rarely repeats the words of the card it belongs to. Reading
-    the list is what answers it, and the reader is a model. Closed cards past `--closed-days` are left
-    out: they are not destinations, so listing them only adds candidates that must then be rejected.
+    the list is what answers it, and the reader is a model.
+
+    Closed cards buy exactly one thing, which is why the window is short: a message trailing a matter
+    that just finished — a thank-you, a receipt, a confirmation — reads as an unrecognised matter, and
+    routing it `new` spends a whole card agent to conclude it was noise. Seeing the closed card makes
+    that call here for free. They can never be a destination, so a longer window only adds candidates
+    that must then be rejected.
     """
     rows, cur = [], None
     while True:
@@ -708,7 +713,7 @@ def main():
     im = sub.add_parser("image"); im.add_argument("--card", required=True); im.add_argument("--file", required=True); im.add_argument("--caption", default="")
     sb = sub.add_parser("subscribe"); sb.add_argument("--card", required=True); sb.add_argument("--desc", required=True)
     sub.add_parser("subscriptions")
-    cd = sub.add_parser("cards"); cd.add_argument("--closed-days", default="7", dest="closed_days")
+    cd = sub.add_parser("cards"); cd.add_argument("--closed-days", default="2", dest="closed_days")
     sr = sub.add_parser("search"); sr.add_argument("--query", required=True)
     sr.add_argument("--status"); sr.add_argument("--account"); sr.add_argument("--since")
     sr.add_argument("--open-only", action="store_true", dest="open_only")
