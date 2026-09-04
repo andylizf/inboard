@@ -180,7 +180,8 @@ to do on a turn, and it was being re-read by every card agent on every run.
 
 One matter is one card, for the life of the matter. One card is one agent, whose name is the card's own
 id (`inboard-card-<32 hex>`), so the mail that arrives on a matter in October reaches the same agent that
-worked it in July. Above both sits **one dispatcher session per day**, the only agent that is not a card:
+worked it in July. Above both sits **the dispatcher**, one session resumed across cycles and rotated on
+context share like any other, and the only agent that is not a card:
 it reads the new mail, decides which matter each piece belongs to, and hands off. It does not develop a
 matter itself — deciding *where* something goes and deciding *what to do about it* are different jobs, and
 the second one belongs to whoever already holds the history.
