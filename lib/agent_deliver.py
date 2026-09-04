@@ -123,10 +123,6 @@ def spawn(name: str, cwd: str, allowed_tools: str = "Bash,Read,Write,Task,WebSea
     return m.group(1)
 
 
-def respawn(short: str) -> None:
-    subprocess.run(["claude", "respawn", short], capture_output=True, text=True, timeout=60)
-
-
 def _strip_ansi(s: str) -> str:
     import re
     return re.sub(r"\x1b\[[0-9;]*m", "", s)
@@ -193,9 +189,23 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
     else:
         short = job["short"]
         if job.get("state") == "stopped":
-            respawn(short)
-            time.sleep(4)
-            sock = live_control_sock()
+            # Not `claude respawn`: whether that re-applies the original --model could not be
+            # confirmed, and the model is the one thing inboard must decide for itself on every
+            # worker it runs. A stopped worker is dropped and a fresh one spawned through spawn(),
+            # the single place the model is set.
+            subprocess.run(["claude", "rm", short], capture_output=True)
+            spawn(name, cwd)
+            deadline = time.time() + ready_timeout
+            job = None
+            while time.time() < deadline:
+                time.sleep(3)
+                sock = live_control_sock()
+                job = find_job(name, sock)
+                if job and job.get("state") != "stopped":
+                    break
+            if job is None:
+                raise DaemonError(f"replaced stopped {name} but it never registered")
+            short = job["short"]
         elif job.get("state") == "blocked":
             # A blocked worker still accepts deliveries and never runs them, so every
             # send returns ok and is silently swallowed — one that came up during an

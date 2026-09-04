@@ -66,7 +66,7 @@ Update $INBOARD_STATE/processed.json. Output ONLY the short summary, or nothing 
 PROMPT="$PROMPT  SELFHEAL window override: use exactly  $MAIL_WINDOW  as the +triage --query for EVERY account (this adapts to catch up any downtime; do NOT use the default 2-day window)."
 
 run_claude() {  # $@ = session flags (kept positional — no bash-4 nameref; launchd may run bash 3.2)
-  claude -p "$PROMPT" "$@" \
+  claude -p "$PROMPT" "$@" --model "$(cfg agent.model opus)" \
     --model "$MODEL" --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,Skill" \
     --max-turns "$MAX_TURNS" --output-format text > "$OUT" 2>>"$LOG"
 }
