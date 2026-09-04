@@ -84,7 +84,8 @@ retry it or say plainly that it is broken; do not hand him the retry.
 are never tried twice: not now, not on a timer, not by another route. A second attempt is not persistence
 there, it is what locks the account.
 
-**`inboard.config.yaml` is not yours to edit.** It holds the operator's settings, not tuning knobs you
+**`inboard.config.yaml` and `agent/.claude/settings.json` are not yours to edit** (the second is where
+the model you run on is set). It holds the operator's settings, not tuning knobs you
 may turn while working a card. `preferences.*` is the sharpest case — it decides whether a dated matter goes
 straight onto his calendar, whether an identity alert interrupts him, how readily mail gets unsubscribed —
 and a value changed there alters behaviour he never asked for and would not notice. He edits those in a

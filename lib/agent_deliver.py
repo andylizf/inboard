@@ -105,16 +105,12 @@ def reply(short: str, text: str, sock: str | None = None) -> dict:
 
 def spawn(name: str, cwd: str, allowed_tools: str = "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill") -> str:
     """Start an idle background agent named `name` under `cwd`. Returns its short id."""
-    # The model is inboard's to choose, not the machine's. Without --model a worker takes the CLI
-    # default from the user's settings.json, which on mac-mini is a metered model — and when that
-    # model's credits ran out every worker came up blocked and silently swallowed twelve hours of
-    # comment deliveries. The shell path already honours agent.model; the daemon path now does too.
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    import ibconfig                    # same lib dir; `cfg` the command exists only on the engine PATH
-    model = (ibconfig.get("agent.model") or "opus")
+    # No --model here on purpose: the model is a PROJECT setting, agent/.claude/settings.json, which
+    # every claude started from `cwd` reads and which outranks the machine's user settings. It used
+    # to be inherited from that user file — a metered model on mac-mini — and when its credits ran
+    # out every worker came up blocked and swallowed twelve hours of deliveries.
     out = subprocess.run(
-        ["claude", "--bg", "-n", name, "--model", model, "--allowedTools", allowed_tools],
+        ["claude", "--bg", "-n", name, "--allowedTools", allowed_tools],
         cwd=cwd, capture_output=True, text=True, timeout=60,
     )
     # First line: "backgrounded · <short> · <name> ...". Parse the short id.

@@ -7,7 +7,6 @@ set -uo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_common.sh"
 cd "$INBOARD_HOME/agent" || exit 1
 
-MODEL="$(cfg agent.model sonnet)"
 MAX_TURNS="$(cfg agent.interactive_max_turns 45)"
 BOT_UID="$(cfg board.bot_user_id)"   # this integration's Notion user id (created_by on our own comments)
 
@@ -132,7 +131,7 @@ if [ -n "${CARD:-}" ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   NEWSID=""
   echo "[$(date)] comment delivered to daemon agent $(card_agent_name "$CARD") rc=$RC (queued, async)" >> "$INBOARD_LOGS/webhook.log"
 else
-  runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
+  runh() { claude -p "$PROMPT" "$@" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
   run_with_selfheal
 fi
 

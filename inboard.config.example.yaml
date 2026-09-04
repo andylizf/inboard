@@ -67,7 +67,6 @@ schedule:
   stale_awaiting_days: 3            # a sent-but-unanswered card older than this gets surfaced for follow-up
 
 agent:
-  model: opus
   delivery: inprocess              # inprocess = one claude -p per event (default). daemon = queue each
                                     # event to the card's persistent daemon-hosted agent via the
                                     # control socket (lib/agent_deliver.py) — no dropped taps under

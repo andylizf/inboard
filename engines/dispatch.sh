@@ -27,7 +27,6 @@ AGENT_DIR="$INBOARD_HOME/agent"
 cd "$AGENT_DIR" || exit 1
 [ -f "$INBOARD_STATE/processed.json" ] || echo '{}' > "$INBOARD_STATE/processed.json"
 
-MODEL="$(cfg agent.model sonnet)"
 DISPATCH_TURNS="$(cfg agent.dispatch_max_turns 30)"
 CARD_TURNS="$(cfg agent.card_max_turns 45)"
 PARALLEL="$(cfg agent.dispatch_parallel 4)"
@@ -104,7 +103,7 @@ Then also do the cross-card work your role describes."
 
 # stdin is closed explicitly: without it the CLI waits 3s for piped input on EVERY invocation, which
 # is one stall for the dispatcher plus one per card agent.
-run_dispatch() { claude -p "$DPROMPT" "$@" --model "$MODEL" \
+run_dispatch() { claude -p "$DPROMPT" "$@" \
   --append-system-prompt-file "$DROLE_FILE" \
   --allowedTools "Bash,Read,Write,WebSearch,WebFetch,Skill" \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }
@@ -207,7 +206,7 @@ Output one short line."
     NEWSID=""
     echo "[$(date)] g$idx dispatch delivered to daemon agent $(card_agent_name "$CARD") rc=$RC" >>"$LOG"
   else
-    runh() { claude -p "$PROMPT" "$@" --model "$MODEL" \
+    runh() { claude -p "$PROMPT" "$@" \
       --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill" \
       --max-turns "$CARD_TURNS" --output-format text < /dev/null >> "$glog" 2>&1; }
     run_with_selfheal

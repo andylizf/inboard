@@ -6,7 +6,6 @@ set -uo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_common.sh"
 cd "$INBOARD_HOME/agent" || exit 1
 
-MODEL="$(cfg agent.model sonnet)"
 MAX_TURNS="$(cfg agent.interactive_max_turns 45)"
 ACTION_PLACEHOLDER="$(cfg board.schema.action_placeholder '👉 Pick action')"
 
@@ -70,7 +69,7 @@ if [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   NEWSID=""  # the daemon owns the session id; the line above is what puts it on the card
   echo "[$(date)] action delivered to daemon agent $(card_agent_name "$CARD") rc=$RC (queued, async)" >> "$INBOARD_LOGS/webhook.log"
 else
-  runh() { claude -p "$PROMPT" "$@" --model "$MODEL" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/action-$TS.out" 2>> "$INBOARD_LOGS/action-$TS.log"; }
+  runh() { claude -p "$PROMPT" "$@" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/action-$TS.out" 2>> "$INBOARD_LOGS/action-$TS.log"; }
   run_with_selfheal
   if [ -n "$NEWSID" ] && [ "$RC" = 0 ]; then board session --card "$CARD" --set "$NEWSID" >>"$INBOARD_LOGS/webhook.log" 2>&1; fi
 fi
