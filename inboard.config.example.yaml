@@ -40,6 +40,7 @@ board:
       researching: "🔍 Researching"
       draft: "✍️ Draft ready"
       awaiting: "⏳ Awaiting reply"
+      needs_you: ⏸ Needs you        # his move; New is mail nobody has worked yet
       done: "✅ Done"
       expired: "⌛ Expired"
       unsub: "🚫 Unsubscribed"

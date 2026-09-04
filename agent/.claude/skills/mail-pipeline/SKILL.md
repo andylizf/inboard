@@ -49,7 +49,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · **the reply RESOLVES it** (handled / no further action) → `board done --card <ID>` so the card they
         tracked as UNFINISHED visibly flips to `✅ Done` (**NEVER** leave a card they think is open sitting open
         after a reply resolved it); note what resolved it via `board reply --card <ID> --text '...'`.
-      · **it still needs their action** → `board edit --card <ID> --status '📥 New' --needs '<what they must do>'`.
+      · **it still needs their action** → `board edit --card <ID> --status '⏸ Needs you' --needs '<what they must do>'`.
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed as `handled` — the disposition for mail that belonged to an
       existing card — and move on.
@@ -132,7 +132,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      once to work out that it needed nothing — and a board where most cards cost that is a board he
      stops trusting. When you cannot name the action in a short phrase ("send the reply", "pick one of
      two", "book it before the 21st"), there isn't one: log it.
-   - **Actionable** (draft to review / you-must-decide = `📥 New` + NeedsYou / in progress) → a BOARD card (`board upsert`).
+   - **Actionable** (draft to review = `✍️ Draft ready` / his decision = `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`).
    - **If the matter has a deadline, put it on the card**: `--due YYYY-MM-DD` plus
      `--lapses yes|no`. `yes` = the date passing ENDS the matter (an optional talk, an RSVP, an
      invitation that expires, a sale). `no` = the date passing makes it WORSE (enrollment, a tax
@@ -149,8 +149,9 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      `email <id> gmail +reply --message-id <ID> --body '<reply>' --draft`. Then
      `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '✍️ Draft ready' --sender '<from>' --draft '<reply>' --needs '<open question or empty>'`.
    - **IMPORTANT but you need their input first** → don't draft blind:
-     `board upsert ... --status '📥 New' --needs '<the specific question they must answer>'`. (A `📥 New` card
-     whose `NeedsYou` is FILLED is itself the "decide this" signal; empty `NeedsYou` = just surfaced for their eyes.)
+     `board upsert ... --status '⏸ Needs you' --needs '<the specific question they must answer>'`. `⏸ Needs you`
+     is the column that means his move; `📥 New` is mail nobody has worked yet, and a card should not sit
+     there once you have.
    - **If the matter will keep generating mail** (recurring reminders — holds/enrollment/insurance, an ongoing
      thread awaiting replies) → after creating its card, `board subscribe --card <ID> --desc '<which follow-up
      mail belongs here, until when>'`. The next reminder appends to this card (5b) instead of duplicating.

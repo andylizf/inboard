@@ -74,9 +74,9 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
   matter that quietly stops mattering keeps its claim on the inbox until someone closes the card.
 - **`board awaiting --card C --desc '<what reply to watch for>'`** → you sent or submitted your part and now
   wait: `⏳ Awaiting reply`, clears Action, keeps/sets the Subscription so the reply routes back here. Use
-  this — not `done` — whenever a reply is expected. When it arrives: set the card back to `📥 New` so he
+  this — not `done` — whenever a reply is expected. When it arrives: move the card to `⏸ Needs you` so he
   sees it, **unless the reply resolves the matter**, in which case close it.
-- **`board nudge --card C --days N [--n K]`** → surface a card the sweep found: `📥 New`, a marked `NeedsYou`
+- **`board nudge --card C --days N [--n K]`** → surface a card the sweep found: `⏸ Needs you`, a marked `NeedsYou`
   asking whether to chase (`--n 2` and up words it as a repeat), Subscription kept. The marker is what lets
   the sweep find the card again if he does not act.
 - **`board subscribe --card C --desc '<which follow-up mail belongs here, until when>'`** → register a
@@ -91,6 +91,6 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
 `board daily --type '🚫 Unsubscribe'|'✅ Done'|'✉️ Draft'|'ℹ️ FYI' --subject S --account <label> [--detail D]`
 — only where a daily-log database is configured; otherwise the FYI is simply marked processed.
 
-**Two surfaces.** The board holds what is live (`📥 New` `🔍 Researching` `✍️ Draft ready` `⏳ Awaiting
-reply`) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
+**Two surfaces.** The board holds what is live (`📥 New` = mail nobody has worked yet, `🔍 Researching`, `✍️ Draft ready`,
+`⏳ Awaiting reply` = someone else owes the next move, `⏸ Needs you` = his move) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
 where they cost him nothing until he chooses to look.

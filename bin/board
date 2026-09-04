@@ -544,15 +544,15 @@ def nudge(a):
     needs = (f"{NUDGE_PREFIX}已等 {days} 天没有回音——要不要我起草一封追问？" if n == 1
              else f"{NUDGE_PREFIX}第 {n} 次提醒：又过了 {days} 天，仍无回音，也没收到你的答复。要不要追问、还是结掉？")
     api("PATCH", f"/pages/{a.card}", {"properties": {
-        "Status": {"select": {"name": S["new"]}}, "NeedsYou": {"rich_text": rt(needs)}, **touched()}})
-    remember_status(a.card, S["new"])
+        "Status": {"select": {"name": S["needs_you"]}}, "NeedsYou": {"rich_text": rt(needs)}, **touched()}})
+    remember_status(a.card, S["needs_you"])
     print(json.dumps({"nudged": a.card, "pass": n}))
 
 
 def stale_awaiting(a):
     # Cards whose last move was ours and nothing has come back in N+ days. Two passes, one list:
     #   pass 1 — still in Awaiting reply: the reply never came.
-    #   pass 2 — already nudged (New, NeedsYou carries the nudge prefix) and untouched for N+ more
+    #   pass 2 — already nudged (Needs you, NeedsYou carries the nudge prefix) and untouched for N+ more
     #            days: he never acted on the nudge either. Without this pass a nudged card left the
     #            sweep's view forever, which was the rot the sweep exists to catch.
     from datetime import timezone
@@ -560,7 +560,7 @@ def stale_awaiting(a):
     now = datetime.now(timezone.utc)
     out = []
     for pass_no, flt in ((1, {"property": "Status", "select": {"equals": S["awaiting"]}}),
-                         (2, {"and": [{"property": "Status", "select": {"equals": S["new"]}},
+                         (2, {"and": [{"property": "Status", "select": {"equals": S["needs_you"]}},
                                       {"property": "NeedsYou", "rich_text": {"starts_with": NUDGE_PREFIX}}]})):
         r = api("POST", f"/databases/{DB}/query", {
             "filter": flt, "sorts": [{"timestamp": "last_edited_time", "direction": "ascending"}],
@@ -657,7 +657,7 @@ def _cover_level(page, now):
                 return "urgent"          # overdue, or lands inside two days
         except ValueError:
             pass
-    if txt("NeedsYou").strip():
+    if status == C.status_name("needs_you") or txt("NeedsYou").strip():
         return "soon"                    # wants him, but no clock on it
     if status == C.status_name("awaiting"):
         return "waiting"                 # someone else owes the next move

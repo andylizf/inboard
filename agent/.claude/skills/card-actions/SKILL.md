@@ -8,7 +8,7 @@ description: What to do when the operator taps an Action chip on a card, plus th
 returned is one where the last move was ours and nothing has come back in that many days. Each row says
 which `pass` it is:
 - `pass: 1` — still awaiting, the reply never came. `board nudge --card <CARD> --days <days_waited>`: it
-  moves the card to `📥 New` with a marked `NeedsYou` asking whether to chase, keeps the Subscription so the
+  moves the card to `⏸ Needs you` with a marked `NeedsYou` asking whether to chase, keeps the Subscription so the
   reply still routes here, and is what lets the sweep find the card again. If it is clearly worth chasing,
   also draft the follow-up (draft only — `+compose-draft --thread-id <T> --to <counterparty>`; on a thread
   the operator started, `+reply` would address the draft back to him).
@@ -37,7 +37,7 @@ written), or for the send action, which the handler deliberately leaves alone.
   mail can leave. **Do not touch the draft first.** What he approved is the text that was on the card when he
   tapped, so rewriting it — even to improve it — sends something he never read; the guard checks the outgoing
   body against what the card actually shows and will refuse. If it does refuse for that reason, post the FULL
-  reply onto the card (`board log`, several calls if long), set the card back to `📥 New` saying why, and let
+  reply onto the card (`board log`, several calls if long), set the card to `⏸ Needs you` saying why, and let
   him tap again — never work around the check. After a successful send: `board awaiting` if a reply is
   expected, otherwise `board done`; then log it to the daily log under the sent type from
   `cfg board.schema.daily_types.sent`, one line saying what went out and to whom.

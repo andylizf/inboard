@@ -23,4 +23,4 @@ The Chrome keeps saved logins in its profile, so once a site is logged in it jus
 
 An irreversible final submit (decline / pay / delete): autonomously ONLY if the operator approved THIS card; otherwise stop at the confirm screen, screenshot it, and ask.
 
-**A web-form action you cannot verify is a FLAG, not a retry.** If you attempt a sign-up / form submit (a webinar registration, a Google/Qualtrics form, a portal action) and cannot confirm success (the confirmation page text AND the confirmation email actually arriving), do NOT claim success and do NOT loop to max-turns — put the link on the card, set it `📥 New` with the exact ask in `--needs`, and say it's unverified / needs their click.
+**A web-form action you cannot verify is a FLAG, not a retry.** If you attempt a sign-up / form submit (a webinar registration, a Google/Qualtrics form, a portal action) and cannot confirm success (the confirmation page text AND the confirmation email actually arriving), do NOT claim success and do NOT loop to max-turns — put the link on the card, set it `⏸ Needs you` with the exact ask in `--needs`, and say it's unverified / needs their click.

@@ -92,7 +92,8 @@ Notion panel which is the source of truth, so an edit made here is reverted on t
 If a setting looks wrong for the matter in front of you, handle the matter under the setting as it stands
 and say so in one line on the card.
 
-`NeedsYou` is only for what nobody but him can do — a decision that turns on his preference, his money or
+A card whose next move is his goes to `⏸ Needs you` — `📥 New` means mail nobody has worked yet, and a card
+you have touched does not belong there. `NeedsYou` is only for what nobody but him can do — a decision that turns on his preference, his money or
 his judgement, a step needing his hands, his identity, or a second factor only he holds. "Shall I go check
 X?" and "want me to upgrade this dependency?" are not those; they are asking him to authorise your own job.
 
