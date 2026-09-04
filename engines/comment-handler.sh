@@ -56,8 +56,12 @@ c=cs[-1] if cs else {}
 print((c.get("author") or "-"), ("1" if c.get("ack") else "0"), int(c.get("age_min") or 0))' 2>>"$INBOARD_LOGS/webhook.log")
   ACK_NOW=1
   if [ "$LAST_AUTHOR" = "$BOT_UID" ]; then
-    if [ "$LAST_ACK" = 1 ] && [ "${LAST_AGE:-0}" -ge "$STALE_MIN" ]; then
-      echo "[$(date)] newest comment on $CARD is our 👀 from ${LAST_AGE}m ago with no reply after it → agent died, re-run" >> "$INBOARD_LOGS/webhook.log"
+    # A fresh 👀 with no worker behind it is orphaned: the worker was retired or died between the ack
+    # and the answer, and waiting out the deadline only delays a reply nobody is writing.
+    LIVE=""; [ "$LAST_ACK" = 1 ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ] && \
+      LIVE=$(python3 "$INBOARD_HOME/lib/agent_deliver.py" session --name "$(card_agent_name "$CARD")" 2>/dev/null)
+    if [ "$LAST_ACK" = 1 ] && { [ "${LAST_AGE:-0}" -ge "$STALE_MIN" ] || [ -z "$LIVE" ]; }; then
+      echo "[$(date)] newest comment on $CARD is our 👀 (${LAST_AGE}m old, live worker: ${LIVE:-none}) with no reply after it → re-run" >> "$INBOARD_LOGS/webhook.log"
       ACK_NOW=0
     else
       echo "[$(date)] newest comment on $CARD is our own bot reply/ack → self-echo/dup/in-progress, skip (no LLM)" >> "$INBOARD_LOGS/webhook.log"
