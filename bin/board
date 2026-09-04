@@ -23,6 +23,7 @@ DB = C.get("board.database_id")
 DAILY = C.get("board.daily_log_database_id")
 S = C.STATUS
 ACTION_PLACEHOLDER = C.ACTION_PLACEHOLDER
+ACK = "👀"   # the comment handler's pickup mark; see `comments`
 
 
 def api(method, path, body=None):
@@ -421,9 +422,20 @@ def image(a):
 
 def comments(a):
     r = api("GET", f"/comments?block_id={a.card}&page_size=30")
-    out = [{"id": c["id"], "created": c.get("created_time"),
+    # `ack` marks the bare 👀 the comment handler posts the moment it picks a comment up. It is the
+    # operator's "seen, working on it" and NOT a reply: every reader that asks "was the newest human
+    # comment answered" has to look past it, and one that asks "is this still in progress" reads its age.
+    from datetime import timezone
+    now = datetime.now(timezone.utc)
+    def age_min(c):
+        try:
+            return int((now - datetime.fromisoformat(c.get("created_time", "").replace("Z", "+00:00"))).total_seconds() // 60)
+        except ValueError:
+            return 0
+    out = [{"id": c["id"], "created": c.get("created_time"), "age_min": age_min(c),
             "author": (c.get("created_by") or {}).get("id"),
             "text": "".join(x.get("plain_text", "") for x in c.get("rich_text", [])),
+            "ack": "".join(x.get("plain_text", "") for x in c.get("rich_text", [])).strip() == ACK,
             # attachments the operator pasted (screenshots etc). URLs are short-lived signed
             # links, so expose only what they ARE — fetch pixels with `comment-images`.
             "attachments": [{"category": at.get("category"), "name": at.get("name")}

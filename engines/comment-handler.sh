@@ -43,14 +43,30 @@ if [ -n "$CARD" ] && [ -z "$BOT_UID" ]; then
   echo "[$(date)] WARN: board.bot_user_id empty -> self-echo dedup DISABLED (run inboard init or set board.bot_user_id)" >> "$INBOARD_LOGS/webhook.log"
 fi
 if [ -n "$CARD" ] && [ -n "$BOT_UID" ]; then
-  LAST_AUTHOR=$(board comments --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log" | python3 -c 'import json,sys
+  # Three shapes of "newest comment":
+  #   human            → proceed, and mark it picked up.
+  #   our real reply   → answered; a re-delivered webhook, skip.
+  #   our bare 👀 ack  → picked up earlier. Fresh: in progress, skip. Older than the agent deadline: the
+  #                      agent died with the answer unwritten, so proceed WITHOUT a second ack.
+  STALE_MIN="$(cfg agent.daemon_stall_min 45)"
+  read -r LAST_AUTHOR LAST_ACK LAST_AGE < <(board comments --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log" | python3 -c 'import json,sys
 try: cs=json.load(sys.stdin)
 except Exception: cs=[]
-print((cs[-1].get("author") or "") if cs else "")' 2>>"$INBOARD_LOGS/webhook.log")
+c=cs[-1] if cs else {}
+print((c.get("author") or "-"), ("1" if c.get("ack") else "0"), int(c.get("age_min") or 0))' 2>>"$INBOARD_LOGS/webhook.log")
+  ACK_NOW=1
   if [ "$LAST_AUTHOR" = "$BOT_UID" ]; then
-    echo "[$(date)] newest comment on $CARD is our own bot reply → self-echo/dup, skip (no LLM)" >> "$INBOARD_LOGS/webhook.log"
-    exit 0
+    if [ "$LAST_ACK" = 1 ] && [ "${LAST_AGE:-0}" -ge "$STALE_MIN" ]; then
+      echo "[$(date)] newest comment on $CARD is our 👀 from ${LAST_AGE}m ago with no reply after it → agent died, re-run" >> "$INBOARD_LOGS/webhook.log"
+      ACK_NOW=0
+    else
+      echo "[$(date)] newest comment on $CARD is our own bot reply/ack → self-echo/dup/in-progress, skip (no LLM)" >> "$INBOARD_LOGS/webhook.log"
+      exit 0
+    fi
   fi
+  # The pickup mark. Deterministic and before the agent exists, so it says "seen" whether or not the
+  # agent survives — the reply that says what was done still comes from the agent.
+  [ "$ACK_NOW" = 1 ] && board reply --card "$CARD" --text "👀" >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
 fi
 
 # --- per-card session: resume the same conversation, or open a new one and remember its id ---
@@ -66,10 +82,10 @@ If a comment has a non-empty \"attachments\" list (the operator pasted a screens
 \`comment-images --card $CARD\` and Read the returned local paths BEFORE answering — they are
 usually asking about what is IN that image, and answering without looking reads as ignoring them.
 The ONLY dedup
-that counts: after reading the comments, look at the LATEST comment — if it is the operator's and you have NOT
-already answered it (no bot reply of yours AFTER it), ANSWER it. Skip ONLY when the newest comment is your OWN
-bot reply (nothing new) — and then skip SILENTLY: do NOT post a 'duplicate webhook' comment; that noise looks
-exactly like you ignored their question.
+that counts: after reading the comments, find the LATEST human comment; if no real reply of yours comes after
+it, ANSWER it. A bare 👀 from you is the pickup mark the handler posts, NOT a reply — look past it. Skip ONLY
+when your own real reply is newer than every human comment — and then skip SILENTLY: do NOT post a 'duplicate
+webhook' comment; that noise looks exactly like you ignored their question.
 FIRST, post a live to-do so they can watch progress in real time:
 \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 short concrete steps).
 Then the MOMENT you finish each step, run \`board tick --card $CARD --n <0-based index>\` before moving on.

@@ -16,6 +16,7 @@ _common.sh for NOTION_TOKEN + the venv on PATH); launchd fires it on a timer.
 """
 import json
 import os
+from datetime import datetime, timezone
 import subprocess
 import sys
 import time
@@ -29,6 +30,7 @@ HOME = C.home()
 ENGINES = os.path.join(HOME, "engines")
 TOKEN = os.environ.get("NOTION_TOKEN")
 BOT = C.get("board.bot_user_id")
+STALE_MIN = int(C.get("agent.daemon_stall_min") or 45)   # same clock as the stall check
 BOARD = C.get("board.database_id")
 # terminal statuses we don't need to poll for new operator comments
 SKIP_STATUS = {s for s in (C.get("board.schema.status.done"),
@@ -93,7 +95,19 @@ for p in active:
     cs.sort(key=lambda x: x.get("created_time", ""))
     last = cs[-1]
     if (last.get("created_by") or {}).get("id") == BOT:
-        continue  # already answered
+        text = "".join(x.get("plain_text", "") for x in last.get("rich_text", [])).strip()
+        if text != "👀":
+            continue  # a real reply: answered
+        # Our pickup mark with nothing after it. Fresh means the agent is on it; stale means it died
+        # with the answer unwritten. The handler applies the same rule and will not post a second 👀.
+        try:
+            age_min = (datetime.now(timezone.utc)
+                       - datetime.fromisoformat(last.get("created_time", "").replace("Z", "+00:00"))).total_seconds() // 60
+        except ValueError:
+            age_min = 0
+        if age_min < STALE_MIN:
+            continue
+        last = cs[-2] if len(cs) > 1 else last
     event = json.dumps({"entity": {"id": last["id"], "type": "comment"}})
     txt = "".join(x.get("plain_text", "") for x in last.get("rich_text", []))[:80]
     print(f"→ catch-up firing on: {title_of(p)[:45]} | comment: {txt}")
