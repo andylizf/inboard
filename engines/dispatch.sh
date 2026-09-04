@@ -103,7 +103,10 @@ Then also do the cross-card work your role describes."
 
 # stdin is closed explicitly: without it the CLI waits 3s for piped input on EVERY invocation, which
 # is one stall for the dispatcher plus one per card agent.
-run_dispatch() { claude -p "$DPROMPT" "$@" \
+# The dispatcher may run on its own model: it only groups and routes, so it can be cheaper than the
+# card agents. The flag outranks agent/.claude/settings.json; empty means "same as the agents".
+DMODEL="$(cfg preferences.dispatcher_model 2>/dev/null)"
+run_dispatch() { claude -p "$DPROMPT" "$@" ${DMODEL:+--model "$DMODEL"} \
   --append-system-prompt-file "$DROLE_FILE" \
   --allowedTools "Bash,Read,Write,WebSearch,WebFetch,Skill" \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }

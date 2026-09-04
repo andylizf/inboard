@@ -31,13 +31,19 @@ SCHEMA = {
     "ci_notifications": {"noise", "surface"},
     "unsubscribe":      {"conservative", "aggressive"},
     "model":            {"opus", "sonnet", "haiku"},   # → agent/.claude/settings.json, not the YAML
+    "dispatcher_model": {"opus", "sonnet", "haiku"},   # → YAML; the dispatcher passes it as --model
 }
 FILE_KEYS = {"model"}   # settings that live in agent/.claude/settings.json rather than the YAML
 
 
 def _cfg(key, default=""):
-    r = subprocess.run(["cfg", key], capture_output=True, text=True)
-    return (r.stdout.strip() or default)
+    # In-process, not the `cfg` executable: that is a Python script that needs the venv on PATH,
+    # which is true under launchd and false in most hand-run shells, and it failed here as
+    # "not configured" while the key was plainly in the file.
+    sys.path.insert(0, str(INBOARD / "lib"))
+    import ibconfig
+    v = ibconfig.get(key, default)
+    return str(v).strip() if v not in (None, "") else default
 
 
 def read_panel(db_id):
