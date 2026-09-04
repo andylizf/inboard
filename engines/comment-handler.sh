@@ -93,11 +93,8 @@ FIRST, post a live to-do so they can watch progress in real time:
 \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 short concrete steps).
 Then the MOMENT you finish each step, run \`board tick --card $CARD --n <0-based index>\` before moving on.
 Now ACT:
- - instruction → do it (research/redraft → save a Gmail draft with the right helper per CLAUDE.md: \`+reply --draft\`
-   only when answering someone ELSE's message, \`+compose-draft\` for new recipients or threads the operator started; move status); update the card.
-   **Any draft you make goes onto the card too: \`board edit --card $CARD --draft '<the full text>'\` and its draft id in a
-   \`board log\` line. He reads the card, not Gmail — and the send chip verifies the outgoing body against the card, so a
-   draft that is not on the card cannot be sent at all.**
+ - instruction → do it (research/redraft → \`email <id> gmail +draft --card $CARD ...\`, which makes the Gmail
+   draft AND puts it on the card AND logs its id in one step — it is the only way to make a draft; move status); update the card.
    If they say it's done/handled/not-important/drop → \`board done --card $CARD\` (keeps the card in the Done column, do NOT archive).
  - preference → apply it now AND record it on the card via \`board log\` so you keep obeying it.
 FINISH by (1) refreshing the card's 📌 state note (\`board note --card $CARD --text '<current state, self-contained>'\`)

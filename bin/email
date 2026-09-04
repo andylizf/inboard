@@ -18,9 +18,86 @@ import ibconfig as C  # noqa: E402
 
 BLOCK = [  # (needle-in-args, human label) — irreversible sends; refuse unless it's a --draft variant
     ("+send", None), ("+forward", None),
-    ("+reply-all", "--draft"), ("+reply", "--draft"),  # allowed only with --draft
+    ("+reply-all", None), ("+reply", None), ("+compose-draft", None),  # drafts are made by +draft only
     ("drafts send", None), ("messages send", None), ("messages import", None),
 ]
+
+
+def draft_for_card(acct_env, gws, rest):
+    """`email <id> gmail +draft --card <CARD> ...` — the ONLY way a draft gets made.
+
+    One command, three effects that used to be three separate steps an agent could skip: the
+    Gmail draft is created, its text goes into the card's Draft field, and its id goes into the
+    card's log. A draft that lives only in Gmail is one the operator cannot see (he reads the card)
+    and one the send guard cannot pass (it checks the outgoing body against the card). The Draft
+    field holds the latest draft; earlier ones stay in the log with their ids and are still
+    sendable by id.
+
+        +draft --card C --reply-to-message <msgid> --body TEXT [--cc x@y]
+        +draft --card C --to a@b[,c@d] --subject S --body TEXT [--cc x@y] [--thread-id T] [--in-reply-to <Message-ID>]
+    """
+    import argparse
+    import base64
+    import subprocess
+    from email.message import EmailMessage
+
+    ap = argparse.ArgumentParser(prog="email <account-id> gmail +draft")
+    ap.add_argument("--card", required=True, help="the board card this draft belongs to")
+    ap.add_argument("--reply-to-message", default=None, help="Gmail message id being replied to (To/Subject/thread come from it)")
+    ap.add_argument("--to", default=None, help="recipient(s), comma-separated — when not replying")
+    ap.add_argument("--subject", default=None)
+    ap.add_argument("--body", required=True, help="plain-text body")
+    ap.add_argument("--cc", default=None)
+    ap.add_argument("--thread-id", default=None)
+    ap.add_argument("--in-reply-to", default=None, help="RFC822 Message-ID")
+    a = ap.parse_args(rest)
+
+    to, subject, thread_id, in_reply_to = a.to, a.subject, a.thread_id, a.in_reply_to
+    if a.reply_to_message:
+        got = subprocess.run([gws, "gmail", "users", "messages", "get", "--params",
+                              json.dumps({"userId": "me", "id": a.reply_to_message, "format": "metadata",
+                                          "metadataHeaders": ["From", "Reply-To", "Subject", "Message-ID"]})],
+                             env=acct_env, capture_output=True, text=True)
+        if got.returncode != 0:
+            sys.exit("+draft: could not read message %s: %s" % (a.reply_to_message, got.stderr[:300]))
+        orig = json.loads(got.stdout[got.stdout.index("{"):])
+        h = {x["name"].lower(): x["value"] for x in (orig.get("payload", {}).get("headers") or [])}
+        to = to or h.get("reply-to") or h.get("from")
+        subject = subject or ("Re: " + re.sub(r"^\s*(re|fwd?)\s*:\s*", "", h.get("subject", ""), flags=re.I))
+        thread_id = thread_id or orig.get("threadId")
+        in_reply_to = in_reply_to or h.get("message-id")
+    if not (to and subject):
+        sys.exit("+draft: need --reply-to-message, or --to and --subject")
+
+    m = EmailMessage()
+    m["To"] = to
+    if a.cc:
+        m["Cc"] = a.cc
+    m["Subject"] = subject
+    if in_reply_to:
+        m["In-Reply-To"] = in_reply_to
+        m["References"] = in_reply_to
+    m.set_content(a.body)
+    msg = {"raw": base64.urlsafe_b64encode(m.as_bytes()).decode()}
+    if thread_id:
+        msg["threadId"] = thread_id
+    r = subprocess.run([gws, "gmail", "users", "drafts", "create", "--params", '{"userId":"me"}',
+                        "--json", json.dumps({"message": msg})], env=acct_env, capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.stderr.write(r.stderr); sys.exit(r.returncode)
+    out = r.stdout
+    draft_id = json.loads(out[out.index("{"):]).get("id", "")
+    if not draft_id:
+        sys.exit("+draft: Gmail returned no draft id: %s" % out[:200])
+
+    # the card half — same interpreter, sibling script, so this works wherever `email` itself does
+    board = os.path.join(os.path.dirname(os.path.abspath(__file__)), "board")
+    subprocess.run([sys.executable, board, "edit", "--card", a.card, "--draft", a.body], check=True)
+    subprocess.run([sys.executable, board, "log", "--card", a.card, "--text",
+                    "草稿已存入邮箱草稿箱并同步到本卡 Draft 字段：收件人 %s，主题「%s」（Gmail draft id %s）。点「📤 帮我发送」发出。"
+                    % (to, subject, draft_id)], check=True)
+    print(json.dumps({"draft_id": draft_id, "to": to, "subject": subject, "card": a.card}, ensure_ascii=False))
+    sys.exit(0)
 
 
 def compose_draft(acct_env, gws, rest):
@@ -216,8 +293,8 @@ def main():
     gws = real_gws()
     if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+send-approved":
         send_approved(env, gws, rest[2:])
-    if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+compose-draft":
-        compose_draft(env, gws, rest[2:])
+    if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+draft":
+        draft_for_card(env, gws, rest[2:])
     os.execvpe(gws, [gws] + rest, env)
 
 

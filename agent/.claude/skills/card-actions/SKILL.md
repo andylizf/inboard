@@ -10,8 +10,8 @@ which `pass` it is:
 - `pass: 1` — still awaiting, the reply never came. `board nudge --card <CARD> --days <days_waited>`: it
   moves the card to `⏸ Needs you` with a marked `NeedsYou` asking whether to chase, keeps the Subscription so the
   reply still routes here, and is what lets the sweep find the card again. If it is clearly worth chasing,
-  also draft the follow-up (draft only — `+compose-draft --thread-id <T> --to <counterparty>`; on a thread
-  the operator started, `+reply` would address the draft back to him).
+  also draft the follow-up: `+draft --card <CARD> --to <counterparty> --thread-id <T> --subject ... --body ...`
+  (a follow-up on a thread he started must name the counterparty explicitly).
 - `pass: 2` — already nudged, and he has not acted for another stretch of days. `board nudge --card <CARD>
   --days <days_waited> --n <nudges_so_far + 1>` restates the ask as a repeat, and `board log` one line
   saying so. Do not close it for him: a matter he has not answered is still his.
@@ -29,7 +29,7 @@ rewritten), or for the send action, which the handler deliberately leaves alone.
 
 - **▶️ Continue / redo** → dispatch a subagent with the card's full context (subject, prior draft, open
   question) + re-read the original email by `--message-id <msgid>`; research more / redo per the implied
-  feedback; rewrite the Gmail draft (`email <id> gmail +reply --message-id ID --body '...' --draft`);
+  feedback; rewrite the draft (`email <id> gmail +draft --card <CARD> --reply-to-message <msgid> --body '...'`);
   `board upsert` the card with the new draft + status `⏸ Needs you` and a `--needs` saying the draft awaits his
   send or redo.
 - **Send-it-for-me (`cfg board.schema.send_action`)** → the operator approved THIS card's draft by tapping

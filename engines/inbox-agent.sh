@@ -60,7 +60,7 @@ PROMPT='Run the inbox pipeline NOW, following CLAUDE.md in this directory exactl
 to see which mailboxes to check. Find new mail — READ OR UNREAD; do NOT filter by unread, your own
 $INBOARD_STATE/processed.json is the seen-ledger — in EVERY configured account (via `email <account-id> gmail ...`),
 triage it, and handle every important one (auto-unsubscribe clear noise via One-Click; for substantive mail
-dispatch a subagent that researches and saves a Gmail DRAFT reply with `email <id> gmail +reply --draft`).
+dispatch a subagent that researches and saves a DRAFT reply with `email <id> gmail +draft --card <CARD> ...`).
 Update $INBOARD_STATE/processed.json. Output ONLY the short summary, or nothing at all if there is no new mail. Never send any email.'
 PROMPT="$PROMPT  SELFHEAL window override: use exactly  $MAIL_WINDOW  as the +triage --query for EVERY account (this adapts to catch up any downtime; do NOT use the default 2-day window)."
 

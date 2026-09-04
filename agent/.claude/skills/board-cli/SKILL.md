@@ -16,13 +16,14 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
   date). `+read --message-id <ID>` → one message's body and headers, text only — use the `email-images`
   skill when it has a figure or looks empty. Raw API: `users messages list --params '{"userId":"me","q":"from:<addr>","maxResults":20}'`
   for a sender's history.
-- **Draft — pick the right helper:**
-  - `+reply --draft --message-id <ID>` ONLY when replying to a message SOMEONE ELSE sent (To = that sender).
-  - `+compose-draft --to <addr> --subject S --body TEXT [--cc] [--thread-id T] [--in-reply-to <Message-ID>]`
-    for everything else: a new email, or a follow-up on a thread the OPERATOR started (`+reply` there would
-    address the draft back to him). Never hand-roll `users drafts create` to get around a blocked helper.
-  - Log the draft id on the card in the same breath (`board log`): a draft you cannot tie to your card by
-    its logged id is his, not yours.
+- **Draft — one command, and it is the only one:** `+draft --card <CARD> --body TEXT` plus either
+  `--reply-to-message <msgid>` (To, subject, thread and In-Reply-To come from that message; use it when
+  answering mail someone ELSE sent) or `--to <addr> --subject S [--cc] [--thread-id T] [--in-reply-to <Message-ID>]`
+  (a new mail, or a follow-up on a thread the OPERATOR started — replying there would address him). It
+  creates the Gmail draft, puts the text into the card's Draft field and logs the draft id, in one step.
+  A draft that is not on the card cannot be seen by him and cannot be sent, so the raw helpers
+  (`+reply`, `+compose-draft`, `users drafts create`) are refused. The Draft field holds the latest draft;
+  earlier ones remain in the log with their ids and are still sendable by id.
 - **Send:** every send is blocked except `+send-approved --card <CARD> --draft-id <ID>`, which requires the
   operator to have tapped the send chip on that card. Its full procedure, including what to do when it
   fails, is in `card-actions`. Everything else you write is a draft.

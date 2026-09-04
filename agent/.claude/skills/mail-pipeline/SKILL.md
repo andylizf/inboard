@@ -151,7 +151,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    - **Pure noise, no action** → nothing recorded (the only exception).
    Then handle by type:
    - **IMPORTANT & substantive** → subagent: research with all materials, write a considered reply, save it
-     `email <id> gmail +reply --message-id <ID> --body '<reply>' --draft`. Then
+     `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` — it puts the draft on the
+     card and logs its id itself. Then
      `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>' --draft '<reply>' --needs '<what he does with it: send it, or the open question>'`.
    - **IMPORTANT but you need their input first** → don't draft blind:
      `board upsert ... --status '⏸ Needs you' --needs '<the specific question they must answer>'`. `⏸ Needs you`
