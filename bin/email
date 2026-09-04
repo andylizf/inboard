@@ -38,6 +38,7 @@ def draft_for_card(acct_env, gws, rest):
     """
     import argparse
     import base64
+    import re
     import subprocess
     from email.message import EmailMessage
 
