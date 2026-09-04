@@ -39,7 +39,7 @@ truly resolved.
 **Board.** One card per matter. Properties: `Subject` (a scannable one-liner title), `Sender`, `Account`,
 `Status`, `NeedsYou` (what *you* must do / the open question), `Draft`, `Action` (the tappable chip that
 fires engine 2), `Subscription` (natural-language "which follow-up mail belongs here"), `MsgID`, plus
-internal `Session` / `StepBlocks`. **Statuses (8):** `📥 New` · `🔍 Researching` · `✍️ Draft ready` · `⏳ Awaiting reply` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` · `⌛ Expired`. A card whose next move is the operator's sits in `⏸ Needs you`; `📥 New` is mail nobody has worked yet.
+internal `Session` / `StepBlocks`. **Statuses (7):** `📥 New` · `🔍 Researching` · `⏳ Awaiting reply` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` · `⌛ Expired`. A card whose next move is the operator's sits in `⏸ Needs you`; `📥 New` is mail nobody has worked yet.
 The canonical status/action names live in `lib/ibconfig.py`, so the board creator, the `board` CLI, and
 `agent/CLAUDE.md` cannot drift apart.
 

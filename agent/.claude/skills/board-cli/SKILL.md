@@ -91,6 +91,6 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
 `board daily --type '🚫 Unsubscribe'|'✅ Done'|'✉️ Draft'|'ℹ️ FYI' --subject S --account <label> [--detail D]`
 — only where a daily-log database is configured; otherwise the FYI is simply marked processed.
 
-**Two surfaces.** The board holds what is live (`📥 New` = mail nobody has worked yet, `🔍 Researching`, `✍️ Draft ready`,
-`⏳ Awaiting reply` = someone else owes the next move, `⏸ Needs you` = his move) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
+**Two surfaces.** The board holds what is live (`📥 New` = mail nobody has worked yet, `🔍 Researching`,
+`⏳ Awaiting reply` = someone else owes the next move, `⏸ Needs you` = his move, a ready draft included) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
 where they cost him nothing until he chooses to look.

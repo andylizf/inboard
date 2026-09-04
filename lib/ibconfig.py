@@ -110,10 +110,11 @@ def label_to_id(label):
 # `agent/CLAUDE.md` always writes the English canonical names; the `board` CLI translates them to the
 # deployment's configured display strings on write (see status_name()/daily_type_name()), and filters/writes
 # in bin/board read STATUS/DAILY_* below — so both sides agree in whatever language the board uses.
-STATUS_ORDER = ["new", "researching", "draft", "awaiting", "needs_you", "done", "unsub"]
+STATUS_ORDER = ["new", "researching", "awaiting", "needs_you", "done", "expired", "unsub"]
 _STATUS_DEFAULT = {
-    "new": "📥 New", "researching": "🔍 Researching", "draft": "✍️ Draft ready",
-    "awaiting": "⏳ Awaiting reply", "needs_you": "⏸ Needs you", "done": "✅ Done", "unsub": "🚫 Unsubscribed",
+    "new": "📥 New", "researching": "🔍 Researching",
+    "awaiting": "⏳ Awaiting reply", "needs_you": "⏸ Needs you", "done": "✅ Done",
+    "expired": "⌛ Expired", "unsub": "🚫 Unsubscribed",
 }
 _ACTIONS_DEFAULT = ["▶️ Continue / redo", "📤 Sent — awaiting reply", "✅ Done / ignore"]
 # Non-empty placeholder so Notion always renders the Action property as a tappable chip in its lightweight

@@ -132,7 +132,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      once to work out that it needed nothing — and a board where most cards cost that is a board he
      stops trusting. When you cannot name the action in a short phrase ("send the reply", "pick one of
      two", "book it before the 21st"), there isn't one: log it.
-   - **Actionable** (draft to review = `✍️ Draft ready` / his decision = `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`).
+   - **Actionable** (a draft for him to send, or a decision only he can make = `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`).
      **Optional, no deadline, "if you want", "feel free" = FYI, never a card**, however official the sender —
      a card for something he may ignore is the card that teaches him to ignore cards.
    - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
@@ -152,7 +152,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    Then handle by type:
    - **IMPORTANT & substantive** → subagent: research with all materials, write a considered reply, save it
      `email <id> gmail +reply --message-id <ID> --body '<reply>' --draft`. Then
-     `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '✍️ Draft ready' --sender '<from>' --draft '<reply>' --needs '<open question or empty>'`.
+     `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>' --draft '<reply>' --needs '<what he does with it: send it, or the open question>'`.
    - **IMPORTANT but you need their input first** → don't draft blind:
      `board upsert ... --status '⏸ Needs you' --needs '<the specific question they must answer>'`. `⏸ Needs you`
      is the column that means his move; `📥 New` is mail nobody has worked yet, and a card should not sit

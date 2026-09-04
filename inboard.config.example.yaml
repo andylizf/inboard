@@ -38,7 +38,6 @@ board:
     status:                         # Status select values, by role
       new: "📥 New"
       researching: "🔍 Researching"
-      draft: "✍️ Draft ready"
       awaiting: "⏳ Awaiting reply"
       needs_you: ⏸ Needs you        # his move; New is mail nobody has worked yet
       done: "✅ Done"

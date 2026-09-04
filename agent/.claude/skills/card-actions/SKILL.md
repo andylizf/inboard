@@ -24,13 +24,14 @@ it there throws away the tap he made and the retry it was holding open.
 because a status that waits on you is a status that never changes when you hit your deadline or die.
 So do not re-derive it, and do not set it back — what is left to you is the work and the record: the
 research, the draft, the daily-log line, the reply on the card. Move the Status yourself only when the
-work changes where the card genuinely belongs (Continue/redo lands on Draft ready when the draft is
-written), or for the send action, which the handler deliberately leaves alone.
+work changes where the card genuinely belongs (Continue/redo lands back in Needs you once the draft is
+rewritten), or for the send action, which the handler deliberately leaves alone.
 
 - **▶️ Continue / redo** → dispatch a subagent with the card's full context (subject, prior draft, open
   question) + re-read the original email by `--message-id <msgid>`; research more / redo per the implied
   feedback; rewrite the Gmail draft (`email <id> gmail +reply --message-id ID --body '...' --draft`);
-  `board upsert` the card with the new draft + status `✍️ Draft ready`.
+  `board upsert` the card with the new draft + status `⏸ Needs you` and a `--needs` saying the draft awaits his
+  send or redo.
 - **Send-it-for-me (`cfg board.schema.send_action`)** → the operator approved THIS card's draft by tapping
   the chip; that tap is his per-item approval and the only thing that unlocks sending. Send it with
   `email <account> gmail +send-approved --card <CARD> --draft-id <GMAIL_DRAFT_ID>` — the sole path by which
