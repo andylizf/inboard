@@ -109,7 +109,10 @@ def spawn(name: str, cwd: str, allowed_tools: str = "Bash,Read,Write,Task,WebSea
     # default from the user's settings.json, which on mac-mini is a metered model — and when that
     # model's credits ran out every worker came up blocked and silently swallowed twelve hours of
     # comment deliveries. The shell path already honours agent.model; the daemon path now does too.
-    model = subprocess.run(["cfg", "agent.model"], capture_output=True, text=True).stdout.strip() or "sonnet"
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import ibconfig                    # same lib dir; `cfg` the command exists only on the engine PATH
+    model = (ibconfig.get("agent.model") or "opus")
     out = subprocess.run(
         ["claude", "--bg", "-n", name, "--model", model, "--allowedTools", allowed_tools],
         cwd=cwd, capture_output=True, text=True, timeout=60,
