@@ -27,7 +27,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      look up the sent side (`email <id> gmail +triage --query 'in:sent to:<addr>'`, or read the thread) BEFORE
      calling it noise. (Triage stays inbox-only for ITEMS, but you MAY read sent mail as a classification CLUE.)
    - **CI / build notifications** (`Run failed`, `CI failed`, workflow-run emails): treat per
-     `cfg preferences.ci_notifications` — `noise` (default) = do NOT put them on the board; `surface` = card them.
+     `cfg preferences.ci_notifications` — `noise` (default) = do NOT put them on the board; `surface` = card them
+     even though the fork test in 6 would not, because he chose to see them.
      Real PRs / issues / @-mentions / review requests are always IMPORTANT. Auto-close/stale-bot notices = NOISE.
 5b. **Dedup — route follow-ups to an EXISTING matter first** (before creating ANY card):
     - **Find it — and notice which of the two you got, because they are not the same kind of answer.**
@@ -38,11 +39,10 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
         over every card, closed ones included. It produces candidates, not evidence: a bank's name matches
         every card that bank ever appeared on, and a hit whose Subscription is empty is a matter that
         already declared itself finished.
-      So route straight off a watchlist hit. A search hit still has to earn it under the two rules below.
-    - **A closed card is context, never a destination.** Ending a card clears the Subscription precisely so
-      that later mail stops routing there — reopening a matter he finished, and had stopped thinking about,
-      costs him more than a second card ever would. So read the closed card, then open a new one and name it
-      in the first line. There is no exception.
+      So route straight off a watchlist hit. A search hit still has to earn it under the rules below.
+    - **A closed card is context, never a destination — thread or no thread.** Read it, then open a new card
+      that names it in the first line and carries the thread forward. Reopening a matter he finished, and had
+      stopped thinking about, costs him more than a second card ever would, and `✅ Done` has to mean done.
     - **If it belongs to an ongoing matter** (semantic match to a subscription — a reminder / follow-up for
       something tracked, or a continuing reply thread) → do **NOT** open a new card. Append to it:
       `board log --card <ID> --text '<one-line update>'`, then set that card's Status to match reality:
@@ -53,15 +53,10 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed as `handled` — the disposition for mail that belonged to an
       existing card — and move on.
-    - **Same thread is identity; a resemblance is not — but neither one revives a closed card.** If the
-      mail carries an OPEN card's `threadId`, or replies to a message it tracks, it belongs there however old
-      the card is: a bank answering in October the question you asked in July is that conversation, and age
-      has nothing to do with it. A *semantic* resemblance is a weaker claim — that the mail looks like the
-      matter — so it too may only land on an open card.
-      **Closed is terminal, thread or no thread.** A finished card is a record of something he stopped
-      carrying; mail that arrives afterwards is new work, so it gets a new card that names the closed one in
-      its first line and carries the thread forward. That keeps the board a state machine you can trust —
-      `✅ Done` means done, and nothing on the board silently un-finishes.
+    - **On an open card, same thread is identity.** Mail carrying the card's `threadId`, or replying to a
+      message it tracks, belongs there however old the card is: a bank answering in October the question you
+      asked in July is that conversation. A *semantic* resemblance is a weaker claim — that the mail looks
+      like the matter — and lands on an open card only.
     - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
 5c. **Ask memory before opening ANY new card.** Only for mail that survived triage as important or
     actionable — never for noise, and never when 5b already routed it to an existing card.
@@ -73,7 +68,9 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
     - **"Was this you?" — per `cfg preferences.identity_alerts` (default `assume-self`): assume it was him
       and do not ask.** A sign-in from a new device or place, a third-party app authorization, a password
       reset he requested, a new API token — these are notices that an event happened, and
-      the operator is the overwhelmingly likely cause of every one. Record it (`board daily --type 'ℹ️ FYI'`)
+      the operator is the overwhelmingly likely cause of every one. Record it (`board daily --type 'ℹ️ FYI'`
+      where a daily log is configured; otherwise a one-line `board log` on the nearest related card, or
+      nothing if there is none — but never a card)
       and move on. If memory happens to name the app or device, say so in the log line; do NOT make the
       lookup a precondition, because memory cannot hold every service he has ever touched and its silence
       is not suspicion.
@@ -89,9 +86,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · **The test is what the message reports, never who sent it.** A bank, a password manager, a
         government portal or a broker sending a notification is still sending a notification. "It
         involves money" is not the trigger — money HAVING MOVED is. Reaching for the sender's category
-        to justify a card is how this rule gets quietly suspended, and it was suspended that way within
-        the hour it was written: a bank reported that a new phone had been set up, while memory held
-        both the phone he had ordered and his own confirmation of the identical alert six weeks earlier.
+        to justify a card is how this rule gets quietly suspended — a bank reporting that a new phone was
+        set up is still reporting an event, even when it is a bank.
     - **Nothing relevant comes back** → it is genuinely new; continue to 6.
     - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
       truth first. Then answer the ONE question that decides everything: **does this mail change what
@@ -110,17 +106,15 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · **Every date you write forward must carry how it is known.** Not `2026-03-05`, but
         `2026-03-05 15:45 (confirmation email)` or `2026-03-05 (their target; nothing booked)`. A proposal, an
         invitation, and a booking are all just dates once the qualifier is gone, and the next
-        reader cannot recover the difference. This pool already lost six weeks to exactly that:
-        a "soft target" was restated as "the operative plan", another file copied the bare date,
-        and the whole chain was fiction. Someone confirming a DEADLINE is never evidence the
+        reader cannot recover the difference, and a bare date gets restated as a commitment by the next
+        file that copies it. Someone confirming a DEADLINE is never evidence the
         operator has committed to a date inside it — record the deadline as a deadline.
       · **Never state as settled anything the operator has not confirmed.** If the card says you
         are waiting on him, the memory says you are waiting on him.
     - **Also repair staleness, not just changes.** If the memory you just read disagrees with the
       card you just read — the card knows a date, an outcome, a reply that the memory does not —
-      write the card's side back into the memory, EVEN IF this mail changed nothing. Earlier cycles
-      moved matters on the board while memory was still read-only, so that disagreement is the
-      normal state right now, not an anomaly. Only do this for the memory and card you already
+      write the card's side back into the memory, EVEN IF this mail changed nothing — that disagreement
+      is common, not an anomaly. Only do this for the memory and card you already
       opened for this message; never go scanning for others. The cost of skipping it is concrete: a
       memory still reading "two items outstanding, ball in their court", while the card has held a
       confirmed appointment for days, briefs every other session on a status that expired.
@@ -146,7 +140,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      the `no` ones as overdue instead — but only for cards that carry the date, and a deadline
      living in the subject line is invisible to it. **When unsure use `no`**: a wrong `no` leaves a
      dead card on the board, a wrong `yes` closes a live obligation with nobody watching.
-   - **FYI / done event** (unsubscribe, completion) → the DAILY LOG (`board daily`), NOT the board — EXCEPT a
+   - **FYI / done event** (unsubscribe, completion) → the DAILY LOG (`board daily`, where one is configured;
+     otherwise it is simply marked processed), NOT the board — EXCEPT a
      completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).
    - **Pure noise, no action** → nothing recorded (the only exception).
    Then handle by type:

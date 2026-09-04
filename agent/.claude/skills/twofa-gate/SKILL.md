@@ -7,9 +7,8 @@ description: The shared gate every second factor goes through before it rings th
 
 Trying once is right. What is not survivable is several cards each trying once: you see only
 your own card, so six agents behaving perfectly still ring the operator six times, and a push
-nobody answers counts as a failed attempt at the far end. Princeton's security office locked
-his university account over exactly that on 2026-09-01, which cost the mailbox, the VPN and
-the cluster until he reset his password.
+nobody answers counts as a failed attempt at the far end — enough of those and the account is
+locked, and with it every service behind it.
 
 So anything that sends a push, a code, or an approval prompt to him — Duo, an authenticator,
 an SMS code, a passkey tap — goes through the shared gate first:

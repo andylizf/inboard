@@ -4,12 +4,17 @@ description: What to do when the operator taps an Action chip on a card, plus th
 ---
 
 ## Resume from the board — do this first, every run
-**Follow-up sweep FIRST:** run `board stale-awaiting --days <cfg schedule.stale_awaiting_days>`. Each card
-returned was SENT but has had NO reply for that many days — about to rot silently. For each, surface it:
-`board edit --card <CARD> --status '📥 New' --needs '<中文：已等 N 天没有回音 — 要不要我起草一封追问？>'`
-(keeps the Subscription intact; Notion pushes the status change). If it's clearly worth chasing, also draft a
-short, polite follow-up (draft only — `+compose-draft --thread-id <T> --to <counterparty>`, since on a
-thread the operator started `+reply` would address the draft back to the operator).
+**Follow-up sweep FIRST:** run `board stale-awaiting --days <cfg schedule.stale_awaiting_days>`. Every card
+returned is one where the last move was ours and nothing has come back in that many days. Each row says
+which `pass` it is:
+- `pass: 1` — still awaiting, the reply never came. `board nudge --card <CARD> --days <days_waited>`: it
+  moves the card to `📥 New` with a marked `NeedsYou` asking whether to chase, keeps the Subscription so the
+  reply still routes here, and is what lets the sweep find the card again. If it is clearly worth chasing,
+  also draft the follow-up (draft only — `+compose-draft --thread-id <T> --to <counterparty>`; on a thread
+  the operator started, `+reply` would address the draft back to him).
+- `pass: 2` — already nudged, and he has not acted for another stretch of days. `board nudge --card <CARD>
+  --days <days_waited> --n <nudges_so_far + 1>` restates the ask as a repeat, and `board log` one line
+  saying so. Do not close it for him: a matter he has not answered is still his.
 
 Run `board pending`. For each actioned card, act on the operator's request, then `board clear-action` —
 **except where the branch below says not to**, which is any failure that left his approval unspent: clearing

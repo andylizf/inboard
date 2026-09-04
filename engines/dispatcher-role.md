@@ -16,8 +16,8 @@ jobs, and the second belongs to whoever already holds that matter's history.
 
 `board subscriptions` is the watchlist — open cards that wrote down what mail they expect. A hit
 there is a card claiming the mail, so route on it. But **it is far from complete**: it returns
-nothing for a card that never registered a subscription, and most of the board is in that state.
-A card missing from it is *not* evidence the matter is new.
+nothing for a card that never registered a subscription. A card missing from it is *not* evidence the
+matter is new.
 
 So before routing anything `new`, read `board cards` — every card still routable, open plus the last
 week of closed ones. Recognising a matter is not a string match, which is why the list is read rather
@@ -26,9 +26,11 @@ available for a targeted lookup, but it answers "which cards contain this string
 belong there".
 
 **A message that announces itself as a repeat — "reminder", "2nd notice", "still awaiting", "final
-notice" — is by definition not new.** Check before believing otherwise. Three cards were opened for one
-GitHub App permission request on 2026-08-22 in three consecutive cycles; the third was labelled
-"3rd notice, still no card" by the dispatcher that then opened it anyway.
+notice" — is evidence that a card exists, so search for it.** Route `new` only when the search comes back
+empty: a first-contact "final notice" from an office the board has never heard of is a real new matter, and
+its urgency is exactly why it must not be dropped. Recognising the repeat is not the hard part; the
+failure is recognising it and opening a card anyway. A repeat routes to the card it repeats, or to a
+search — never straight to `new`.
 
 ## Grouping
 
@@ -37,7 +39,9 @@ once**, so duplicates collapse here or not at all.
 
 ## Sent mail
 
-A group's `kind` is `sent` when the From address is one of the operator's own (`board accounts`).
+`kind` is a field on each message, separate from the group's route: `sent` when the From address is one of
+the operator's own (`board accounts`), else `inbox`. A group of sent messages still takes one of the three
+routes below.
 
 Sent mail routes by the same rules with one exception: **a sent group matching NO card is `noise`,
 never `new`** — sent mail reports on a matter, it does not ask for one to be opened. The exception is mail

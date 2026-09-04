@@ -530,26 +530,53 @@ def search(a):
     print(json.dumps(out, ensure_ascii=False))
 
 
+NUDGE_PREFIX = "⏳催问："
+
+
+def nudge(a):
+    """Surface a sent-and-unanswered card to the operator, with a marker the sweep can find again.
+
+    The sweep used to flip the card to New with a hand-written NeedsYou, and that flip removed it
+    from the sweep's result set for good: if he never acted, it sat in New indefinitely — the same
+    silent rot one status further along. A fixed prefix is what lets the second pass recognise it."""
+    days = int(a.days)
+    n = int(a.n or 1)
+    needs = (f"{NUDGE_PREFIX}已等 {days} 天没有回音——要不要我起草一封追问？" if n == 1
+             else f"{NUDGE_PREFIX}第 {n} 次提醒：又过了 {days} 天，仍无回音，也没收到你的答复。要不要追问、还是结掉？")
+    api("PATCH", f"/pages/{a.card}", {"properties": {
+        "Status": {"select": {"name": S["new"]}}, "NeedsYou": {"rich_text": rt(needs)}, **touched()}})
+    remember_status(a.card, S["new"])
+    print(json.dumps({"nudged": a.card, "pass": n}))
+
+
 def stale_awaiting(a):
-    # 'Awaiting reply' cards with N+ days of NO activity (the reply never came). Read-only report.
+    # Cards whose last move was ours and nothing has come back in N+ days. Two passes, one list:
+    #   pass 1 — still in Awaiting reply: the reply never came.
+    #   pass 2 — already nudged (New, NeedsYou carries the nudge prefix) and untouched for N+ more
+    #            days: he never acted on the nudge either. Without this pass a nudged card left the
+    #            sweep's view forever, which was the rot the sweep exists to catch.
     from datetime import timezone
     days = int(a.days)
     now = datetime.now(timezone.utc)
-    r = api("POST", f"/databases/{DB}/query", {
-        "filter": {"property": "Status", "select": {"equals": S["awaiting"]}},
-        "sorts": [{"timestamp": "last_edited_time", "direction": "ascending"}], "page_size": 50})
     out = []
-    for p in r["results"]:
-        led = datetime.fromisoformat(p["last_edited_time"].replace("Z", "+00:00"))
-        waited = (now - led).days
-        if waited >= days:
-            pr = p["properties"]
-            out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "subject": _g(pr, "Subject", "title"),
-                        "sender": _g(pr, "Sender", "rich_text"), "account": _g(pr, "Account", "select"),
-                        "subscription": _g(pr, "Subscription", "rich_text"),
-                        "waiting_since": p["last_edited_time"][:10], "days_waited": waited})
+    for pass_no, flt in ((1, {"property": "Status", "select": {"equals": S["awaiting"]}}),
+                         (2, {"and": [{"property": "Status", "select": {"equals": S["new"]}},
+                                      {"property": "NeedsYou", "rich_text": {"starts_with": NUDGE_PREFIX}}]})):
+        r = api("POST", f"/databases/{DB}/query", {
+            "filter": flt, "sorts": [{"timestamp": "last_edited_time", "direction": "ascending"}],
+            "page_size": 50})
+        for p in r["results"]:
+            led = datetime.fromisoformat(p["last_edited_time"].replace("Z", "+00:00"))
+            waited = (now - led).days
+            if waited >= days:
+                pr = p["properties"]
+                needs = _g(pr, "NeedsYou", "rich_text")
+                m = re.search(r"第 (\d+) 次", needs)
+                out.append({"card": p["id"], "pass": pass_no, "msgid": _g(pr, "MsgID", "rich_text"),
+                            "subject": _g(pr, "Subject", "title"), "account": _g(pr, "Account", "select"),
+                            "days_waited": waited, "nudges_so_far": (int(m.group(1)) if m else (1 if pass_no == 2 else 0)),
+                            "subscription": _g(pr, "Subscription", "rich_text")})
     print(json.dumps(out, ensure_ascii=False))
-
 
 def status_for(a):
     # Where a tapped Action leaves the card. Printed as a status KEY (or nothing when the action
@@ -722,6 +749,7 @@ def main():
     sr.add_argument("--limit", default="20"); sr.add_argument("--max-scan", default="300", dest="max_scan")
     sr.add_argument("--warm", action="store_true")
     sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
+    ng = sub.add_parser("nudge"); ng.add_argument("--card", required=True); ng.add_argument("--days", required=True); ng.add_argument("--n", default="1")
     ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
     ed.add_argument("--due"); ed.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818
     sf = sub.add_parser("status-for"); sf.add_argument("--action", required=True)
@@ -738,7 +766,7 @@ def main():
     {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
-     "subscriptions": subscriptions, "cards": cards, "search": search, "stale-awaiting": stale_awaiting, "edit": edit, "status-for": status_for,
+     "subscriptions": subscriptions, "cards": cards, "search": search, "stale-awaiting": stale_awaiting, "nudge": nudge, "edit": edit, "status-for": status_for,
      "accounts": accounts, "whoami": whoami, "covers": covers}[a.cmd](a)
 
 

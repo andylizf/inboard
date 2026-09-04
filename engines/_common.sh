@@ -116,22 +116,28 @@ session_context_pct() {
   win="$(cfg agent.context_window 200000)"
   tail -c 400000 "$f" 2>/dev/null | python3 -c '
 import json, sys
-win = int(sys.argv[1]); last = 0
+win = int(sys.argv[1]); last = 0; since = 0
+# Project the NEXT request rather than report the last: the last usage record is what the previous
+# turn re-sent, and everything appended after it — tool output, the reply, the next prompt — rides
+# along on the next one. Measuring only the record misses the case where the previous request sat
+# under the line and the new material pushes the next one over it. Three bytes per token is
+# deliberately on the heavy side for JSONL, so the estimate errs toward handing over early.
 for line in sys.stdin:
-    if """usage""" not in line:
-        continue
-    try:
-        o = json.loads(line)
-    except Exception:
-        continue                      # a tail can start mid-line; skip the fragment
-    u = ((o.get("message") or {}).get("usage")) or o.get("usage")
-    if isinstance(u, dict):
-        ctx = ((u.get("cache_read_input_tokens") or 0)
-               + (u.get("cache_creation_input_tokens") or 0)
-               + (u.get("input_tokens") or 0))
-        if ctx:
-            last = ctx
-print(min(100, round(100 * last / win)) if win else 0)
+    if """usage""" in line:
+        try:
+            o = json.loads(line)
+        except Exception:
+            since += len(line); continue          # a tail can start mid-line; skip the fragment
+        u = ((o.get("message") or {}).get("usage")) or o.get("usage")
+        if isinstance(u, dict):
+            ctx = ((u.get("cache_read_input_tokens") or 0)
+                   + (u.get("cache_creation_input_tokens") or 0)
+                   + (u.get("input_tokens") or 0))
+            if ctx:
+                last = ctx; since = 0; continue
+    since += len(line)
+projected = last + since // 3 if last else 0
+print(min(100, round(100 * projected / win)) if win else 0)
 ' "$win" 2>/dev/null || echo 0
 }
 
