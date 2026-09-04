@@ -26,9 +26,9 @@ gated on your approval, then executed for you.
 One card per matter, with a scannable one-line `Subject`, the `Draft`, `NeedsYou` (what you must decide),
 and a tappable `Action`. Statuses:
 
-`📥 New` → `🔍 Researching` → `✍️ Draft ready` → `⏳ Awaiting reply` → `✅ Done` (· `🚫 Unsubscribed`)
+`📥 New` → `🔍 Researching` → `✍️ Draft ready` → `⏳ Awaiting reply` → `⏸ Needs you` → `✅ Done` (· `🚫 Unsubscribed`)
 
-A `📥 New` card whose `NeedsYou` is filled is the "decide this" signal. `⏳ Awaiting reply` keeps a
+A card whose next move is the operator's sits in `⏸ Needs you`; `📥 New` is mail nobody has worked yet. `⏳ Awaiting reply` keeps a
 subscription so the other party's reply routes back to the same card; a per-cycle stale sweep resurfaces
 anything that's gone quiet too long.
 

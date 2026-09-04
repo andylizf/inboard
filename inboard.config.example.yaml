@@ -98,12 +98,6 @@ agent:
                                     # starts carrying real weight above that floor; the old 1 MB only
                                     # fired at ~4x it. The card and its state note carry the matter, so
                                     # only working memory is lost (see DESIGN.md 'State model')
-  session_max_idle_days: 60         # a session idle this long is invalidated on next touch: the agent
-                                    # starts fresh (stale working memory carries assumptions the card
-                                    # has outgrown) but the transcript stays on disk — rotation never
-                                    # deletes history. Pair with a generous cleanupPeriodDays in
-                                    # ~/.claude/settings.json, or the host's own retention sweep
-                                    # (default 30 days) deletes it first.
 
 network:
   https_proxy: ""                   # optional; e.g. "http://127.0.0.1:7897" — blank = direct

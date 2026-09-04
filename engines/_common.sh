@@ -161,19 +161,6 @@ session_too_big() {
   [ "$bytes" -gt $(( limit_kb * 1024 )) ]
 }
 
-# session_stale <session-id> — true when that transcript last moved more than
-# agent.session_max_idle_days ago. A stale session is invalidated, never deleted: the next touch
-# starts fresh (months-old working memory carries assumptions the card has since outgrown), while
-# the transcript stays on disk as history. A missing file is NOT stale — the resume-failure path
-# owns that case.
-session_stale() {
-  local sid="${1:-}" days f
-  days="$(cfg agent.session_max_idle_days 60)"
-  f="$HOME/.claude/projects/$(pwd | tr '/' '-')/$sid.jsonl"
-  [ -f "$f" ] || return 1
-  [ -n "$(find "$f" -mtime +"$days" -print 2>/dev/null)" ]
-}
-
 # prep_session — resume the card's per-card claude session, or mint a fresh id.
 # Reads CARD; sets SID, SESS (claude session flags), NEWSID (non-empty only when starting fresh).
 # Resume ONLY a well-formed UUID; any garbage must not wedge the card forever — fall through to fresh.
@@ -204,7 +191,7 @@ prep_session() {
       [ -f "$dmark" ] && rm -f "$dmark"   # marker names a session that is already gone
       dwhy=""
       if session_too_big "$dlive"; then dwhy="its context passed agent.session_handover_pct"
-      elif session_stale "$dlive"; then dwhy="it sat idle past agent.session_max_idle_days"; fi
+      fi
       if [ -n "$dwhy" ]; then
         # Phase 1 — do NOT retire yet. Whatever this session knows that never reached the card is
         # about to be destroyed, and it is the only thing that can still write it down. Retiring it
@@ -221,12 +208,11 @@ prep_session() {
     fi
     return 0
   fi
-  if valid_uuid "$SID" && ! session_too_big "$SID" && ! session_stale "$SID"; then
+  if valid_uuid "$SID" && ! session_too_big "$SID"; then
     SESS=(--resume "$SID")
   else
     local why=""
     if valid_uuid "$SID" && session_too_big "$SID"; then why="its context passed agent.session_handover_pct"
-    elif valid_uuid "$SID" && session_stale "$SID"; then why="it sat idle past agent.session_max_idle_days"
     fi
     if [ -n "$why" ]; then
       echo "[$(date)] rotating card $CARD session $SID ($why; transcript kept)" >>"$INBOARD_LOGS/webhook.log"

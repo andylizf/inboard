@@ -6,8 +6,7 @@ description: How a concrete date on a matter reaches the operator's calendar, an
 ## Calendar events
 A calendar-worthy date is any concrete date/time the operator must act on, WHENEVER it becomes known — in
 the mail itself, or only later, out of your research, a comment exchange, or a decision made on the card.
-A date that surfaces mid-work does not look like "a mail with an event", which is exactly how it gets
-missed: the test is the matter having a date, not the mail carrying one. The moment the date is concrete,
+The moment the date is concrete,
 follow `cfg preferences.calendar_events`:
 - `propose` (default) → put the parsed date/time/details in `NeedsYou` so the card reads as wanting him,
   and add it to the calendar only once he says yes. This is the one place the don't-ask default does not

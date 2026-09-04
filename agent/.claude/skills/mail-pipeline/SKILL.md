@@ -133,6 +133,11 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      stops trusting. When you cannot name the action in a short phrase ("send the reply", "pick one of
      two", "book it before the 21st"), there isn't one: log it.
    - **Actionable** (draft to review = `✍️ Draft ready` / his decision = `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`).
+     **Optional, no deadline, "if you want", "feel free" = FYI, never a card**, however official the sender —
+     a card for something he may ignore is the card that teaches him to ignore cards.
+   - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
+     third party) → the card goes to `⏳ Awaiting reply` with `board awaiting --desc '<what you are waiting
+     for>'`, never left in `📥 New`: New is mail nobody has worked yet, and you just worked it.
    - **If the matter has a deadline, put it on the card**: `--due YYYY-MM-DD` plus
      `--lapses yes|no`. `yes` = the date passing ENDS the matter (an optional talk, an RSVP, an
      invitation that expires, a sale). `no` = the date passing makes it WORSE (enrollment, a tax

@@ -25,5 +25,5 @@ page stopped waiting — a timed-out prompt, an expired transaction — not that
 ```
 
 Blocked means stop, not wait and retry: put one line on the card saying it needs him at his
-phone, and end. Release honestly — reporting an unanswered push as `ok` re-opens the gate for
+phone and that re-picking the Action retries once he has answered, and end. Release honestly — reporting an unanswered push as `ok` re-opens the gate for
 the next agent and rebuilds the pile-up the gate exists to prevent.

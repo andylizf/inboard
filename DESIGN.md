@@ -39,8 +39,7 @@ truly resolved.
 **Board.** One card per matter. Properties: `Subject` (a scannable one-liner title), `Sender`, `Account`,
 `Status`, `NeedsYou` (what *you* must do / the open question), `Draft`, `Action` (the tappable chip that
 fires engine 2), `Subscription` (natural-language "which follow-up mail belongs here"), `MsgID`, plus
-internal `Session` / `StepBlocks`. **Statuses (6):** `📥 New` · `🔍 Researching` · `✍️ Draft ready` ·
-`⏳ Awaiting reply` · `✅ Done` · `🚫 Unsubscribed`. A `📥 New` card with a filled `NeedsYou` = "decide this".
+internal `Session` / `StepBlocks`. **Statuses (8):** `📥 New` · `🔍 Researching` · `✍️ Draft ready` · `⏳ Awaiting reply` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` · `⌛ Expired`. A card whose next move is the operator's sits in `⏸ Needs you`; `📥 New` is mail nobody has worked yet.
 The canonical status/action names live in `lib/ibconfig.py`, so the board creator, the `board` CLI, and
 `agent/CLAUDE.md` cannot drift apart.
 
@@ -108,8 +107,7 @@ outward-facing — those are gated on *your approval* (but then agent-executed, 
   logged instantly; a board-CLI write produces no event at all). *Why it matters:* engine 2 fires on
   the operator's edits only — engine-side code must never wait for a webhook echo, and a quiet
   webhook log during heavy agent activity is normal, not an outage.
-- **Sessions expire; transcripts don't.** A session past `session_rotate_kb`, or idle past
-  `session_max_idle_days`, is invalidated: the next touch starts fresh (told, via prompt, that it is
+- **Sessions expire; transcripts don't.** A session past the handover threshold is invalidated: the next touch starts fresh (told, via prompt, that it is
   a successor and that the card holds the surviving memory), while the old transcript stays on disk
   as history. *Why it matters:* rotation exists to shed stale working memory; deleting would also
   destroy the audit trail. Mind the host: Claude Code's own retention sweep (`cleanupPeriodDays`,
