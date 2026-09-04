@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Pull operator preferences from the Notion settings panel into inboard.config.yaml.
+"""Pull operator preferences from the Notion settings panel into the files the engines read.
+
+Most settings land in inboard.config.yaml under `preferences:`. `model` lands in
+agent/.claude/settings.json instead, because that is the file Claude Code itself reads for every
+agent started from agent/ — daemon workers included — and it outranks the machine's user settings.
+The panel stays the one place the operator touches; this is what renders it into the right file.
 
 The panel is the source of truth, and this runs every dispatch cycle, so a preference
 edited anywhere else is reverted on the next pass — including by an agent, which is the
@@ -18,13 +23,16 @@ import sys
 
 INBOARD = pathlib.Path(os.environ.get("INBOARD_HOME", pathlib.Path.home() / "Projects/inboard"))
 CONFIG = INBOARD / "inboard.config.yaml"
+AGENT_SETTINGS = INBOARD / "agent" / ".claude" / "settings.json"
 
 SCHEMA = {
     "calendar_events":  {"auto", "propose", "off"},
     "identity_alerts":  {"assume-self", "ask"},
     "ci_notifications": {"noise", "surface"},
     "unsubscribe":      {"conservative", "aggressive"},
+    "model":            {"opus", "sonnet", "haiku"},   # → agent/.claude/settings.json, not the YAML
 }
+FILE_KEYS = {"model"}   # settings that live in agent/.claude/settings.json rather than the YAML
 
 
 def _cfg(key, default=""):
@@ -57,6 +65,31 @@ def read_panel(db_id):
     return out
 
 
+def apply_agent_settings(panel):
+    """Write the FILE_KEYS into agent/.claude/settings.json, touching only those keys."""
+    import json
+    changed, rejected = [], []
+    wanted = {k: v for k, v in panel.items() if k in FILE_KEYS}
+    if not wanted:
+        return changed, rejected
+    try:
+        current = json.loads(AGENT_SETTINGS.read_text(encoding="utf-8")) if AGENT_SETTINGS.exists() else {}
+    except ValueError:
+        rejected.append(f"{AGENT_SETTINGS.name} is not valid JSON — left alone")
+        return changed, rejected
+    for key, want in wanted.items():
+        if want not in SCHEMA[key]:
+            rejected.append(f"{key}={want} (not one of {sorted(SCHEMA[key])})")
+            continue
+        if current.get(key) != want:
+            changed.append(f"{key}: {current.get(key, '(absent)')} -> {want}")
+            current[key] = want
+    if changed:
+        AGENT_SETTINGS.parent.mkdir(parents=True, exist_ok=True)
+        AGENT_SETTINGS.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
+    return changed, rejected
+
+
 def apply(panel):
     text = CONFIG.read_text(encoding="utf-8")
     lines = text.split("\n")
@@ -69,8 +102,10 @@ def apply(panel):
     while end < len(lines) and (lines[end].startswith("  ") or not lines[end].strip()):
         end += 1
 
-    changed, rejected = [], []
+    changed, rejected = apply_agent_settings(panel)
     for key, want in panel.items():
+        if key in FILE_KEYS:
+            continue                                   # already handled above
         if key not in SCHEMA:
             rejected.append(f"{key} (unknown setting)")
             continue
