@@ -105,8 +105,13 @@ def reply(short: str, text: str, sock: str | None = None) -> dict:
 
 def spawn(name: str, cwd: str, allowed_tools: str = "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill") -> str:
     """Start an idle background agent named `name` under `cwd`. Returns its short id."""
+    # The model is inboard's to choose, not the machine's. Without --model a worker takes the CLI
+    # default from the user's settings.json, which on mac-mini is a metered model — and when that
+    # model's credits ran out every worker came up blocked and silently swallowed twelve hours of
+    # comment deliveries. The shell path already honours agent.model; the daemon path now does too.
+    model = subprocess.run(["cfg", "agent.model"], capture_output=True, text=True).stdout.strip() or "sonnet"
     out = subprocess.run(
-        ["claude", "--bg", "-n", name, "--allowedTools", allowed_tools],
+        ["claude", "--bg", "-n", name, "--model", model, "--allowedTools", allowed_tools],
         cwd=cwd, capture_output=True, text=True, timeout=60,
     )
     # First line: "backgrounded · <short> · <name> ...". Parse the short id.
