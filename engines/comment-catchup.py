@@ -33,6 +33,7 @@ BOT = C.get("board.bot_user_id")
 BOARD = C.get("board.database_id")
 # terminal statuses we don't need to poll for new operator comments
 SKIP_STATUS = {s for s in (C.get("board.schema.status.done"),
+                           C.get("board.schema.status.expired"),
                            C.get("board.schema.status.unsub")) if s}
 DEADLINE = time.time() + int(C.get("schedule.comment_catchup_budget_seconds", 900))
 H = {"Authorization": f"Bearer {TOKEN}", "Notion-Version": "2022-06-28",
@@ -52,10 +53,8 @@ def api(method, url, body=None):
 
 
 def status_of(p):
-    for v in p.get("properties", {}).values():
-        if v.get("type") == "status" and v.get("status"):
-            return v["status"].get("name", "")
-    return ""
+    # `Status` is a select on this board (bin/board writes it as one), not a status-typed property.
+    return (((p.get("properties") or {}).get("Status") or {}).get("select") or {}).get("name", "")
 
 
 def title_of(p):
