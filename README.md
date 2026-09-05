@@ -66,7 +66,9 @@ Everything personal lives in `inboard.config.yaml` (nothing is hardcoded in the 
 [`inboard.config.example.yaml`](./inboard.config.example.yaml) for the fully-commented template —
 `identity`, `accounts`, `board`, `schedule`, `agent` (model + turn budgets), `network` (optional proxy),
 `preferences` (calendar / CI / unsubscribe defaults), and the `secrets` / `memory` backends. Secrets
-(the Notion token) live in a gitignored `.env`.
+(the Notion token) live in a gitignored `.env`. Optional there: `NOTION_TOKEN_V2`, your own Notion
+session cookie (`token_v2`) — with it, the agent marks a comment it has picked up with a 👀 reaction,
+the one "seen" signal Notion shows without notifying you; without it, you just get the reply.
 
 ## Layout
 

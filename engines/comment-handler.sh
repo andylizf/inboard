@@ -124,8 +124,20 @@ $MORTAL_TRAILER"
 if [ -n "${CARD:-}" ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   # Async: queue to the card's persistent daemon agent (it writes its own reply to the card).
   if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0; else RC=1; fi
-  # Hand-over succeeded: record which comment this worker now owes an answer to (the gate above).
-  [ "$RC" = 0 ] && [ -n "${LAST_ID:-}" ] && printf '%s %s\n' "$LAST_ID" "$(date +%s)" > "$INBOARD_STATE/.picked-$CARD"
+  # Hand-over succeeded: record which comment this worker now owes an answer to (the gate above), and
+  # put a 👀 on the comment so the operator sees it was picked up. A reaction, not a comment: Notion
+  # notifies on every comment and never on a reaction, and the public API has no reactions, so this goes
+  # through the operator's own session (NOTION_TOKEN_V2 in .env, see lib/notion_react.py). Cosmetic —
+  # a failure is logged and the reply still comes from the agent.
+  if [ "$RC" = 0 ] && [ -n "${LAST_ID:-}" ]; then
+    printf '%s %s\n' "$LAST_ID" "$(date +%s)" > "$INBOARD_STATE/.picked-$CARD"
+    if [ -n "${NOTION_TOKEN_V2:-}" ]; then
+      python3 "$INBOARD_HOME/lib/notion_react.py" --comment "$LAST_ID" >>"$INBOARD_LOGS/webhook.log" 2>&1 \
+        || echo "[$(date)] WARN: 👀 reaction on $LAST_ID failed (see above) — operator session cookie expired?" >> "$INBOARD_LOGS/webhook.log"
+    else
+      echo "[$(date)] no NOTION_TOKEN_V2 → no 👀 reaction on $LAST_ID (comment still handled)" >> "$INBOARD_LOGS/webhook.log"
+    fi
+  fi
   # Same reason as in action-handler: the card is where a human looks for the transcript, so it has
   # to name the session the work actually ran in, not the one that ran it before daemon delivery.
   if [ "$RC" = 0 ] && valid_uuid "${DAEMON_SID:-}" && [ "$DAEMON_SID" != "$SID" ]; then
