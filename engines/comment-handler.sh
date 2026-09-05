@@ -42,34 +42,35 @@ if [ -n "$CARD" ] && [ -z "$BOT_UID" ]; then
   echo "[$(date)] WARN: board.bot_user_id empty -> self-echo dedup DISABLED (run inboard init or set board.bot_user_id)" >> "$INBOARD_LOGS/webhook.log"
 fi
 if [ -n "$CARD" ] && [ -n "$BOT_UID" ]; then
-  # Three shapes of "newest comment":
-  #   human            → proceed, and mark it picked up.
-  #   our real reply   → answered; a re-delivered webhook, skip.
-  #   our bare 👀 ack  → picked up earlier. Fresh: in progress, skip. Older than the agent deadline: the
-  #                      agent died with the answer unwritten, so proceed WITHOUT a second ack.
-  STALE_MIN="$(cfg agent.daemon_stall_min 45)"
-  read -r LAST_AUTHOR LAST_ACK LAST_AGE < <(board comments --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log" | python3 -c 'import json,sys
+  read -r LAST_AUTHOR LAST_ID < <(board comments --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log" | python3 -c 'import json,sys
 try: cs=json.load(sys.stdin)
 except Exception: cs=[]
 c=cs[-1] if cs else {}
-print((c.get("author") or "-"), ("1" if c.get("ack") else "0"), int(c.get("age_min") or 0))' 2>>"$INBOARD_LOGS/webhook.log")
-  ACK_NOW=1
+print((c.get("author") or "-"), (c.get("id") or "-"))' 2>>"$INBOARD_LOGS/webhook.log")
   if [ "$LAST_AUTHOR" = "$BOT_UID" ]; then
-    # A fresh 👀 with no worker behind it is orphaned: the worker was retired or died between the ack
-    # and the answer, and waiting out the deadline only delays a reply nobody is writing.
-    LIVE=""; [ "$LAST_ACK" = 1 ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ] && \
-      LIVE=$(python3 "$INBOARD_HOME/lib/agent_deliver.py" session --name "$(card_agent_name "$CARD")" 2>/dev/null)
-    if [ "$LAST_ACK" = 1 ] && { [ "${LAST_AGE:-0}" -ge "$STALE_MIN" ] || [ -z "$LIVE" ]; }; then
-      echo "[$(date)] newest comment on $CARD is our 👀 (${LAST_AGE}m old, live worker: ${LIVE:-none}) with no reply after it → re-run" >> "$INBOARD_LOGS/webhook.log"
-      ACK_NOW=0
-    else
-      echo "[$(date)] newest comment on $CARD is our own bot reply/ack → self-echo/dup/in-progress, skip (no LLM)" >> "$INBOARD_LOGS/webhook.log"
-      exit 0
+    echo "[$(date)] newest comment on $CARD is our own bot reply → self-echo/dup, skip (no LLM)" >> "$INBOARD_LOGS/webhook.log"
+    exit 0
+  fi
+  # The newest comment is the operator's. Whether a worker is already on it is kept HERE, not on the
+  # card: anything posted there notifies him, so a pickup mark plus the real answer is two notifications
+  # for one reply. .picked-<card> = the id of the comment last handed to a worker, and when (written on a
+  # successful hand-over below). Same comment, younger than the agent deadline, worker still alive → in
+  # progress, skip. Anything else — a newer comment, a dead or retired worker, the deadline passed with no
+  # answer — is handed over again. With inprocess delivery the per-card lock above already covers the run.
+  MARK="$INBOARD_STATE/.picked-$CARD"
+  if [ -f "$MARK" ]; then
+    read -r PICKED_ID PICKED_TS < "$MARK"
+    if [ "$PICKED_ID" = "$LAST_ID" ]; then
+      AGE=$(( ($(date +%s) - ${PICKED_TS:-0}) / 60 ))
+      LIVE=""; [ "$(cfg agent.delivery inprocess)" = "daemon" ] && \
+        LIVE=$(python3 "$INBOARD_HOME/lib/agent_deliver.py" session --name "$(card_agent_name "$CARD")" 2>/dev/null)
+      if [ "$AGE" -lt "$(cfg agent.daemon_stall_min 45)" ] && [ -n "$LIVE" ]; then
+        echo "[$(date)] comment $LAST_ID on $CARD was handed to $LIVE ${AGE}m ago, no answer yet → in progress, skip (no LLM)" >> "$INBOARD_LOGS/webhook.log"
+        exit 0
+      fi
+      echo "[$(date)] comment $LAST_ID on $CARD was handed over ${AGE}m ago (live worker: ${LIVE:-none}) and never answered → re-run" >> "$INBOARD_LOGS/webhook.log"
     fi
   fi
-  # The pickup mark. Deterministic and before the agent exists, so it says "seen" whether or not the
-  # agent survives — the reply that says what was done still comes from the agent.
-  [ "$ACK_NOW" = 1 ] && board reply --card "$CARD" --text "👀" >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
 fi
 
 # --- per-card session: resume the same conversation, or open a new one and remember its id ---
@@ -85,10 +86,10 @@ If a comment has a non-empty \"attachments\" list (the operator pasted a screens
 \`comment-images --card $CARD\` and Read the returned local paths BEFORE answering — they are
 usually asking about what is IN that image, and answering without looking reads as ignoring them.
 The ONLY dedup
-that counts: after reading the comments, find the LATEST human comment; if no real reply of yours comes after
-it, ANSWER it. A bare 👀 from you is the pickup mark the handler posts, NOT a reply — look past it. Skip ONLY
-when your own real reply is newer than every human comment — and then skip SILENTLY: do NOT post a 'duplicate
-webhook' comment; that noise looks exactly like you ignored their question.
+that counts: after reading the comments, look at the LATEST comment — if it is the operator's and you have NOT
+already answered it (no bot reply of yours AFTER it), ANSWER it. Skip ONLY when the newest comment is your OWN
+bot reply (nothing new) — and then skip SILENTLY: do NOT post a 'duplicate webhook' comment; that noise looks
+exactly like you ignored their question.
 FIRST, post a live to-do so they can watch progress in real time:
 \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 short concrete steps).
 Then the MOMENT you finish each step, run \`board tick --card $CARD --n <0-based index>\` before moving on.
@@ -123,6 +124,8 @@ $MORTAL_TRAILER"
 if [ -n "${CARD:-}" ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   # Async: queue to the card's persistent daemon agent (it writes its own reply to the card).
   if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" "$PROMPT"; then RC=0; else RC=1; fi
+  # Hand-over succeeded: record which comment this worker now owes an answer to (the gate above).
+  [ "$RC" = 0 ] && [ -n "${LAST_ID:-}" ] && printf '%s %s\n' "$LAST_ID" "$(date +%s)" > "$INBOARD_STATE/.picked-$CARD"
   # Same reason as in action-handler: the card is where a human looks for the transcript, so it has
   # to name the session the work actually ran in, not the one that ran it before daemon delivery.
   if [ "$RC" = 0 ] && valid_uuid "${DAEMON_SID:-}" && [ "$DAEMON_SID" != "$SID" ]; then

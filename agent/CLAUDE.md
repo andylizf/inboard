@@ -158,8 +158,6 @@ working on. To make a card read as more urgent, move what it is derived from: gi
 what the operator must do into `--needs`. The icon follows.
 
 ## Reply where they asked
-The 👀 under his comment is posted by the handler the moment it picks the comment up; it says "seen", not
-"done". Your reply is still owed, and until it lands the card reads as in progress.
 When you act on a card comment, **post your answer back to the comment thread** with
 `board reply --card <ID> --text '<one line>'` (so the operator sees it where they commented), and put the
 detail in the card body via `board log`. The body alone is easy to miss.
