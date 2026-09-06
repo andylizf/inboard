@@ -18,9 +18,12 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
   for a sender's history.
 - **Draft — one command, and it is the only one:** `+draft --card <CARD> --body TEXT` plus either
   `--reply-to-message <msgid>` (To, subject, thread and In-Reply-To come from that message; use it when
-  answering mail someone ELSE sent) or `--to <addr> --subject S [--cc] [--thread-id T] [--in-reply-to <Message-ID>]`
+  answering mail someone ELSE sent) or `--to <addr> --subject S [--thread-id T] [--in-reply-to <Message-ID>]`
   (a new mail, or a follow-up on a thread the OPERATOR started — replying there would address him). It
   creates the Gmail draft, puts the text into the card's Draft field and logs the draft id, in one step.
+  Both forms accept `--cc <addresses>` and `--bcc <addresses>`. The card preview starts with From, To,
+  Cc, Bcc and Subject, then a `---` separator and the body. Pass only the email body to `--body`;
+  the wrapper adds the preview headers using the selected account and actual recipients.
   A draft that is not on the card cannot be seen by him and cannot be sent, so the raw helpers
   (`+reply`, `+compose-draft`, `users drafts create`) are refused. The Draft field holds the latest draft;
   earlier ones remain in the log with their ids and are still sendable by id.

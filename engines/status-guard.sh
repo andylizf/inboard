@@ -36,4 +36,4 @@ fi
 
 board edit --card "$CARD" --status "$WANT" >>"$LOG" 2>&1 || exit 0
 echo "[$(date)] status-guard: card $CARD dragged '$WANT' -> '$NOW'; restored" >>"$LOG"
-board reply --card "$CARD" --text "状态被手动改成「${NOW}」，已经改回「${WANT}」。请使用右上角的动作，或在评论里说明下一步：继续处理会唤醒 agent；我已发送会检查还有什么待办；忽略/归档表示取消；确认完成表示事情已经做完。" >>"$LOG" 2>&1 || true
+board reply --card "$CARD" --text "状态被手动改成「${NOW}」，已经改回「${WANT}」。请使用右上角的动作，或在评论里说明下一步：继续处理会唤醒 agent；忽略/归档表示取消；确认完成表示事情已经做完。" >>"$LOG" 2>&1 || true

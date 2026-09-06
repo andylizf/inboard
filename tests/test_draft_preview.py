@@ -1,0 +1,79 @@
+import base64
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+from email import policy
+from email.parser import BytesParser
+from pathlib import Path
+from subprocess import CompletedProcess
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+loader = importlib.machinery.SourceFileLoader('inboard_email', str(ROOT / 'bin/email'))
+spec = importlib.util.spec_from_loader(loader.name, loader)
+email_cli = importlib.util.module_from_spec(spec)
+loader.exec_module(email_cli)
+
+
+class DraftPreviewTests(unittest.TestCase):
+    def test_long_preview_survives_card_storage(self):
+        import wakeups
+        board = wakeups.load_board()
+        preview = 'From: sender@example.com\nTo: to@example.com\n\n---\n\n' + '正文' * 2000
+        args = argparse.Namespace(card='card-1', draft=preview, status=None, needs=None,
+                                  subject=None, sender=None, due=None)
+        with patch.object(board, 'api') as api:
+            board.edit(args)
+        runs = api.call_args.args[2]['properties']['Draft']['rich_text']
+        self.assertEqual(''.join(r['text']['content'] for r in runs), preview)
+        self.assertTrue(all(len(r['text']['content']) <= 2000 for r in runs))
+
+    def create(self, args, original=None):
+        calls = []
+
+        def run(cmd, **kwargs):
+            calls.append(cmd)
+            if 'get' in cmd:
+                return CompletedProcess(cmd, 0, json.dumps(original), '')
+            return CompletedProcess(cmd, 0, '{"id":"draft-1"}', '')
+
+        with patch('subprocess.run', side_effect=run), self.assertRaises(SystemExit) as stop:
+            email_cli.draft_for_card({}, 'gws', ['--card', 'card-1', '--body', 'Hello\n\nThanks', *args],
+                                     'sender@example.com')
+        self.assertEqual(stop.exception.code, 0)
+        create = next(c for c in calls if 'create' in c)
+        wire = json.loads(create[create.index('--json') + 1])['message']
+        message = BytesParser(policy=policy.default).parsebytes(base64.urlsafe_b64decode(wire['raw']))
+        edit = next(c for c in calls if 'edit' in c)
+        preview = edit[edit.index('--draft') + 1]
+        self.assertEqual(message.get_content(), 'Hello\n\nThanks\n')
+        self.assertEqual(str(message['From']), 'sender@example.com')
+        self.assertEqual(preview.split('\n\n---\n\n', 1)[1], 'Hello\n\nThanks')
+        self.assertFalse(any('send' in c for c in calls))
+        return message, preview, wire
+
+    def test_all_recipients_visible_but_headers_not_in_body(self):
+        message, preview, _ = self.create(['--to', 'to@example.com', '--subject', 'Subject',
+                                          '--cc', 'cc@example.com', '--bcc', 'bcc@example.com'])
+        self.assertTrue(preview.startswith('From: sender@example.com\nTo: to@example.com\n'))
+        for field, address in [('Cc', 'cc@example.com'), ('Bcc', 'bcc@example.com')]:
+            self.assertEqual(str(message[field]), address)
+            self.assertIn(f'{field}: {address}\n', preview)
+
+    def test_reply_uses_resolved_recipient_and_empty_copy_fields(self):
+        original = {'threadId': 'thread-1', 'payload': {'headers': [
+            {'name': 'From', 'value': 'author@example.com'},
+            {'name': 'Reply-To', 'value': 'reply@example.com'},
+            {'name': 'Subject', 'value': 'Question'},
+            {'name': 'Message-ID', 'value': '<original@example.com>'}]}}
+        message, preview, wire = self.create(['--reply-to-message', 'message-1'], original)
+        self.assertEqual(str(message['To']), 'reply@example.com')
+        self.assertIn('To: reply@example.com\nCc: 无\nBcc: 无\nSubject: Re: Question', preview)
+        self.assertEqual(wire['threadId'], 'thread-1')
+        self.assertEqual(str(message['In-Reply-To']), '<original@example.com>')
+
+
+if __name__ == '__main__':
+    unittest.main()

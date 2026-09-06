@@ -48,7 +48,6 @@ board:
     send_action: 📤 Send it for me
     actions:                        # tappable Action chips (created only on a fresh board)
       - "▶️ Continue / redo"
-      - "📤 Sent — waiting"
       - "✅ Done"
       - "✖ Cancel"
     daily_types:                    # daily-log Type select values, by role

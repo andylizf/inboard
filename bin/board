@@ -129,7 +129,7 @@ def upsert(a):
     if a.sender is not None:
         props["Sender"] = {"rich_text": rt(a.sender)}
     if a.draft is not None:
-        props["Draft"] = {"rich_text": rt(a.draft)}
+        props["Draft"] = {"rich_text": W.text(a.draft)}
     if a.needs is not None:
         props["NeedsYou"] = {"rich_text": rt(a.needs)}
     _due_props(a, props)  # DUE-20260818
@@ -573,7 +573,7 @@ def edit(a):
     if a.subject is not None:
         props["Subject"] = {"title": rt(a.subject)}
     if a.draft is not None:
-        props["Draft"] = {"rich_text": rt(a.draft)}
+        props["Draft"] = {"rich_text": W.text(a.draft)}
     if a.sender is not None:
         props["Sender"] = {"rich_text": rt(a.sender)}
     _due_props(a, props)  # DUE-20260818

@@ -116,7 +116,7 @@ _STATUS_DEFAULT = {
     "awaiting": "⏳ Waiting", "needs_you": "⏸ Needs you", "done": "✅ Done",
     "expired": "⌛ Expired", "cancelled": "✖ Cancelled", "unsub": "🚫 Unsubscribed",
 }
-_ACTIONS_DEFAULT = ["▶️ Continue / redo", "📤 Sent — waiting", "✅ Done", "✖ Cancel"]
+_ACTIONS_DEFAULT = ["▶️ Continue / redo", "✅ Done", "✖ Cancel"]
 # Non-empty placeholder so Notion always renders the Action property as a tappable chip in its lightweight
 # preview (it hides EMPTY properties there). Handlers treat it as no-action.
 _ACTION_PLACEHOLDER_DEFAULT = "👉 Pick action"
@@ -127,7 +127,6 @@ _ACTION_PLACEHOLDER_DEFAULT = "👉 Pick action"
 # card to awaiting.
 _ACTION_STATUS_DEFAULT = {
     "▶️ Continue / redo": "researching",
-    "📤 Sent — waiting": "awaiting",
     "✅ Done": "done",
     "✖ Cancel": "cancelled",
 }

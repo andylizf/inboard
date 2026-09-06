@@ -38,9 +38,6 @@ rewritten), or for the send action, which the handler deliberately leaves alone.
   retries it. Say so on the card in plain words (`board reply`: what you tried, what came back, that
   the mail did NOT go out, and that tapping again retries), leave the Status alone, and do NOT clear the
   Action. Never re-send by another route to work around it.
-- **📤 Sent — waiting** → read the latest conversation and determine what remains. Keep a reply/result
-  in `board awaiting --card <CARD> --desc '<what is awaited>'`; keep the operator's unfinished promise
-  in `needs_you`. Sending alone is not completion. Record it under the configured daily sent type.
 - **✅ Done** → the operator confirmed completion: log the outcome, then `board done --card <CARD>`.
 - **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled --needs ''`.
 

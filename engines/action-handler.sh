@@ -41,7 +41,7 @@ fi
 # Resume the card's per-card session (validate UUID; any garbage → fresh session).
 prep_session
 
-# The per-Action semantics (continue/redo, sent-awaiting, done/ignore, daily-log step) are deliberately NOT
+# The per-Action semantics (continue/redo, done/ignore, daily-log step) are deliberately NOT
 # respelled here — the card-actions skill is the single source of truth; a summary here WILL drift from it
 # (it already had: the daily-log step was missing). The prompt names the skill rather than leaving it to the
 # model's judgement, which the docs say is not guaranteed to fire in -p mode.

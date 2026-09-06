@@ -23,7 +23,7 @@ BLOCK = [  # (needle-in-args, human label) — irreversible sends; refuse unless
 ]
 
 
-def draft_for_card(acct_env, gws, rest):
+def draft_for_card(acct_env, gws, rest, sender):
     """`email <id> gmail +draft --card <CARD> ...` — the ONLY way a draft gets made.
 
     One command, three effects that used to be three separate steps an agent could skip: the
@@ -49,6 +49,7 @@ def draft_for_card(acct_env, gws, rest):
     ap.add_argument("--subject", default=None)
     ap.add_argument("--body", required=True, help="plain-text body")
     ap.add_argument("--cc", default=None)
+    ap.add_argument("--bcc", default=None)
     ap.add_argument("--thread-id", default=None)
     ap.add_argument("--in-reply-to", default=None, help="RFC822 Message-ID")
     a = ap.parse_args(rest)
@@ -71,9 +72,12 @@ def draft_for_card(acct_env, gws, rest):
         sys.exit("+draft: need --reply-to-message, or --to and --subject")
 
     m = EmailMessage()
+    m["From"] = sender
     m["To"] = to
     if a.cc:
         m["Cc"] = a.cc
+    if a.bcc:
+        m["Bcc"] = a.bcc
     m["Subject"] = subject
     if in_reply_to:
         m["In-Reply-To"] = in_reply_to
@@ -93,7 +97,9 @@ def draft_for_card(acct_env, gws, rest):
 
     # the card half — same interpreter, sibling script, so this works wherever `email` itself does
     board = os.path.join(os.path.dirname(os.path.abspath(__file__)), "board")
-    subprocess.run([sys.executable, board, "edit", "--card", a.card, "--draft", a.body], check=True)
+    preview = (f"From: {sender}\nTo: {to}\nCc: {a.cc or '无'}\nBcc: {a.bcc or '无'}\n"
+               f"Subject: {subject}\n\n---\n\n{a.body}")
+    subprocess.run([sys.executable, board, "edit", "--card", a.card, "--draft", preview], check=True)
     subprocess.run([sys.executable, board, "log", "--card", a.card, "--text",
                     "草稿已存入邮箱草稿箱并同步到本卡 Draft 字段：收件人 %s，主题「%s」（Gmail draft id %s）。点「📤 帮我发送」发出。"
                     % (to, subject, draft_id)], check=True)
@@ -295,7 +301,7 @@ def main():
     if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+send-approved":
         send_approved(env, gws, rest[2:])
     if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+draft":
-        draft_for_card(env, gws, rest[2:])
+        draft_for_card(env, gws, rest[2:], acct["address"])
     os.execvpe(gws, [gws] + rest, env)
 
 
