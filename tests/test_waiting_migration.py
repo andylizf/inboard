@@ -44,6 +44,13 @@ class MigrationTests(unittest.TestCase):
                     for k, v in body['properties'].items():
                         if v is None:
                             schema['properties'].pop(k, None)
+                        elif k == 'Status':
+                            # The real API ignores name changes on an existing option id.
+                            existing = {o['id']: o for o in schema['properties']['Status']['select']['options']}
+                            options = [copy.deepcopy(existing[o['id']]) if o.get('id') in existing
+                                       else {**o, 'id': 'option-' + o['name']}
+                                       for o in v['select']['options']]
+                            schema['properties'][k] = {'select': {'options': options}}
                         else:
                             schema['properties'][k] = copy.deepcopy(v)
                     return {}
