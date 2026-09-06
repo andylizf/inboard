@@ -70,7 +70,9 @@ class MigrationTests(unittest.TestCase):
                 self.assertNotIn('Lapses', schema['properties'])
                 self.assertNotIn('Place', schema['properties'])
                 self.assertEqual(cfg['board']['schema']['action_status']['Ignore'], 'cancelled')
-                self.assertEqual(schema['properties']['Status']['select']['options'][0]['id'], 'waiting-option')
+                names = [o['name'] for o in schema['properties']['Status']['select']['options']]
+                self.assertIn('⏳ Waiting', names)
+                self.assertNotIn('⏳ Awaiting reply', names)
                 M.migrate(backup, apply=True, remove=True)
                 self.assertEqual(writes, ['open'])
                 self.assertEqual((backup / 'snapshot.json').read_bytes(), original)

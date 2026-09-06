@@ -74,15 +74,15 @@ def migrate(backup, apply=False, remove=False):
         data["pages"] = latest
         schema = board.api("GET", f"/databases/{board.DB}")
         options = schema["properties"]["Status"]["select"]["options"]
-        for option in options:
-            if option["name"] == old_status["awaiting"]:
-                option["name"] = new_waiting
+        # Notion cannot rename an existing select option. Add the destination, move
+        # cards, then remove the old option only after verifying that it is unused.
+        if not any(o["name"] == new_waiting for o in options):
+            options.append({"name": new_waiting, "color": "yellow"})
         if not any(o["name"] == new_cancel for o in options):
             options.append({"name": new_cancel, "color": "gray"})
         board.api("PATCH", f"/databases/{board.DB}", {"properties": {
             "Status": {"select": {"options": options}}, "Wakeups": {"rich_text": {}},
             "NextCheck": {"date": {}}, "NextAction": {"rich_text": {}}}})
-        # Updating by option id keeps existing waiting cards and their Notion grouping intact.
         current_cfg = C.load()
         current_cfg["board"]["schema"]["status"].update(awaiting=new_waiting, cancelled=new_cancel)
         current_cfg["board"]["schema"].setdefault("status_aliases", {})[old_status["awaiting"]] = "awaiting"
@@ -150,11 +150,18 @@ def migrate(backup, apply=False, remove=False):
                 W.save(backup / f"before-removal-{W.now().strftime('%Y%m%dT%H%M%S%f')}.json", result)
                 if any(not (checkpoints / f'{p["id"]}.json').exists() for p in result["results"]):
                     raise RuntimeError("new cards arrived during migration; resume before removing legacy properties")
+                if old_status["awaiting"] != new_waiting and any(
+                        board._g(p["properties"], "Status", "select") == old_status["awaiting"]
+                        for p in result["results"]):
+                    raise RuntimeError("old waiting option is still in use; retained rather than clearing card statuses")
                 if not result.get("has_more"):
                     break
                 cursor = result["next_cursor"]
             live = board.api("GET", f"/databases/{board.DB}")
             changes = {name: None for name in ("Place", "Lapses") if name in live["properties"]}
+            if old_status["awaiting"] != new_waiting:
+                changes["Status"] = {"select": {"options": [o for o in live["properties"]["Status"]["select"]["options"]
+                                                           if o["name"] != old_status["awaiting"]]}}
             if changes:
                 board.api("PATCH", f"/databases/{board.DB}", {"properties": changes})
             event("schema", "legacy_removed")
