@@ -16,7 +16,8 @@ trap 'rmdir "$LOCK"' EXIT
 echo "$(date -u) deployment start revision=$REVISION"
 git diff --quiet
 git diff --cached --quiet
-git fetch origin "$REVISION"
+git fetch origin
+git rev-parse --verify "$REVISION^{commit}" >/dev/null
 git merge --ff-only "$REVISION"
 uv sync --locked
 python3 setup/migrate_waiting.py --backup-dir "$BACKUP" --apply --remove-legacy
