@@ -134,7 +134,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      Waiting for a reply or result is actionable: create or update ONE card, use `board awaiting --card
      <ID> --desc '<who owes what response or result>'`, and `board edit --card <ID> --needs ''`.
      A commitment by the operator (for example, promising to send materials by Friday) stays open with
-     `Needs you`, a concrete next action, and Due/Lapses when dated. If both sides owe work, keep the
+     `Needs you`, a concrete next action, and Due and scheduled checks when dated. If both sides owe work, keep the
      operator's next action visible and subscribe to the expected reply. Close an existing card only when
      no action or awaited result remains. A simple acknowledgement needs no new card. Record the sent
      date, recipient and remaining action in the state note and log; use the configured daily sent type
@@ -153,15 +153,12 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      **Optional, no deadline, "if you want", "feel free" = FYI, never a card**, however official the sender —
      a card for something he may ignore is the card that teaches him to ignore cards.
    - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
-     third party) → the card goes to `⏳ Awaiting reply` with `board awaiting --desc '<what you are waiting
+     third party) → the card goes to `⏳ Waiting` with `board awaiting --desc '<what you are waiting
      for>'`, never left in `📥 New`: New is mail nobody has worked yet, and you just worked it.
-   - **If the matter has a deadline, put it on the card**: `--due YYYY-MM-DD` plus
-     `--lapses yes|no`. `yes` = the date passing ENDS the matter (an optional talk, an RSVP, an
-     invitation that expires, a sale). `no` = the date passing makes it WORSE (enrollment, a tax
-     form, mandatory training, a bill). A daily sweep closes the `yes` ones on its own and flags
-     the `no` ones as overdue instead — but only for cards that carry the date, and a deadline
-     living in the subject line is invisible to it. **When unsure use `no`**: a wrong `no` leaves a
-     dead card on the board, a wrong `yes` closes a live obligation with nobody watching.
+   - **If the matter has a deadline, put it on the card** with `--due YYYY-MM-DD`. Schedule a useful
+     pre-deadline check with `board schedule`, and an expiry check only if the window shutting ends the
+     matter. On any new development, reconcile all schedules: a reply may make an unanswered-mail check
+     obsolete. Due passing alone never proves completion; overdue obligations remain open.
    - **FYI / done event** (unsubscribe, completion) → the DAILY LOG (`board daily`, where one is configured;
      otherwise it is simply marked processed), NOT the board — EXCEPT a
      completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cheap pre-check (NO LLM): is there any NEW mail, a pending board Action, or a stale-awaiting card?
+"""Cheap pre-check (NO LLM): is there any NEW mail, a pending board Action?
 Exit 0 = there is work (run the agent); exit 1 = nothing to do (skip the expensive claude run).
 
 Relies on `email` / `board` being on PATH and the Notion token + proxy in env (set by the runner).
@@ -51,7 +51,6 @@ def board_count(args):
 
 
 pending = board_count(["pending"])
-stale = board_count(["stale-awaiting", "--days", str(C.get("schedule.stale_awaiting_days", 3))])
 
-print(f"new={len(new)} pending={pending} stale={stale}")
-sys.exit(0 if (new or pending or stale) else 1)
+print(f"new={len(new)} pending={pending}")
+sys.exit(0 if (new or pending) else 1)

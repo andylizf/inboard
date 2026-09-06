@@ -26,11 +26,16 @@ gated on your approval, then executed for you.
 One card per matter, with a scannable one-line `Subject`, the `Draft`, `NeedsYou` (what you must decide),
 and a tappable `Action`. Statuses:
 
-`📥 New` → `🔍 Researching` → `⏳ Awaiting reply` → `⏸ Needs you` → `✅ Done` (· `🚫 Unsubscribed`)
+`📥 New` · `🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `⌛ Expired` · `✖ Cancelled` · `🚫 Unsubscribed`
 
-A card whose next move is the operator's sits in `⏸ Needs you`; `📥 New` is mail nobody has worked yet. `⏳ Awaiting reply` keeps a
-subscription so the other party's reply routes back to the same card; a per-cycle stale sweep resurfaces
-anything that's gone quiet too long.
+A card whose next move is yours sits in `⏸ Needs you`. `⏳ Waiting` covers replies, future dates and
+external conditions. Matching mail or a scheduled check resumes the card's agent, which checks the
+latest facts and continues the work. One card can wait for a reply and have a timed follow-up check.
+
+`Due` is the deadline; `NextCheck` and `NextAction` show the next checks. A missed deadline stays open
+unless the agent verifies that the opportunity has expired with no remaining action. Completed,
+expired and cancelled matters have separate statuses. Ask for changes in a card comment, such as
+"check again next week"; the agent updates the schedule.
 
 ## Requirements
 

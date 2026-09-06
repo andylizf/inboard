@@ -78,7 +78,7 @@ def main():
     status = C.STATUS
     status_opts = [{"name": status.get(k, k), "color": STATUS_COLORS.get(k, "default")} for k in C.STATUS_ORDER]
     action_opts = [{"name": C.ACTION_PLACEHOLDER, "color": "default"}] + \
-                  [{"name": x, "color": c} for x, c in zip(C.ACTIONS, ["green", "blue", "gray"])]
+                  [{"name": x, "color": "default"} for x in C.ACTIONS]
 
     db = notion("POST", "/databases", token, {
         "parent": {"type": "page_id", "page_id": parent["id"]},
@@ -92,6 +92,10 @@ def main():
             "Draft":        {"rich_text": {}},
             "NeedsYou":     {"rich_text": {}},
             "Subscription": {"rich_text": {}},
+            "Due":          {"date": {}},
+            "Wakeups":      {"rich_text": {}},
+            "NextCheck":    {"date": {}},
+            "NextAction":   {"rich_text": {}},
             "MsgID":        {"rich_text": {}},
             "Session":      {"rich_text": {}},
             "StepBlocks":   {"rich_text": {}},

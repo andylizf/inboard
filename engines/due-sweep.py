@@ -1,33 +1,9 @@
 #!/usr/bin/env python3
-"""Daily sweep over inboard cards whose `Due` date has passed.
+"""Flag overdue cards once per deadline. Due never completes or expires a matter.
 
-The whole point of the two-property design is that this script does TWO
-different things, because a passed deadline means two different things:
-
-  Lapses = true   the opportunity is gone, so there is nothing left to do
-                  -> status `expired`, with the reason logged on the card.
-
-  Lapses = false  the deadline passing made the matter WORSE, not finished
-                  -> never closed. Logged once as overdue so it is visible as
-                     overdue, and left demanding attention.
-
-Auto-closing the second class is the failure this design exists to prevent:
-an enrollment whose window shut is not a card to tidy away, it is a card whose
-passed date is the problem.
-
-A card already in a terminal status (done / expired / unsubscribed) is out of
-scope entirely: sweeping it again would append the same "expired" verdict to
-its log every single day.
-
-Idempotence for the overdue flag comes from a small state file rather than from
-writing a marker onto the card: the board is what the operator reads, and a
-sweep that appends "still overdue" to a card every single day turns the card's
-own audit log into noise. If `Due` is later changed, the card is marked again —
-a new deadline is a new fact, not a repeat of the old one.
-
-Runs under `uv run python` from $INBOARD_HOME so lib/ibconfig.py and its deps
-resolve. Dry-run by default; --apply writes. Every run appends to
-logs/due-sweep.log so a scheduled run is inspectable after the fact.
+Expiry is an explicit scheduled check performed by the card agent. This daily
+scan retains obligations and makes a missed deadline visible. Dry-run by default;
+--apply writes, with progress in logs/due-sweep.log.
 """
 import datetime
 from zoneinfo import ZoneInfo
@@ -45,7 +21,7 @@ import ibconfig as C  # noqa: E402
 STATE = INBOARD / "state/due-sweep-marked.json"
 LOGFILE = INBOARD / "logs/due-sweep.log"
 DB = C.get("board.database_id") or sys.exit("board.database_id not configured")
-TERMINAL = {C.status_name("done"), C.status_name("expired"), C.status_name("unsub")}
+TERMINAL = {C.status_name("done"), C.status_name("expired"), C.status_name("unsub"), C.status_name("cancelled")}
 
 
 def api(path, payload=None):
@@ -124,34 +100,9 @@ def main() -> int:
             overdue.append((c, d, (today - d).days))
 
     marked = json.loads(STATE.read_text()) if STATE.exists() else {}
-    to_close, to_flag = [], []
-    for c, d, days in overdue:
-        if (c["properties"].get("Lapses") or {}).get("checkbox"):
-            to_close.append((c, d, days))
-        elif marked.get(c["id"]) != d.isoformat():
-            to_flag.append((c, d, days))
-
+    to_flag = [(c, d, days) for c, d, days in overdue if marked.get(c["id"]) != d.isoformat()]
     note(f"{len(active)} active · {len(dated)} with a Due · {len(overdue)} overdue "
-         f"· {len(to_close)} to close · {len(to_flag)} to flag"
-         f"{'' if apply else '  (DRY RUN)'}")
-
-    for c, d, days in to_close:
-        title = title_of(c["properties"])[:60]
-        if not apply:
-            note(f"  would close  [{c['id'][:8]}] Due {d} (+{days}d, lapses) {title}")
-            continue
-        reason = (f"Marked expired by due-sweep {today}: Due {d} passed {days} days ago and this "
-                  f"matter was marked as lapsing — the window is shut. Recorded as expired rather "
-                  f"than complete: it was never done.")
-        r1 = board("log", "--card", c["id"], "--text", reason)
-        # `expired`, not `done`: the window shut without being used, and marking that complete
-        # writes something into the record that never happened. The subscription stays — a
-        # follow-up about the thing that was missed still belongs on this card.
-        r2 = board("edit", "--card", c["id"], "--status", "expired", "--needs", "")
-        r3 = board("clear-action", "--card", c["id"])
-        ok = r1.returncode == 0 and r2.returncode == 0
-        note(f"  {'expired' if ok else 'FAILED'} [{c['id'][:8]}] Due {d} (+{days}d) {title}"
-             + ("" if ok else f" :: {(r1.stderr + r2.stderr).strip()[:160]}"))
+         f"· {len(to_flag)} to flag{'' if apply else ' (DRY RUN)'}")
 
     for c, d, days in to_flag:
         title = title_of(c["properties"])[:60]

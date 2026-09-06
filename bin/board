@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
                                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import ibconfig as C  # noqa: E402
+import wakeups as W
 
 TOK = os.environ.get(C.get("board.token_env", "NOTION_TOKEN") or "NOTION_TOKEN")
 DB = C.get("board.database_id")
@@ -110,13 +111,10 @@ def find_card(msgid):
 
 
 def _due_props(a, props):  # DUE-20260818
-    """Fold --due/--lapses into a property dict. Shared by upsert and edit."""
+    """Fold --due into a property dict. Shared by upsert and edit."""
     due = getattr(a, "due", None)
     if due is not None:
         props["Due"] = {"date": ({"start": due} if due else None)}
-    lapses = getattr(a, "lapses", None)
-    if lapses is not None:
-        props["Lapses"] = {"checkbox": lapses == "yes"}
     return props
 
 
@@ -135,13 +133,15 @@ def upsert(a):
     if a.needs is not None:
         props["NeedsYou"] = {"rich_text": rt(a.needs)}
     _due_props(a, props)  # DUE-20260818
+    props.update(closing_props(C.status_name(a.status)))
     ex = find_card(a.msgid)
     if ex:
         api("PATCH", f"/pages/{ex['id']}", {"properties": props})
         remember_status(ex["id"], C.status_name(a.status))
         print(json.dumps({"updated": ex["id"]}))
     else:
-        props["Action"] = {"select": {"name": ACTION_PLACEHOLDER}}  # show the tappable chip in preview
+        if C.status_name(a.status) not in {C.status_name(k) for k in CLOSED_KEYS}:
+            props["Action"] = {"select": {"name": ACTION_PLACEHOLDER}}
         r = api("POST", "/pages", {"parent": {"database_id": DB}, "properties": props})
         remember_status(r["id"], C.status_name(a.status))
         print(json.dumps({"created": r["id"]}))
@@ -228,7 +228,7 @@ def daily(a):
     print(json.dumps({"logged-daily": r["id"]}))
 
 
-CLOSED_KEYS = ("done", "unsub", "expired")
+CLOSED_KEYS = ("done", "unsub", "expired", "cancelled")
 
 
 def closing_props(status_display):
@@ -240,7 +240,7 @@ def closing_props(status_display):
     still advertising for mail."""
     closed = {C.STATUS.get(k) for k in CLOSED_KEYS if C.STATUS.get(k)}
     if status_display in closed:
-        return {"Action": {"select": None}, "Subscription": {"rich_text": []}}
+        return {"Action": {"select": None}, "Subscription": {"rich_text": []}, **W.properties([])}
     return {}
 
 
@@ -253,7 +253,7 @@ def done(a):
     # Mark complete but KEEP the card (lands in the Done column) + clear any Action + clear the
     # Subscription (matter resolved → future matching mail becomes noise). This is a record, NOT archive.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Status": {"select": {"name": S["done"]}},
-        "Action": {"select": None}, "Subscription": {"rich_text": []}, **touched()}})
+        **closing_props(S["done"]), **touched()}})
     remember_status(a.card, S["done"])
     print(json.dumps({"done": a.card}))
 
@@ -262,7 +262,8 @@ def awaiting(a):
     # "I sent/submitted my part — now WAITING on the other party's reply." Keeps the card ACTIVE in
     # 'Awaiting reply' and keeps/sets a Subscription so their reply routes back to THIS card instead of
     # opening a disconnected new one. NOT `done`. Pass --desc to (re)set what to watch for.
-    props = {"Status": {"select": {"name": S["awaiting"]}}, "Action": {"select": None}, **touched()}
+    props = {"Status": {"select": {"name": S["awaiting"]}}, "Action": {"select": None},
+             "NeedsYou": {"rich_text": []}, **touched()}
     if a.desc is not None:
         props["Subscription"] = {"rich_text": ([{"text": {"content": a.desc[:1900]}}] if a.desc else [])}
     api("PATCH", f"/pages/{a.card}", {"properties": props})
@@ -275,6 +276,30 @@ def subscribe(a):
     # routes follow-ups onto THIS card instead of duplicating. Cleared automatically by `done`.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Subscription": {"rich_text": rt(a.desc)}}})
     print(json.dumps({"subscribed": a.card, "desc": (a.desc or "")[:80]}, ensure_ascii=False))
+
+
+def schedule(a):
+    page = api("GET", f"/pages/{a.card}")
+    if _g(page["properties"], "Status", "select") in {C.status_name(k) for k in CLOSED_KEYS}:
+        sys.exit("board schedule: reopen the matter before scheduling work")
+    rules = W.add(W.read(page), a.at, a.reason)
+    api("PATCH", f"/pages/{a.card}", {"properties": {**W.properties(rules), **touched()}})
+    print(json.dumps(rules, ensure_ascii=False))
+
+
+def unschedule(a):
+    page = api("GET", f"/pages/{a.card}")
+    rules = [] if a.all else [r for r in W.read(page) if r["id"] != a.id]
+    api("PATCH", f"/pages/{a.card}", {"properties": {**W.properties(rules), **touched()}})
+    print(json.dumps(rules, ensure_ascii=False))
+
+
+def schedules(a):
+    print(json.dumps(W.read(api("GET", f"/pages/{a.card}")), ensure_ascii=False))
+
+
+def wake_ack(a):
+    print(json.dumps(W.acknowledge(sys.modules[__name__], a.card, a.token), ensure_ascii=False))
 
 
 def cards(a):
@@ -301,7 +326,7 @@ def cards(a):
         if not r.get("has_more"):
             break
         cur = r["next_cursor"]
-    closed = {C.STATUS.get(k) for k in ("done", "unsub", "expired") if C.STATUS.get(k)}
+    closed = {C.STATUS.get(k) for k in CLOSED_KEYS if C.STATUS.get(k)}
     cutoff = (datetime.now().astimezone() - timedelta(days=int(a.closed_days))).date().isoformat()
     out = []
     for p in rows:
@@ -326,7 +351,7 @@ def subscriptions(_):
     out = []
     for p in r["results"]:
         pr = p["properties"]
-        if _g(pr, "Status", "select") == S["done"]:
+        if _g(pr, "Status", "select") in {C.status_name(k) for k in CLOSED_KEYS}:
             continue
         out.append({"card": p["id"], "subject": _g(pr, "Subject", "title"), "status": _g(pr, "Status", "select"),
                     "subscription": _g(pr, "Subscription", "rich_text"), "sender": _g(pr, "Sender", "rich_text")})
@@ -496,7 +521,7 @@ def search(a):
         print(json.dumps({"warmed": n}))
         return
 
-    closed = {C.STATUS.get(k) for k in ("done", "unsub", "expired") if C.STATUS.get(k)}
+    closed = {C.STATUS.get(k) for k in CLOSED_KEYS if C.STATUS.get(k)}
     out = []
     for p in rows[:int(a.max_scan)]:
         pr = p["properties"]
@@ -530,136 +555,6 @@ def search(a):
     print(json.dumps(out, ensure_ascii=False))
 
 
-NUDGE_PREFIX = "⏳催问："
-
-
-def nudge(a):
-    """Surface a sent-and-unanswered card to the operator, with a marker the sweep can find again.
-
-    The sweep used to flip the card to New with a hand-written NeedsYou, and that flip removed it
-    from the sweep's result set for good: if he never acted, it sat in New indefinitely — the same
-    silent rot one status further along. A fixed prefix is what lets the second pass recognise it."""
-    days = int(a.days)
-    n = int(a.n or 1)
-    needs = (f"{NUDGE_PREFIX}已等 {days} 天没有回音——要不要我起草一封追问？" if n == 1
-             else f"{NUDGE_PREFIX}第 {n} 次提醒：又过了 {days} 天，仍无回音，也没收到你的答复。要不要追问、还是结掉？")
-    api("PATCH", f"/pages/{a.card}", {"properties": {
-        "Status": {"select": {"name": S["needs_you"]}}, "NeedsYou": {"rich_text": rt(needs)}, **touched()}})
-    remember_status(a.card, S["needs_you"])
-    print(json.dumps({"nudged": a.card, "pass": n}))
-
-
-def stale_awaiting(a):
-    # Cards whose last move was ours and nothing has come back in N+ days. Two passes, one list:
-    #   pass 1 — still in Awaiting reply: the reply never came.
-    #   pass 2 — already nudged (Needs you, NeedsYou carries the nudge prefix) and untouched for N+ more
-    #            days: he never acted on the nudge either. Without this pass a nudged card left the
-    #            sweep's view forever, which was the rot the sweep exists to catch.
-    from datetime import timezone
-    days = int(a.days)
-    now = datetime.now(timezone.utc)
-    out = []
-    snapshots = {}
-    for pass_no, flt in ((1, {"property": "Status", "select": {"equals": S["awaiting"]}}),
-                         (2, {"and": [{"property": "Status", "select": {"equals": S["needs_you"]}},
-                                      {"property": "NeedsYou", "rich_text": {"starts_with": NUDGE_PREFIX}}]})):
-        rows, cursor = [], None
-        while True:
-            query = {"filter": flt, "sorts": [{"timestamp": "last_edited_time", "direction": "ascending"}],
-                     "page_size": 100}
-            if cursor:
-                query["start_cursor"] = cursor
-            r = api("POST", f"/databases/{DB}/query", query)
-            rows.extend(r["results"])
-            if not r.get("has_more"):
-                break
-            cursor = r["next_cursor"]
-        for p in rows:
-            led = datetime.fromisoformat(p["last_edited_time"].replace("Z", "+00:00"))
-            waited = (now - led).days
-            if waited >= days:
-                snapshots[p["id"]] = p
-                pr = p["properties"]
-                needs = _g(pr, "NeedsYou", "rich_text")
-                m = re.search(r"第 (\d+) 次", needs)
-                out.append({"card": p["id"], "pass": pass_no, "msgid": _g(pr, "MsgID", "rich_text"),
-                            "subject": _g(pr, "Subject", "title"), "account": _g(pr, "Account", "select"),
-                            "days_waited": waited, "nudges_so_far": (int(m.group(1)) if m else (1 if pass_no == 2 else 0)),
-                            "subscription": _g(pr, "Subscription", "rich_text")})
-    if getattr(a, "nudge", False):
-        nudge_stale(out, snapshots, getattr(a, "exclude_plan", None))
-    else:
-        print(json.dumps(out, ensure_ascii=False))
-
-
-def nudge_stale(rows, snapshots, exclude_plan):
-    """Apply the existing nudge action; each written card checkpoints its own reminder interval."""
-    import time
-    from pathlib import Path
-
-    state = Path(os.environ.get("INBOARD_STATE") or os.path.join(C.home(), "state"))
-    excluded = set()
-    if exclude_plan:
-        with open(exclude_plan) as f:
-            excluded = {g["card"].replace("-", "") for g in json.load(f)["groups"] if g.get("card")}
-
-    def event(card, status, **fields):
-        print(json.dumps({"ts": datetime.now().astimezone().isoformat(), "sweep": "stale-awaiting",
-                          "card": card, "status": status, **fields}), file=sys.stderr, flush=True)
-
-    failures = 0
-    event(None, "start", candidates=len(rows))
-    for row in rows:
-        card = row["card"]
-        started = time.monotonic()
-        event(card, "start", days=row["days_waited"], n=row["nudges_so_far"] + 1)
-        lock = state / f".lock-{card}"
-        acquired = False
-        try:
-            if card.replace("-", "") in excluded:
-                event(card, "skip", reason="mail_in_current_plan")
-                continue
-            try:
-                lock.mkdir()
-                acquired = True
-            except FileExistsError:
-                # Same 25-minute stale-lock policy as dispatch.sh. A killed sweep must not
-                # leave its card permanently excluded from future reminders.
-                if time.time() - lock.stat().st_mtime <= 25 * 60:
-                    event(card, "skip", reason="card_busy")
-                    continue
-                lock.rmdir()
-                lock.mkdir()
-                acquired = True
-                event(card, "reclaimed", reason="stale_card_lock")
-            pending_path = state / "daemon-pending.json"
-            if pending_path.exists():
-                pending = json.loads(pending_path.read_text())
-                if any((r.get("card") or "").replace("-", "") == card.replace("-", "") for r in pending):
-                    event(card, "skip", reason="daemon_delivery_pending")
-                    continue
-            # An Action or new reply can arrive between the query and this write. Never replace
-            # newer state with a reminder inferred from the old snapshot.
-            current = api("GET", f"/pages/{card}")
-            if current.get("archived") or current["last_edited_time"] != snapshots[card]["last_edited_time"]:
-                event(card, "skip", reason="card_changed")
-                continue
-            action = _g(current["properties"], "Action", "select")
-            if action and action != ACTION_PLACEHOLDER:
-                event(card, "skip", reason="operator_action_pending")
-                continue
-            nudge(argparse.Namespace(card=card, days=row["days_waited"], n=row["nudges_so_far"] + 1))
-            event(card, "ok", elapsed=round(time.monotonic() - started, 3))
-        except Exception as exc:
-            failures += 1
-            event(card, "fail", error=str(exc), elapsed=round(time.monotonic() - started, 3))
-        finally:
-            if acquired:
-                lock.rmdir()
-    event(None, "done", candidates=len(rows), failures=failures)
-    if failures:
-        raise RuntimeError(f"{failures} follow-up reminder(s) failed")
-
 def status_for(a):
     # Where a tapped Action leaves the card. Printed as a status KEY (or nothing when the action
     # should not move the card by itself), so the handler can apply it without parsing a config
@@ -683,7 +578,7 @@ def edit(a):
         props["Sender"] = {"rich_text": rt(a.sender)}
     _due_props(a, props)  # DUE-20260818
     if not props:
-        sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender/--due/--lapses")
+        sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender/--due")
     if a.status is not None:
         props.update(closing_props(C.status_name(a.status)))
     api("PATCH", f"/pages/{a.card}", {"properties": {**props, **touched()}})
@@ -726,7 +621,7 @@ def _cover_level(page, now):
                        for t in ((props.get(name) or {}).get("rich_text") or []))
 
     status = sel("Status")
-    if status in (C.status_name("done"), C.status_name("unsub")):
+    if status in {C.status_name(k) for k in CLOSED_KEYS}:
         return None                      # closed — a colour here is just noise
 
     due = ((props.get("Due") or {}).get("date") or {}).get("start")
@@ -803,7 +698,7 @@ def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     u = sub.add_parser("upsert"); [u.add_argument("--" + x) for x in ["msgid", "subject", "account", "status", "sender", "draft", "needs"]]
-    u.add_argument("--due"); u.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818
+    u.add_argument("--due")  # DUE-20260818
     sub.add_parser("pending")
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
@@ -830,12 +725,13 @@ def main():
     sr.add_argument("--no-body", action="store_true", dest="no_body")
     sr.add_argument("--limit", default="20"); sr.add_argument("--max-scan", default="300", dest="max_scan")
     sr.add_argument("--warm", action="store_true")
-    sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
-    sa.add_argument("--nudge", action="store_true", help="apply reminders to eligible cards")
-    sa.add_argument("--exclude-plan", help="skip cards receiving mail in this dispatch plan")
-    ng = sub.add_parser("nudge"); ng.add_argument("--card", required=True); ng.add_argument("--days", required=True); ng.add_argument("--n", default="1")
+    sc = sub.add_parser("schedule"); sc.add_argument("--card", required=True); sc.add_argument("--at", required=True); sc.add_argument("--reason", required=True)
+    uc = sub.add_parser("unschedule"); uc.add_argument("--card", required=True)
+    choice = uc.add_mutually_exclusive_group(required=True); choice.add_argument("--id"); choice.add_argument("--all", action="store_true")
+    ss = sub.add_parser("schedules"); ss.add_argument("--card", required=True)
+    wa = sub.add_parser("wake-ack"); wa.add_argument("--card", required=True); wa.add_argument("--token", required=True)
     ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
-    ed.add_argument("--due"); ed.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818
+    ed.add_argument("--due")  # DUE-20260818
     sf = sub.add_parser("status-for"); sf.add_argument("--action", required=True)
     cv = sub.add_parser("covers"); cv.add_argument("--dry", action="store_true")
     sub.add_parser("accounts")
@@ -850,7 +746,7 @@ def main():
     {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
-     "subscriptions": subscriptions, "cards": cards, "search": search, "stale-awaiting": stale_awaiting, "nudge": nudge, "edit": edit, "status-for": status_for,
+     "subscriptions": subscriptions, "cards": cards, "search": search, "schedule": schedule, "unschedule": unschedule, "schedules": schedules, "wake-ack": wake_ack, "edit": edit, "status-for": status_for,
      "accounts": accounts, "whoami": whoami, "covers": covers}[a.cmd](a)
 
 

@@ -43,23 +43,18 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
   hit reports `matched` and a body `snippet`. Filters: `--open-only`, `--status`, `--account`,
   `--since YYYY-MM-DD`, `--limit`; `--no-body` for a title-only sweep. It answers "what cards mention
   this?", never "does this mail belong there" — a bank's name matches every card that bank ever appeared on.
-- **`board stale-awaiting --days N`** → cards whose last move was ours with nothing back in N+ days. Each row
-  carries `pass` (1 = still awaiting, 2 = already nudged and untouched again) and `days_waited`. The sweep
-  in `card-actions` runs it every cycle.
+- `board schedules --card C` → every pending time trigger, with its id, offset-aware time and action.
 - `board comments --card C` → the card's comment thread.
 
 **Creating and editing**
-- `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT] [--due YYYY-MM-DD --lapses yes|no]`
+- `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT] [--due YYYY-MM-DD]`
   → creates, or updates the card keyed on that msgid. **`--subject` is the CARD TITLE — a self-contained,
   scannable one-liner**: `<core matter> — <deadline if any> → <what he must do / what you did>`, in Chinese
   like everything he reads: `保险 waiver 6/30 截止 → 上门户确认牙科/视力`. Never the raw email subject.
-- `board edit --card C [--status S] [--needs TXT] [--subject S] [--draft TXT] [--sender S] [--due D --lapses yes|no]`
-  → change only the fields you pass, by card id. Landing in an ending status (`done`, `unsub`, `expired`)
-  clears Action and Subscription here too.
-- **`--due` / `--lapses`**: `yes` = the date passing ENDS the matter (an RSVP, an optional talk, a sale);
-  `no` = the date passing makes it WORSE (enrollment, a tax form, a bill). A daily sweep closes the `yes`
-  ones and flags the `no` ones overdue — only for cards carrying the date; one living in the title is
-  invisible to it. Unsure → `no`.
+- `board edit --card C [--status S] [--needs TXT] [--subject S] [--draft TXT] [--sender S] [--due D]`
+  → change only the fields you pass, by card id. Landing in an ending status (`done`, `unsub`, `expired`, `cancelled`)
+  clears Action, Subscription and all time triggers.
+- **`--due`** stores the deadline. Passing it flags overdue work; it never completes the matter.
 - `board note --card C --text TXT` → the card's single 📌 current-state summary, REWRITTEN in place every
   time, kept under ~1500 characters. Post it first on a new card so it sits at the top. Reading it alone must
   be enough to understand the card.
@@ -69,17 +64,20 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
 - `board image --card C --file PATH [--caption TXT]` → upload a screenshot to the card.
 
 **Moving a card**
-- **`board done --card C`** → `✅ Done`, clears Action, **clears the Subscription**, KEEPS the card as a
-  record. This is how an item leaves the active board — NOT archive. A Subscription is only ever cleared by
-  a card ending or by being replaced (`subscribe`, `awaiting --desc`); nothing expires it on a timer, so a
-  matter that quietly stops mattering keeps its claim on the inbox until someone closes the card.
-- **`board awaiting --card C --desc '<what reply to watch for>'`** → you sent or submitted your part and now
-  wait: `⏳ Awaiting reply`, clears Action, keeps/sets the Subscription so the reply routes back here. Use
-  this — not `done` — whenever a reply is expected. When it arrives: move the card to `⏸ Needs you` so he
-  sees it, **unless the reply resolves the matter**, in which case close it.
-- **`board nudge --card C --days N [--n K]`** → surface a card the sweep found: `⏸ Needs you`, a marked `NeedsYou`
-  asking whether to chase (`--n 2` and up words it as a repeat), Subscription kept. The marker is what lets
-  the sweep find the card again if he does not act.
+- **`board done --card C`** → completed work only. When the operator drops a matter use
+  `board edit --card C --status cancelled`; when a verified window has shut with no remaining action use
+  `--status expired`. All ending statuses keep the card as a record and clear mail/time subscriptions.
+- **`board awaiting --card C --desc '<what is awaited>'`** → `⏳ Waiting`: mail, a date, recovery or another
+  external condition. Clears NeedsYou and Action, keeps time triggers, and sets the readable Subscription.
+  When a trigger arrives, continue working yourself; use `⏸ Needs you` only for a concrete operator action.
+- **`board schedule --card C --at '2026-10-01T09:00:00-04:00' --reason '<what to check or do, and where>'`**
+  → add a time trigger without replacing the others or changing Status. Use an explicit UTC offset for that
+  date. `NextCheck` shows the earliest time; `NextAction` shows every scheduled action. `Wakeups` is internal.
+- **`board unschedule --card C --id ID`** or **`--all`** → cancel obsolete triggers. After every mail,
+  comment, action or wakeup, read `board schedules` and reconcile the whole plan with current facts.
+- **`board wake-ack --card C --token TOKEN`** → after recording results and arranging any further checks,
+  acknowledge the scheduled delivery token from the prompt. Removes only that delivery's triggers; keeps
+  newly scheduled work. Acknowledging a check does not mark the matter done.
 - **`board subscribe --card C --desc '<which follow-up mail belongs here, until when>'`** → register a
   matter that will keep getting mail, so the next reminder lands on this card instead of a new one. Write it
   at the grain he acts on, not the sender's.
@@ -93,5 +91,5 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
 — only where a daily-log database is configured; otherwise the FYI is simply marked processed.
 
 **Two surfaces.** The board holds what is live (`📥 New` = mail nobody has worked yet, `🔍 Researching`,
-`⏳ Awaiting reply` = someone else owes the next move, `⏸ Needs you` = his move, a ready draft included) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
+`⏳ Waiting` = waiting for mail, time or an external condition, `⏸ Needs you` = his move, a ready draft included) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
 where they cost him nothing until he chooses to look.

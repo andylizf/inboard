@@ -47,6 +47,7 @@ fi
 export INBOARD_MAIL_WINDOW="$MAIL_WINDOW"
 
 if [ "$DRY" = 0 ]; then
+  python3 "$INBOARD_HOME/engines/wake-sweep.py" >>"$INBOARD_LOGS/agent.log" 2>&1 || exit 1
   if WORK=$("$INBOARD_HOME/bin/has-work" 2>>"$INBOARD_LOGS/agent.log"); then
     echo "[$(date)] work? $WORK → dispatch" >> "$INBOARD_LOGS/agent.log"
   else
@@ -135,12 +136,6 @@ if [ "$DRY" = 1 ]; then
   exit 0
 fi
 
-# Run follow-ups even when the plan has no new mail. Exclude cards receiving mail so a
-# reply queued for their agent is not mistaken for an unanswered request.
-board stale-awaiting --nudge --exclude-plan "$PLAN" >>"$LOG" 2>&1 || {
-  echo "[$(date)] follow-up sweep failed; next cycle retries" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"
-  exit 1
-}
 # Noise needs no agent: mark it processed here and it never costs another model call.
 python3 "$INBOARD_HOME/engines/dispatch_plan.py" mark-noise "$PLAN" "$INBOARD_STATE/processed.json" >>"$LOG" 2>&1
 
@@ -168,7 +163,7 @@ $SESSION_NOTICE
 New mail on this matter, as <message-id>(<account>,<kind>): $ids
 Read ONLY these messages' bodies (\`email <account> gmail +read --message-id <ID>\`), then handle them per
 the **mail-pipeline** skill (load it), steps 5c and 6, for THIS card only: ask memory before changing anything, update the card and its
-📌 note, write back what memory now needs to know, and set Due/Lapses if a deadline appeared.
+📌 note, write back what memory now needs to know, and set Due and future wakeups if a deadline appeared.
 Messages marked sent already went out. Apply the mail-pipeline skill's outgoing-mail rules to the
 current conversation: keep a card while a reply, result, or operator commitment remains. A newer
 received reply can change whose turn it is. Never draft a reply to the operator's own sent message.
@@ -186,7 +181,7 @@ Its messages, as <message-id>(<account>,<kind>): $ids
 Read ONLY these messages' bodies, then handle them per the **mail-pipeline** skill (load it), steps 5b,
 5c and 6: check it is really not an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
 subscription and are invisible to the latter), ask memory, then either create ONE card (with 📌 note,
-Due/Lapses if a deadline appeared) or — if it turns out to be noise or a clean unsubscribe — do that and
+Due and future wakeups if a deadline appeared) or — if it turns out to be noise or a clean unsubscribe — do that and
 create no card.
 Messages marked sent already went out. Apply the mail-pipeline skill's outgoing-mail rules, including
 operator commitments and waiting for results. A finished acknowledgement alone needs no card.

@@ -20,7 +20,7 @@ truly resolved.
   ┌──────────┼──────── ENGINE 1: pull loop ────────────────┐   mail → board (inbound)
   │ scheduler every N min → engines/inbox-agent.sh           │
   │   has-work precheck (no LLM): new inbox mail? pending    │
-  │     Action? stale-awaiting card? → else skip (cheap)     │
+  │     Action? → else skip mail triage (cheap)             │
   │   claude -p runs the pipeline (agent/CLAUDE.md §B):      │
   │     triage → classify → dedup → route/card/draft/unsub  │
   └──────────┬───────────────────────────────────────────────┘
@@ -39,7 +39,10 @@ truly resolved.
 **Board.** One card per matter. Properties: `Subject` (a scannable one-liner title), `Sender`, `Account`,
 `Status`, `NeedsYou` (what *you* must do / the open question), `Draft`, `Action` (the tappable chip that
 fires engine 2), `Subscription` (natural-language "which follow-up mail belongs here"), `MsgID`, plus
-internal `Session` / `StepBlocks`. **Statuses (7):** `📥 New` · `🔍 Researching` · `⏳ Awaiting reply` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` · `⌛ Expired`. A card whose next move is the operator's sits in `⏸ Needs you`; `📥 New` is mail nobody has worked yet.
+`Due`, `NextCheck`, `NextAction`, and internal `Wakeups` / `Session` / `StepBlocks`.
+Statuses: `📥 New` · `🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` ·
+`⌛ Expired` · `✖ Cancelled`. A card whose next move is the operator's sits in `⏸ Needs you`;
+`📥 New` is mail nobody has worked yet.
 The canonical status/action names live in `lib/ibconfig.py`, so the board creator, the `board` CLI, and
 `agent/CLAUDE.md` cannot drift apart.
 
@@ -53,7 +56,7 @@ The canonical status/action names live in `lib/ibconfig.py`, so the board creato
 
 **What goes where.** The three layers are separated by **lifespan**, not by content type. A session is
 working memory and is meant to be thrown away; a card is its matter's short-term store and dies with the
-matter (`✅ Done`, or `Due` passing); the memory backend holds facts that outlive any single matter and are
+matter (completed, cancelled or verified expired); the memory backend holds facts that outlive any single matter and are
 read by other sessions on other machines. So the routing question for any fact is *would this still matter
 if this card did not exist?* — no, and it belongs on the card; yes, and it belongs in the backend. A
 decision usually lands in both, written differently: the card records the transaction, the backend records
@@ -128,9 +131,12 @@ outward-facing — those are gated on *your approval* (but then agent-executed, 
 - **Dedup: subscriptions + search.** Before creating a card, check `board subscriptions` (active matters)
   and, if the sender/subject looks familiar, `board search` (ALL cards incl. `Done`). *Why:* route a
   follow-up onto its existing card instead of spawning duplicates.
-- **`⏳ Awaiting reply` + stale sweep.** "Sent my part, awaiting their reply" keeps a subscription (so the
-  reply routes back) instead of going `Done`. A per-cycle `board stale-awaiting` resurfaces any card
-  with no reply for N+ days. *Why:* a sent-but-unanswered matter must not rot silently.
+- **Waiting and scheduled checks.** Before the mail precheck, `engines/wake-sweep.py` delivers due checks
+  to their card agents. `Wakeups` holds independently identified time/action pairs; `NextCheck` and
+  `NextAction` are derived displays. Mail subscriptions remain semantic. Agents reconcile all triggers
+  after each event and acknowledge completed checks. Unacknowledged deliveries survive restart and
+  retry after 45 minutes if their worker is no longer working. Checking a condition means inspecting
+  its named source; a timer alone is not evidence that the condition is true.
 - **A reply that resolves an OPEN card must flip it to `✅ Done` on the board** (not just the audit log).
   *Why:* a card you were tracking as unfinished must visibly close so Notion pushes it to you.
 - **Deterministic comment dedup** (engine 2). The shell checks the newest comment's author *before*
@@ -154,7 +160,7 @@ Situational procedures are `agent/.claude/skills/*/SKILL.md`: their *description
 - `engines/inbox-agent.sh` — engine-1 runner; `engines/_common.sh` bootstraps env (paths, PATH, `.env`, proxy).
 - `engines/webhook-server.py` + `comment-handler.sh` + `action-handler.sh` — engine 2 (Notion → agent).
 - `agent/CLAUDE.md` — the agent's lean standing orders. `agent/.claude/skills/*` — on-demand procedures.
-- `bin/board` — the Notion board/log CLI (upsert/search/awaiting/stale-awaiting/done/reply/comments/…).
+- `bin/board` — the Notion board/log CLI (upsert/search/awaiting/schedule/wake-ack/done/reply/comments/…).
 - `bin/email` — the send-guarded per-account Gmail wrapper. `bin/mail-images` — email image fetcher.
   `bin/browser` — agent-browser wrapper. `bin/has-work` — the no-LLM precheck. `bin/cfg` — config reader.
 - `bin/inboard` — top-level entry (`init` / `run` / `webhook` / passthroughs).
@@ -249,4 +255,3 @@ is full, delete what no longer decides anything instead of appending. The cap is
 without one the note quietly becomes a second log and stops being readable in one pass, which is the only
 property that made it worth writing. Detail you cannot bear to delete goes to `board log`, which is
 append-only and unbounded on purpose.
-

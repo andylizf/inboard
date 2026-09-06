@@ -36,4 +36,4 @@ fi
 
 board edit --card "$CARD" --status "$WANT" >>"$LOG" 2>&1 || exit 0
 echo "[$(date)] status-guard: card $CARD dragged '$WANT' -> '$NOW'; restored" >>"$LOG"
-board reply --card "$CARD" --text "状态被手动改成「${NOW}」，已经改回「${WANT}」。看板的状态由动作决定，手动拖动这里的engine收不到、日志和记忆都不会更新，卡看着变了其实什么都没发生。用右上角的动作：继续处理＝重做，我已发送＝等回复，忽略/归档 或 ✅ 确认完成＝完成。真要一个动作到不了的状态，跟我说。" >>"$LOG" 2>&1 || true
+board reply --card "$CARD" --text "状态被手动改成「${NOW}」，已经改回「${WANT}」。请使用右上角的动作，或在评论里说明下一步：继续处理会唤醒 agent；我已发送会检查还有什么待办；忽略/归档表示取消；确认完成表示事情已经做完。" >>"$LOG" 2>&1 || true

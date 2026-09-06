@@ -34,6 +34,7 @@ BOARD = C.get("board.database_id")
 # terminal statuses we don't need to poll for new operator comments
 SKIP_STATUS = {s for s in (C.get("board.schema.status.done"),
                            C.get("board.schema.status.expired"),
+                           C.get("board.schema.status.cancelled"),
                            C.get("board.schema.status.unsub")) if s}
 DEADLINE = time.time() + int(C.get("schedule.comment_catchup_budget_seconds", 900))
 H = {"Authorization": f"Bearer {TOKEN}", "Notion-Version": "2022-06-28",

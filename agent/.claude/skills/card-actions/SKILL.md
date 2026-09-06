@@ -4,23 +4,10 @@ description: Handle an operator Action chip or a legacy inbox cycle. Covers each
 ---
 
 ## Resume from the board
-With `agent.dispatch: true`, the engine runs `board stale-awaiting --nudge` once per cycle. A per-card
-agent handles only its assigned card and action; do not run a cross-card sweep or `board pending`.
-The sweep below and `board pending` apply to the legacy whole-inbox runner only.
+The engine delivers scheduled checks to their card agents before mail triage. A per-card agent handles
+only its assigned card; the legacy whole-inbox runner uses `board pending` to find operator actions.
 
-**Follow-up sweep FIRST:** run `board stale-awaiting --days <cfg schedule.stale_awaiting_days>`. Every card
-returned is one where the last move was ours and nothing has come back in that many days. Each row says
-which `pass` it is:
-- `pass: 1` — still awaiting, the reply never came. `board nudge --card <CARD> --days <days_waited>`: it
-  moves the card to `⏸ Needs you` with a marked `NeedsYou` asking whether to chase, keeps the Subscription so the
-  reply still routes here, and is what lets the sweep find the card again. If it is clearly worth chasing,
-  also draft the follow-up: `+draft --card <CARD> --to <counterparty> --thread-id <T> --subject ... --body ...`
-  (a follow-up on a thread he started must name the counterparty explicitly).
-- `pass: 2` — already nudged, and he has not acted for another stretch of days. `board nudge --card <CARD>
-  --days <days_waited> --n <nudges_so_far + 1>` restates the ask as a repeat, and `board log` one line
-  saying so. Do not close it for him: a matter he has not answered is still his.
-
-Run `board pending`. For each actioned card, act on the operator's request, then `board clear-action` —
+For each assigned actioned card, act on the operator's request, then `board clear-action` —
 **except where the branch below says not to**, which is any failure that left his approval unspent: clearing
 it there throws away the tap he made and the retry it was holding open.
 
@@ -43,22 +30,21 @@ rewritten), or for the send action, which the handler deliberately leaves alone.
   tapped, so rewriting it — even to improve it — sends something he never read; the guard checks the outgoing
   body against what the card actually shows and will refuse. If it does refuse for that reason, post the FULL
   reply onto the card (`board log`, several calls if long), set the card to `⏸ Needs you` saying why, and let
-  him tap again — never work around the check. After a successful send: `board awaiting` if a reply is
-  expected, otherwise `board done`; then log it to the daily log under the sent type from
+  him tap again — never work around the check. After a successful send, check all remaining obligations and results: use `board awaiting` for an external
+  wait, `needs_you` for an operator commitment, and `board done` only when the matter has no remaining work; then log it to the daily log under the sent type from
   `cfg board.schema.daily_types.sent`, one line saying what went out and to whom.
   **If the send fails for any other reason** — the draft is gone, Gmail refused, the network — nothing
   left and nothing has changed: the Action stays set, so his approval is not spent and one more tap
   retries it. Say so on the card in plain words (`board reply`: what you tried, what came back, that
   the mail did NOT go out, and that tapping again retries), leave the Status alone, and do NOT clear the
   Action. Never re-send by another route to work around it.
-- **📤 Sent — awaiting reply** → `board awaiting --card <CARD> --desc '<the reply you await>'` (and, if a daily
-  log is configured, `board daily --type '✅ Done' ...`). Keep the card open so the reply routes back here.
-- **✅ Done / ignore** → (if a daily log is configured) `board daily --type '✅ Done' --subject '<one line: what was sent/ignored>' --account <label>`, then `board done --card <CARD>` (keep the card in Done, don't trash it).
+- **📤 Sent — waiting** → read the latest conversation and determine what remains. Keep a reply/result
+  in `board awaiting --card <CARD> --desc '<what is awaited>'`; keep the operator's unfinished promise
+  in `needs_you`. Sending alone is not completion. Record it under the configured daily sent type.
+- **✅ Done** → the operator confirmed completion: log the outcome, then `board done --card <CARD>`.
+- **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled --needs ''`.
 
-The four names above are canonical, not literal. The board's Action chips are display strings the
-deployment configures (`cfg board.schema.actions`) and may be in another language, so match the chip you
-were handed to the branch it *means* — the Chinese board's `继续处理` is Continue/redo, `我已发送` is
-Sent — awaiting reply. Several chips can land on one branch: a board offering both `忽略/归档` (drop it) and
-`✅ 确认完成` (you finished it correctly) distinguishes those for the operator, while both close the card
-through Done / ignore. A chip you cannot map to any branch is a misconfiguration — say so on the card and
-clear the action rather than inventing a fifth behaviour.
+Action labels are deployment-specific. Use `cfg board.schema.action_status` to distinguish completion
+from cancellation; the send action has its separate guarded path above. An unknown chip is a
+misconfiguration: report it on the card rather than inventing a meaning. After handling any action,
+reconcile mail and time subscriptions using `board-cli` so obsolete reminders do not survive the change.

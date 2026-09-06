@@ -38,17 +38,19 @@ board:
     status:                         # Status select values, by role
       new: "📥 New"
       researching: "🔍 Researching"
-      awaiting: "⏳ Awaiting reply"
+      awaiting: "⏳ Waiting"
       needs_you: ⏸ Needs you        # his move; New is mail nobody has worked yet
       done: "✅ Done"
+      cancelled: "✖ Cancelled"
       expired: "⌛ Expired"
       unsub: "🚫 Unsubscribed"
     action_placeholder: "👉 Pick action"
     send_action: 📤 Send it for me
     actions:                        # tappable Action chips (created only on a fresh board)
       - "▶️ Continue / redo"
-      - "📤 Sent — awaiting reply"
-      - "✅ Done / ignore"
+      - "📤 Sent — waiting"
+      - "✅ Done"
+      - "✖ Cancel"
     daily_types:                    # daily-log Type select values, by role
       unsub: "🚫 Unsubscribe"
       done: "✅ Done"
@@ -64,7 +66,6 @@ board:
 
 schedule:
   pull_interval_seconds: 300        # how often the pull loop runs
-  stale_awaiting_days: 3            # a sent-but-unanswered card older than this gets surfaced for follow-up
 
 agent:
   delivery: inprocess              # inprocess = one claude -p per event (default). daemon = queue each

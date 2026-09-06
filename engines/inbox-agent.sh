@@ -40,6 +40,8 @@ export INBOARD_MAIL_WINDOW="$MAIL_WINDOW"
 # --- end SELFHEAL-20260726 -------------------------------------------------
 
 
+python3 "$INBOARD_HOME/engines/wake-sweep.py" >>"$INBOARD_LOGS/agent.log" 2>&1 || exit 1
+
 # Cheap pre-check (NO LLM): skip the expensive claude run on empty cycles — protects the Claude usage quota.
 if WORK=$("$INBOARD_HOME/bin/has-work" 2>>"$INBOARD_LOGS/agent.log"); then
   echo "[$(date)] work? $WORK → run agent" >> "$INBOARD_LOGS/agent.log"

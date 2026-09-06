@@ -110,13 +110,13 @@ def label_to_id(label):
 # `agent/CLAUDE.md` always writes the English canonical names; the `board` CLI translates them to the
 # deployment's configured display strings on write (see status_name()/daily_type_name()), and filters/writes
 # in bin/board read STATUS/DAILY_* below — so both sides agree in whatever language the board uses.
-STATUS_ORDER = ["new", "researching", "awaiting", "needs_you", "done", "expired", "unsub"]
+STATUS_ORDER = ["new", "researching", "awaiting", "needs_you", "done", "expired", "cancelled", "unsub"]
 _STATUS_DEFAULT = {
     "new": "📥 New", "researching": "🔍 Researching",
-    "awaiting": "⏳ Awaiting reply", "needs_you": "⏸ Needs you", "done": "✅ Done",
-    "expired": "⌛ Expired", "unsub": "🚫 Unsubscribed",
+    "awaiting": "⏳ Waiting", "needs_you": "⏸ Needs you", "done": "✅ Done",
+    "expired": "⌛ Expired", "cancelled": "✖ Cancelled", "unsub": "🚫 Unsubscribed",
 }
-_ACTIONS_DEFAULT = ["▶️ Continue / redo", "📤 Sent — awaiting reply", "✅ Done / ignore"]
+_ACTIONS_DEFAULT = ["▶️ Continue / redo", "📤 Sent — waiting", "✅ Done", "✖ Cancel"]
 # Non-empty placeholder so Notion always renders the Action property as a tappable chip in its lightweight
 # preview (it hides EMPTY properties there). Handlers treat it as no-action.
 _ACTION_PLACEHOLDER_DEFAULT = "👉 Pick action"
@@ -127,8 +127,9 @@ _ACTION_PLACEHOLDER_DEFAULT = "👉 Pick action"
 # card to awaiting.
 _ACTION_STATUS_DEFAULT = {
     "▶️ Continue / redo": "researching",
-    "📤 Sent — awaiting reply": "awaiting",
-    "✅ Done / ignore": "done",
+    "📤 Sent — waiting": "awaiting",
+    "✅ Done": "done",
+    "✖ Cancel": "cancelled",
 }
 _DAILY_TYPES_DEFAULT = {"unsub": "🚫 Unsubscribe", "done": "✅ Done", "draft": "✉️ Draft", "fyi": "ℹ️ FYI"}
 _DAILY_PROPS_DEFAULT = {"item": "Item", "date": "Date", "type": "Type", "account": "Account", "detail": "Detail"}
@@ -153,6 +154,10 @@ def __getattr__(name):  # PEP 562 — resolve these from config lazily (no confi
 def status_name(v):
     """Resolve a status the agent supplies (a key like 'done', or the English canonical '✅ Done', or an
     already-correct display string) to the deployment's configured Status display value."""
+    # Persistent workers may still carry the old display name during a deployment.
+    v = get("board.schema.status_aliases", {}).get(v, v)
+    if v == "⏳ Awaiting reply":
+        v = "awaiting"
     st = _schema("status", _STATUS_DEFAULT)
     if v in st:                                  # it's a key
         return st[v]

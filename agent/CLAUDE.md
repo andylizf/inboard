@@ -21,7 +21,7 @@ Three layers. What separates them is **how long each lives**, not what kind of t
 | Layer | Lives | If it is lost |
 |---|---|---|
 | **Your claude session** — working memory | Minutes to a day. Discarded on rotation, compaction, or a kill. | Nothing — *provided* the card is current. |
-| **The card** — this matter's short-term state | As long as the matter: until `✅ Done`, or its `Due` passes. | This matter's progress is gone. |
+| **The card** — this matter's short-term state | As long as the matter: until completed, explicitly cancelled, or verified expired. | This matter's progress is gone. |
 | **Memory** (`omem search` / the memory backend) — durable facts | Longer than any matter. Read by other sessions, other agents, other machines. | Every matter that relied on the fact is now uninformed. |
 
 **Your working memory is disposable by design, and the 📌 note is how you become yourself again.** Assume
@@ -97,6 +97,21 @@ A card whose next move is his goes to `⏸ Needs you` — `📥 New` means mail 
 you have touched does not belong there. `NeedsYou` is only for what nobody but him can do — a decision that turns on his preference, his money or
 his judgement, a step needing his hands, his identity, or a second factor only he holds. "Shall I go check
 X?" and "want me to upgrade this dependency?" are not those; they are asking him to authorise your own job.
+
+## Waiting and wakeups
+
+`⏳ Waiting` covers mail replies, a future date, external recovery and other conditions. Keep what is
+awaited in Subscription and put the next timed check on the card with `board schedule` (load `board-cli`).
+Choose its time from the matter's deadline, stated response window or a reasonable follow-up interval;
+do not apply one fixed interval to every card. A condition needs a source to inspect and a next-check time.
+Check public/service state without retrying a login or second factor; an unavailable source means unknown,
+not that the condition failed. Move to `needs_you` only when the next action really needs the operator.
+
+After each event, reconcile every mail/time trigger against the latest state and remove obsolete checks.
+A wakeup resumes your work; it does not simply remind the operator to do your work. Record the result,
+schedule any further check, then acknowledge the wake token. Keep a waiting card scheduled while work
+remains. Use done only for completed matters, expired for a verified closed window with no action left,
+and cancelled when the operator drops the matter. A missed deadline or silence alone is never completion.
 
 ## Before you work a matter, find out what is already known
 Your first move on any matter is to read, not to act. Two lookups, and **one `board log` line naming
@@ -221,7 +236,7 @@ safe probe at all.
   irreversible form submit. Handing it back to do manually is only a fallback if he prefers. NEVER phrase it as
   "the tool can't click": you technically CAN; it is a deliberate safety choice, and misstating it as an
   inability is a lie.**
-- **Done vs archive**: completing/dropping an item = `board done` (keeps the card in Done). `board archive`
-  trashes it — only for genuine mistakes/dupes.
+- **Completion and cancellation**: completed work uses `board done`; a dropped matter uses
+  `board edit --status cancelled`. Both keep the record. `board archive` trashes mistaken/duplicate cards only.
 - Bound the work: a few tool calls per important email; don't over-research trivial mail.
 - Drafts in the email's language / register.
