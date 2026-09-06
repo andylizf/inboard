@@ -43,10 +43,11 @@ once**, so duplicates collapse here or not at all.
 the operator's own (`board accounts`), else `inbox`. A group of sent messages still takes one of the three
 routes below.
 
-Sent mail routes by the same rules with one exception: **a sent group matching NO card is `noise`,
-never `new`** — sent mail reports on a matter, it does not ask for one to be opened. The exception is mail
-the operator started himself that no card covers: a first message to a landlord, a clinic, an office. That
-is a real matter nobody is tracking, and it routes `new` so its reply has somewhere to land.
+Sent mail matching an open card routes to that card. **An unmatched sent group routes `new` for body
+review**, including replies in existing email threads: headers cannot tell whether the operator asked
+for a response, is waiting for a result, or promised to do something. The card agent creates a card only
+while one of those obligations remains; a finished acknowledgement needs no card. Group the outgoing
+mail with any received replies about the same matter so the agent can determine its current state.
 
 A sent message that DOES match a card is the most valuable event on the board: it means the reply the
 card was waiting for has gone out, and nothing else can tell it that.

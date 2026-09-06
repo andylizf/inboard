@@ -135,6 +135,12 @@ if [ "$DRY" = 1 ]; then
   exit 0
 fi
 
+# Run follow-ups even when the plan has no new mail. Exclude cards receiving mail so a
+# reply queued for their agent is not mistaken for an unanswered request.
+board stale-awaiting --nudge --exclude-plan "$PLAN" >>"$LOG" 2>&1 || {
+  echo "[$(date)] follow-up sweep failed; next cycle retries" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"
+  exit 1
+}
 # Noise needs no agent: mark it processed here and it never costs another model call.
 python3 "$INBOARD_HOME/engines/dispatch_plan.py" mark-noise "$PLAN" "$INBOARD_STATE/processed.json" >>"$LOG" 2>&1
 
@@ -159,15 +165,13 @@ run_group() {   # $1 = group index
     prep_session
     PROMPT="You own ONE matter on the inbox board: card $CARD ('$matter').
 $SESSION_NOTICE
-New mail on this matter, as <message-id>(<account>): $ids
+New mail on this matter, as <message-id>(<account>,<kind>): $ids
 Read ONLY these messages' bodies (\`email <account> gmail +read --message-id <ID>\`), then handle them per
 the **mail-pipeline** skill (load it), steps 5c and 6, for THIS card only: ask memory before changing anything, update the card and its
 📌 note, write back what memory now needs to know, and set Due/Lapses if a deadline appeared.
-Any message marked kind='sent' in the plan is mail that WENT OUT on this matter — sent by the operator or
-another session, never by you (you only ever save drafts). So it answers the card rather than asking it:
-if the card was waiting for him to send, that wait is over — move it to '⏳ 等回复', clear NeedsYou, and
-record what went out. If no reply is expected, close it. Log it to the daily log as a 📤 已发 entry, and
-write the fact into memory, because the other sessions that need to know a reply landed cannot read this card.
+Messages marked sent already went out. Apply the mail-pipeline skill's outgoing-mail rules to the
+current conversation: keep a card while a reply, result, or operator commitment remains. A newer
+received reply can change whose turn it is. Never draft a reply to the operator's own sent message.
 Do not touch other cards — the dispatcher owns anything cross-card. Do not create a second card for this
 matter. NEVER send email (drafts only).
 $MORTAL_TRAILER
@@ -178,12 +182,14 @@ Output one short line."
     # starts it cold, and one-card-one-agent silently does not hold for anything newly created.
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
     PROMPT="You own ONE new matter from the inbox: '$matter'.
-Its messages, as <message-id>(<account>): $ids
+Its messages, as <message-id>(<account>,<kind>): $ids
 Read ONLY these messages' bodies, then handle them per the **mail-pipeline** skill (load it), steps 5b,
 5c and 6: check it is really not an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
 subscription and are invisible to the latter), ask memory, then either create ONE card (with 📌 note,
 Due/Lapses if a deadline appeared) or — if it turns out to be noise or a clean unsubscribe — do that and
 create no card.
+Messages marked sent already went out. Apply the mail-pipeline skill's outgoing-mail rules, including
+operator commitments and waiting for results. A finished acknowledgement alone needs no card.
 If you create a card, \`board subscribe\` it whenever more mail on this matter is even plausible, and
 ALWAYS when this message called itself a reminder or a follow-up — that wording is proof the sender will
 write again. A card with no subscription cannot be found by the next cycle's first lookup, which is how

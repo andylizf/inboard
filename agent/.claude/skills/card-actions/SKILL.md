@@ -1,9 +1,13 @@
 ---
 name: card-actions
-description: What to do when the operator taps an Action chip on a card, plus the stale-awaiting follow-up sweep that opens every cycle. Load this at the START OF EVERY RUN, not only when an Action is waiting: it opens with the stale-awaiting sweep, which is the only thing that catches a matter that was sent and never answered, and a run that skips it leaves no trace of having done so. Also load it whenever you are handed an Action. Covers each chip's meaning, the send-approved path that is the only way mail leaves, and why the Status is already set before you arrive.
+description: Handle an operator Action chip or a legacy inbox cycle. Covers each chip's meaning, the approved-send path, and why the Status is already set before the card agent arrives. The dispatch engine runs the follow-up sweep itself; per-card agents handle only their assigned card.
 ---
 
-## Resume from the board — do this first, every run
+## Resume from the board
+With `agent.dispatch: true`, the engine runs `board stale-awaiting --nudge` once per cycle. A per-card
+agent handles only its assigned card and action; do not run a cross-card sweep or `board pending`.
+The sweep below and `board pending` apply to the legacy whole-inbox runner only.
+
 **Follow-up sweep FIRST:** run `board stale-awaiting --days <cfg schedule.stale_awaiting_days>`. Every card
 returned is one where the last move was ours and nothing has come back in that many days. Each row says
 which `pass` it is:

@@ -559,16 +559,26 @@ def stale_awaiting(a):
     days = int(a.days)
     now = datetime.now(timezone.utc)
     out = []
+    snapshots = {}
     for pass_no, flt in ((1, {"property": "Status", "select": {"equals": S["awaiting"]}}),
                          (2, {"and": [{"property": "Status", "select": {"equals": S["needs_you"]}},
                                       {"property": "NeedsYou", "rich_text": {"starts_with": NUDGE_PREFIX}}]})):
-        r = api("POST", f"/databases/{DB}/query", {
-            "filter": flt, "sorts": [{"timestamp": "last_edited_time", "direction": "ascending"}],
-            "page_size": 50})
-        for p in r["results"]:
+        rows, cursor = [], None
+        while True:
+            query = {"filter": flt, "sorts": [{"timestamp": "last_edited_time", "direction": "ascending"}],
+                     "page_size": 100}
+            if cursor:
+                query["start_cursor"] = cursor
+            r = api("POST", f"/databases/{DB}/query", query)
+            rows.extend(r["results"])
+            if not r.get("has_more"):
+                break
+            cursor = r["next_cursor"]
+        for p in rows:
             led = datetime.fromisoformat(p["last_edited_time"].replace("Z", "+00:00"))
             waited = (now - led).days
             if waited >= days:
+                snapshots[p["id"]] = p
                 pr = p["properties"]
                 needs = _g(pr, "NeedsYou", "rich_text")
                 m = re.search(r"第 (\d+) 次", needs)
@@ -576,7 +586,79 @@ def stale_awaiting(a):
                             "subject": _g(pr, "Subject", "title"), "account": _g(pr, "Account", "select"),
                             "days_waited": waited, "nudges_so_far": (int(m.group(1)) if m else (1 if pass_no == 2 else 0)),
                             "subscription": _g(pr, "Subscription", "rich_text")})
-    print(json.dumps(out, ensure_ascii=False))
+    if getattr(a, "nudge", False):
+        nudge_stale(out, snapshots, getattr(a, "exclude_plan", None))
+    else:
+        print(json.dumps(out, ensure_ascii=False))
+
+
+def nudge_stale(rows, snapshots, exclude_plan):
+    """Apply the existing nudge action; each written card checkpoints its own reminder interval."""
+    import time
+    from pathlib import Path
+
+    state = Path(os.environ.get("INBOARD_STATE") or os.path.join(C.home(), "state"))
+    excluded = set()
+    if exclude_plan:
+        with open(exclude_plan) as f:
+            excluded = {g["card"].replace("-", "") for g in json.load(f)["groups"] if g.get("card")}
+
+    def event(card, status, **fields):
+        print(json.dumps({"ts": datetime.now().astimezone().isoformat(), "sweep": "stale-awaiting",
+                          "card": card, "status": status, **fields}), file=sys.stderr, flush=True)
+
+    failures = 0
+    event(None, "start", candidates=len(rows))
+    for row in rows:
+        card = row["card"]
+        started = time.monotonic()
+        event(card, "start", days=row["days_waited"], n=row["nudges_so_far"] + 1)
+        lock = state / f".lock-{card}"
+        acquired = False
+        try:
+            if card.replace("-", "") in excluded:
+                event(card, "skip", reason="mail_in_current_plan")
+                continue
+            try:
+                lock.mkdir()
+                acquired = True
+            except FileExistsError:
+                # Same 25-minute stale-lock policy as dispatch.sh. A killed sweep must not
+                # leave its card permanently excluded from future reminders.
+                if time.time() - lock.stat().st_mtime <= 25 * 60:
+                    event(card, "skip", reason="card_busy")
+                    continue
+                lock.rmdir()
+                lock.mkdir()
+                acquired = True
+                event(card, "reclaimed", reason="stale_card_lock")
+            pending_path = state / "daemon-pending.json"
+            if pending_path.exists():
+                pending = json.loads(pending_path.read_text())
+                if any((r.get("card") or "").replace("-", "") == card.replace("-", "") for r in pending):
+                    event(card, "skip", reason="daemon_delivery_pending")
+                    continue
+            # An Action or new reply can arrive between the query and this write. Never replace
+            # newer state with a reminder inferred from the old snapshot.
+            current = api("GET", f"/pages/{card}")
+            if current.get("archived") or current["last_edited_time"] != snapshots[card]["last_edited_time"]:
+                event(card, "skip", reason="card_changed")
+                continue
+            action = _g(current["properties"], "Action", "select")
+            if action and action != ACTION_PLACEHOLDER:
+                event(card, "skip", reason="operator_action_pending")
+                continue
+            nudge(argparse.Namespace(card=card, days=row["days_waited"], n=row["nudges_so_far"] + 1))
+            event(card, "ok", elapsed=round(time.monotonic() - started, 3))
+        except Exception as exc:
+            failures += 1
+            event(card, "fail", error=str(exc), elapsed=round(time.monotonic() - started, 3))
+        finally:
+            if acquired:
+                lock.rmdir()
+    event(None, "done", candidates=len(rows), failures=failures)
+    if failures:
+        raise RuntimeError(f"{failures} follow-up reminder(s) failed")
 
 def status_for(a):
     # Where a tapped Action leaves the card. Printed as a status KEY (or nothing when the action
@@ -749,6 +831,8 @@ def main():
     sr.add_argument("--limit", default="20"); sr.add_argument("--max-scan", default="300", dest="max_scan")
     sr.add_argument("--warm", action="store_true")
     sa = sub.add_parser("stale-awaiting"); sa.add_argument("--days", default=str(C.get("schedule.stale_awaiting_days", 3)))
+    sa.add_argument("--nudge", action="store_true", help="apply reminders to eligible cards")
+    sa.add_argument("--exclude-plan", help="skip cards receiving mail in this dispatch plan")
     ng = sub.add_parser("nudge"); ng.add_argument("--card", required=True); ng.add_argument("--days", required=True); ng.add_argument("--n", default="1")
     ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
     ed.add_argument("--due"); ed.add_argument("--lapses", choices=["yes", "no"])  # DUE-20260818

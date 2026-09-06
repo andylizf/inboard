@@ -7,7 +7,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
 1. Read `$INBOARD_STATE/processed.json` (object: id → {...}). Missing/empty = `{}`. (State dir = `$INBOARD_STATE`.)
 2. New mail (READ **or** UNREAD — do NOT filter by `is:unread`; `processed.json` is the agent's own
    seen-ledger, so mail the operator already opened is still handled), EVERY account from `board accounts`:
-   `email <id> gmail +triage --query 'in:inbox newer_than:2d' --max 100 --format json`.
+   `email <id> gmail +triage --query '{in:inbox in:sent} newer_than:2d' --max 100 --format json`.
    NEW = triage ids not in `processed.json`.
 3. **Nothing new after step 2 → output NOTHING and stop.** An empty cycle is silent; there is no tally to
    post and no card to touch.
@@ -25,7 +25,12 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      expecting a reply, is IMPORTANT even from an unknown sender. **Never let an odd sender name or casual
      address push a real personal message into NOISE.** When unsure whether an inbox item is a reply to you,
      look up the sent side (`email <id> gmail +triage --query 'in:sent to:<addr>'`, or read the thread) BEFORE
-     calling it noise. (Triage stays inbox-only for ITEMS, but you MAY read sent mail as a classification CLUE.)
+     calling it noise.
+   - **Outgoing mail is also work to track.** Read the body and, when needed, the conversation's latest
+     replies before deciding what remains. An outgoing request awaiting a reply or result, or a promise
+     by the operator to do something, is IMPORTANT even when the email is a reply rather than a first contact.
+     A finished acknowledgement with no remaining action needs no new card. Never draft a reply to the
+     operator's own outgoing message; record that it was sent and apply the outgoing rules in step 6.
    - **CI / build notifications** (`Run failed`, `CI failed`, workflow-run emails): treat per
      `cfg preferences.ci_notifications` — `noise` (default) = do NOT put them on the board; `surface` = card them
      even though the fork test in 6 would not, because he chose to see them.
@@ -92,7 +97,9 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
     - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
       truth first. Then answer the ONE question that decides everything: **does this mail change what
       is already known?**
-      · **No** — a repeat reminder, a status already on record, a deadline already scheduled, a
+      · **An outgoing obligation is still open but has no open card** → create the todo even if memory
+        already records it. Memory cannot surface a waiting card or remind the operator to fulfil a promise.
+      · **No, and no untracked outgoing obligation remains** — a repeat reminder, a status already on record, a deadline already scheduled, a
         decision already made → **do NOT open a card.** `board daily --type 'ℹ️ FYI' --subject
         '<one line: what arrived and why it needs nothing>' --account <label>` and move on. A card
         that hands back something already settled costs the operator attention twice: once to read
@@ -123,7 +130,17 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    different questions: the board records what you DID to this matter and what the operator must do
    next; memory records where the matter now STANDS for whoever picks it up next (5c). A board-only
    record is stale the moment another session touches the same matter. Route it:
-   - **The fork test, before you route anything: would he DO anything about this?** Not "is it
+   - **Outgoing mail:** work out whose move remains from the latest conversation, not just the sent item.
+     Waiting for a reply or result is actionable: create or update ONE card, use `board awaiting --card
+     <ID> --desc '<who owes what response or result>'`, and `board edit --card <ID> --needs ''`.
+     A commitment by the operator (for example, promising to send materials by Friday) stays open with
+     `Needs you`, a concrete next action, and Due/Lapses when dated. If both sides owe work, keep the
+     operator's next action visible and subscribe to the expected reply. Close an existing card only when
+     no action or awaited result remains. A simple acknowledgement needs no new card. Record the sent
+     date, recipient and remaining action in the state note and log; use the configured daily sent type
+     when a daily log exists. Never invent a deadline from the reminder interval.
+   - **The fork test, before you route anything: would he DO anything about this, including following up
+     if a reply or result never arrives?** Not "is it
      interesting", not "might he want to see it" — would he take an action that changes something.
      **Anything he would glance at and move past is NOT a card**, however genuinely informative: a
      statement, a notification, a status, an FYI, a bill with nothing owed, someone mentioning him
@@ -149,7 +166,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      otherwise it is simply marked processed), NOT the board — EXCEPT a
      completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).
    - **Pure noise, no action** → nothing recorded (the only exception).
-   Then handle by type:
+   For received mail, then handle by type (outgoing mail follows the outgoing rules above):
    - **IMPORTANT & substantive** → subagent: research with all materials, write a considered reply, save it
      `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` — it puts the draft on the
      card and logs its id itself. Then
@@ -185,4 +202,3 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    item's research and drafts — where the matter STANDS goes to memory as well (see 5c/6).
 9. **Output**: ONE short tally line for the run log only — there is no chat/notification surface. e.g.
    `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).
-
