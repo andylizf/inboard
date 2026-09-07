@@ -3,6 +3,7 @@ import argparse
 import importlib.machinery
 import importlib.util
 import json
+import io
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
@@ -18,6 +19,30 @@ loader.exec_module(email_cli)
 
 
 class DraftPreviewTests(unittest.TestCase):
+    def test_approved_send_places_draft_id_in_request_body(self):
+        responses = [
+            {'properties': {'Action': {'select': {'name': 'Send'}},
+                            'Draft': {'rich_text': [{'plain_text': 'Hello'}]}}},
+            {'results': []}, {}]
+        draft = {'message': {'payload': {'mimeType': 'text/plain',
+                 'body': {'data': base64.urlsafe_b64encode(b'Hello').decode()}}}}
+        calls = []
+
+        def run(cmd, **kwargs):
+            calls.append(cmd)
+            return CompletedProcess(cmd, 0, json.dumps(draft) if 'get' in cmd else '{}', '')
+
+        with patch.dict('os.environ', NOTION_TOKEN='test-token'), \
+                patch.object(email_cli.C, 'get', return_value='Send'), \
+                patch('urllib.request.urlopen', side_effect=lambda *a, **k: io.BytesIO(json.dumps(responses.pop(0)).encode())), \
+                patch('subprocess.run', side_effect=run), self.assertRaises(SystemExit) as stop:
+            email_cli.send_approved({}, 'gws', ['--card', 'card-1', '--draft-id', 'draft-1'])
+        self.assertEqual(stop.exception.code, 0)
+        send = next(c for c in calls if 'send' in c)
+        self.assertEqual(json.loads(send[send.index('--params') + 1]), {'userId': 'me'})
+        self.assertEqual(json.loads(send[send.index('--json') + 1]), {'id': 'draft-1'})
+        self.assertFalse(responses)
+
     def test_long_preview_survives_card_storage(self):
         import wakeups
         board = wakeups.load_board()
