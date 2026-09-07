@@ -163,6 +163,10 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
   REWRITTEN in place every time (not appended). Post it as your FIRST write on any new card (so it sits at
   the top), and refresh it on EVERY later touch: what the matter is, where it stands right now, what
   happens next. Reading the note alone must be enough to understand the card — treat it as the card's face.
+- On every card update, check the title alongside the state note. When the state, next action or relevant
+  date changes, update the title with `board edit --card <ID> --subject '<matter: current state / next step>'`.
+  Keep the matter identifiable; a sent draft's title must describe the remaining wait or action. Leave
+  the title unchanged when only the audit log gains detail and the current state and next step are unchanged.
 - **`board log`** stays the append-only timeline underneath (research notes, actions taken, raw ids) — the
   audit trail, not the summary. Never make the operator reconstruct current state from the log.
 
