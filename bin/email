@@ -253,8 +253,12 @@ def send_approved(acct_env, gws, rest):
         blocked("+send-approved where the draft body is NOT what the card shows — he can only "
                 "approve text he could read. Post the full reply onto the card, then ask again")
 
-    sent = subprocess.run([gws, "gmail", "users", "drafts", "send", "--params",
-                           _json.dumps({"userId": "me", "id": a.draft_id})],
+    # The draft id belongs in the request BODY (a Draft resource), not in the URL parameters:
+    # passed via --params it lands in the query string, Gmail receives an empty body and answers
+    # 400 "Invalid draft", so the send never happened. Same split the drafts create calls use.
+    sent = subprocess.run([gws, "gmail", "users", "drafts", "send",
+                           "--params", '{"userId": "me"}',
+                           "--json", _json.dumps({"id": a.draft_id})],
                           env=acct_env, capture_output=True, text=True)
     sys.stdout.write(sent.stdout)
     sys.stderr.write(sent.stderr)
