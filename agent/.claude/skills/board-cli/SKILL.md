@@ -58,10 +58,9 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
   → change only the fields you pass, by card id. Landing in an ending status (`done`, `unsub`, `expired`, `cancelled`)
   clears Action, Subscription and all time triggers.
 - **`--due`** stores the deadline. Passing it flags overdue work; it never completes the matter.
-- `board note --card C --text TXT` → the card's single 📌 current-state summary, REWRITTEN in place every
-  time, kept under ~1500 characters. Post it first on a new card so it sits at the top. Reading it alone must
-  be enough to understand the card.
-- `board log --card C --text TXT` → the append-only timeline under the note: research, actions, raw ids.
+- `board note --card C --text TXT` → replaces the `Summary` property, kept under ~1500 characters.
+  Include the matter, current progress, and next step. The operator reads it without the body or prior context.
+- `board log --card C --text TXT` → the append-only timeline in the body: research, actions, raw ids.
 - `board reply --card C --text TXT` → a comment in the card's thread, where he reads answers to what he asked.
 - `board plan --card C --steps 'a|b|c'` (2–5 steps) / `board tick --card C --n <0-based>` → the live checklist.
 - `board image --card C --file PATH [--caption TXT]` → upload a screenshot to the card.

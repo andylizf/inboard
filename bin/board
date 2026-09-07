@@ -223,25 +223,10 @@ def log(a):
 
 
 def note(a):
-    # The card's ONE "current state" summary — a 📌 callout in the body, REWRITTEN in place on
-    # every update (unlike `log`, which appends to the audit trail). Post it as the FIRST thing
-    # on a new card so it sits at the top; afterwards it's found by its 📌 icon and patched.
-    #
-    # The pin is the callout's ICON. Agents read "the 📌 state note" in their instructions and
-    # type the pin into --text as well, which renders two in a row; strip it so the wording of
-    # those instructions can never leak into the card.
-    a.text = re.sub(r"^\s*📌\s*", "", a.text)
-    r = api("GET", f"/blocks/{a.card}/children?page_size=50")
-    ex = next((b for b in r.get("results", [])
-               if b.get("type") == "callout" and (b["callout"].get("icon") or {}).get("emoji") == "📌"), None)
-    if ex:
-        api("PATCH", f"/blocks/{ex['id']}", {"callout": {"rich_text": md(a.text)}})
-        print(json.dumps({"note-updated": ex["id"]}))
-    else:
-        r = api("PATCH", f"/blocks/{a.card}/children", {"children": [
-            {"object": "block", "type": "callout", "callout": {
-                "rich_text": md(a.text), "icon": {"type": "emoji", "emoji": "📌"}, "color": "yellow_background"}}]})
-        print(json.dumps({"note-created": r["results"][0]["id"]}))
+    # Preserve the command used by running agents while moving its output to the card's face.
+    summary = re.sub(r"^\s*📌\s*", "", a.text)
+    api('PATCH', f'/pages/{a.card}', {'properties': {'Summary': {'rich_text': W.text(summary)}, **touched()}})
+    print(json.dumps({'summary-updated': a.card}))
 
 
 def daily(a):
@@ -568,6 +553,7 @@ def search(a):
         if a.since and p["last_edited_time"][:10] < a.since:
             continue
         fields = {"subject": _g(pr, "Subject", "title"), "sender": _g(pr, "Sender", "rich_text"),
+                  "summary": _g(pr, "Summary", "rich_text"),
                   "needs": _g(pr, "NeedsYou", "rich_text"), "subscription": _g(pr, "Subscription", "rich_text")}
         where = [k for k, v in fields.items() if q and q in (v or "").lower()]
         snippet = ""
@@ -581,7 +567,7 @@ def search(a):
             continue
         out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "subject": fields["subject"],
                     "status": st, "sender": fields["sender"], "account": _g(pr, "Account", "select"),
-                    "subscription": fields["subscription"], "edited": p["last_edited_time"][:10],
+                    "subscription": fields["subscription"], "summary": fields["summary"], "edited": p["last_edited_time"][:10],
                     "matched": where, "snippet": snippet})
         if len(out) >= int(a.limit):
             break

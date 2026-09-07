@@ -15,15 +15,33 @@ import wakeups as W
 REQUEST = 'ActionRequested'
 WHEN = 'ActionRequestedAt'
 VERSION = 'ActionVersion'
+APPROVED_DRAFT = 'ActionDraft'
 HANDLED = 'ActionHandled'
 PROGRESS = 'ActionProgress'
 DISPLAY = '操作状态'
 _LEGACY_FORMULA = ('if(empty(prop("ActionRequestedAt")), "", '
            'if(format(timestamp(prop("ActionRequestedAt"))) + "|" + format(prop("ActionRequested")) '
            '!= prop("ActionHandled"), "⏳ 已收到 · " + format(prop("ActionRequested")), prop("ActionProgress")))')
-FORMULA = ('if(empty(prop("ActionVersion")), ' + _LEGACY_FORMULA + ', '
+_STATUS_FORMULA = ('if(empty(prop("ActionVersion")), ' + _LEGACY_FORMULA + ', '
            'if(format(prop("ActionVersion")) + "|" + format(prop("ActionRequested")) != prop("ActionHandled"), '
            '"⏳ 已收到 · " + format(prop("ActionRequested")), prop("ActionProgress")))')
+FORMULA = ('lets(state, ' + _STATUS_FORMULA + ', if(empty(trim(prop("Draft"))), '
+           'if(empty(state), "暂无可发送草稿", state + " · 暂无可发送草稿"), state))')
+
+
+def property_text(page, name):
+    return ''.join(run.get('plain_text', run.get('text', {}).get('content', ''))
+                   for run in page.get('properties', {}).get(name, {}).get('rich_text', []))
+
+
+def approved_draft(page):
+    draft = property_text(page, 'Draft')
+    approved = property_text(page, APPROVED_DRAFT)
+    if not draft.strip() or not approved.strip():
+        raise RuntimeError('暂无已批准的当前草稿，请查看草稿后重新点击发送。')
+    if draft != approved:
+        raise RuntimeError('草稿已修改，请查看当前版本后重新点击发送。')
+    return approved
 
 
 def intent(page):
@@ -108,6 +126,13 @@ def dispatch(card, prompt):
             request = intent(page)
             if not request:
                 return
+            if request['action'] == C.get('board.schema.send_action', ''):
+                try:
+                    approved_draft(page)
+                except RuntimeError as exc:
+                    # Reject before claiming or interrupting the worker: an unavailable send is not new work.
+                    progress(board, card, request, '❌ ' + str(exc))
+                    return
             with lock(card):
                 previous = read(card)
                 if previous and previous['token'] == request['token']:

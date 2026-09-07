@@ -90,6 +90,7 @@ def main():
             "Sender":       {"rich_text": {}},
             "Action":       {"select": {"options": action_opts}},
             "Draft":        {"rich_text": {}},
+            "Summary":      {"rich_text": {}},
             "NeedsYou":     {"rich_text": {}},
             "Subscription": {"rich_text": {}},
             "Due":          {"date": {}},

@@ -86,6 +86,21 @@ class ActionRunsTests(unittest.TestCase):
             A.dispatch('test-card', 'Action __ACTION__')
         deliver.assert_not_called()
 
+    def test_empty_or_changed_draft_does_not_interrupt_or_replace_running_operation(self):
+        old = self.record(page())
+        for current, approved in [('', ''), ('New draft', 'Old draft')]:
+            source = page('Send')
+            source['properties']['Draft'] = {'rich_text': A.W.text(current)}
+            source['properties'][A.APPROVED_DRAFT] = {'rich_text': A.W.text(approved)}
+            board = Mock()
+            board.api.return_value = source
+            with patch.object(A.C, 'get', return_value='Send'), patch.object(A.W, 'load_board', return_value=board), \
+                    patch('agent_deliver.interrupt') as interrupt, patch('agent_deliver.ensure_and_deliver') as deliver:
+                A.dispatch('test-card', 'Action __ACTION__')
+            interrupt.assert_not_called()
+            deliver.assert_not_called()
+            self.assertEqual(A.read('test-card'), old)
+
 
 if __name__ == '__main__':
     unittest.main()

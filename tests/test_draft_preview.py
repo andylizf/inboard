@@ -19,17 +19,50 @@ loader.exec_module(email_cli)
 
 
 class DraftPreviewTests(unittest.TestCase):
+    def test_draft_edit_after_validation_blocks_submission(self):
+        import action_runs as A
+        import copy
+        import tempfile
+        first = {'id': 'card-1', 'properties': {
+            A.REQUEST: {'select': {'name': 'Send'}}, A.VERSION: {'number': 1},
+            A.APPROVED_DRAFT: {'rich_text': A.W.text('Hello')},
+            'Draft': {'rich_text': A.W.text('Hello')}}}
+        changed = copy.deepcopy(first)
+        changed['properties']['Draft'] = {'rich_text': A.W.text('New wording')}
+        record = dict(A.intent(first), phase='running', sent=False)
+        responses = [first, changed]
+        draft = {'message': {'payload': {'mimeType': 'text/plain',
+                 'body': {'data': base64.urlsafe_b64encode(b'Hello').decode()}}}}
+        with tempfile.TemporaryDirectory() as state, patch.dict('os.environ', NOTION_TOKEN='test', INBOARD_STATE=state), \
+                patch.object(email_cli.C, 'get', return_value='Send'), patch.object(A, 'read', return_value=record), \
+                patch('urllib.request.urlopen', side_effect=lambda *a, **k: io.BytesIO(json.dumps(responses.pop(0)).encode())), \
+                patch('subprocess.run', return_value=CompletedProcess([], 0, json.dumps(draft), '')) as run:
+            with self.assertRaisesRegex(RuntimeError, '草稿已修改'):
+                email_cli.send_approved({}, 'gws', ['--card', 'card-1', '--draft-id', 'draft-1', '--operation', record['token']])
+        self.assertEqual(run.call_count, 1)
+        self.assertIn('get', run.call_args.args[0])
+
+    def test_empty_current_draft_never_searches_history_or_calls_gmail(self):
+        page = {'properties': {'Action': {'select': {'name': 'Send'}}, 'Draft': {'rich_text': []}}}
+        with patch.dict('os.environ', NOTION_TOKEN='test'), patch.object(email_cli.C, 'get', return_value='Send'), \
+                patch('urllib.request.urlopen', return_value=io.BytesIO(json.dumps(page).encode())) as notion, \
+                patch('subprocess.run') as run, self.assertRaises(SystemExit):
+            email_cli.send_approved({}, 'gws', ['--card', 'card-1', '--draft-id', 'draft-1'])
+        run.assert_not_called()
+        self.assertEqual(notion.call_count, 1)
+
     def test_replacement_click_blocks_send_before_submission(self):
         import action_runs as A
         first = {'id': 'card-1', 'properties': {
             A.REQUEST: {'select': {'name': 'Send'}},
             A.WHEN: {'date': {'start': '2026-09-07T03:00:00Z'}},
+            A.APPROVED_DRAFT: {'rich_text': [{'plain_text': 'Hello'}]},
             'Draft': {'rich_text': [{'plain_text': 'Hello'}]}}}
         replacement = {'id': 'card-1', 'properties': {
             A.REQUEST: {'select': {'name': 'Continue'}},
             A.WHEN: {'date': {'start': '2026-09-07T03:00:01Z'}}}}
         record = dict(A.intent(first), phase='running', sent=False)
-        responses = [first, {'results': []}, replacement]
+        responses = [first, replacement]
         draft = {'message': {'payload': {'mimeType': 'text/plain',
                  'body': {'data': base64.urlsafe_b64encode(b'Hello').decode()}}}}
         import tempfile
@@ -46,7 +79,7 @@ class DraftPreviewTests(unittest.TestCase):
         responses = [
             {'properties': {'Action': {'select': {'name': 'Send'}},
                             'Draft': {'rich_text': [{'plain_text': 'Hello'}]}}},
-            {'results': []}, {}]
+            {}]
         draft = {'message': {'payload': {'mimeType': 'text/plain',
                  'body': {'data': base64.urlsafe_b64encode(b'Hello').decode()}}}}
         calls = []

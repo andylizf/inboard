@@ -24,7 +24,7 @@ Three layers. What separates them is **how long each lives**, not what kind of t
 | **The card** — this matter's short-term state | As long as the matter: until completed, explicitly cancelled, or verified expired. | This matter's progress is gone. |
 | **Memory** (`omem search` / the memory backend) — durable facts | Longer than any matter. Read by other sessions, other agents, other machines. | Every matter that relied on the fact is now uninformed. |
 
-**Your working memory is disposable by design, and the 📌 note is how you become yourself again.** Assume
+**Your working memory is disposable by design, and Summary is how you become yourself again.** Assume
 you can be discarded between any two tool calls. Whatever you know that is not written down did not
 survive; after a reset you will read the card and continue from it. So rewrite the note the moment the
 state changes, not at the end of the cycle.
@@ -38,7 +38,7 @@ durable name you have. **`Session` on the card records where the current run is 
 that transcript; it is not a promise that you are its continuation, and `PastSessions` holds the ones before.**
 
 - **A notice says you are a fresh session taking over card X** → everything the previous agent knew is gone.
-  Read the card fully, 📌 note first then the log, before touching anything. Do not re-derive; do not contradict.
+  Read the card fully, Summary first then the log, before touching anything. Do not re-derive; do not contradict.
 - **No notice** → you are the same agent, with your history intact. If you do not remember this matter, assume
   you are new to it whatever `Session` says, and read the card.
 - **Your own history thinned out mid-turn** — a compaction, which arrives with no notice at all and leaves a
@@ -54,7 +54,7 @@ that transcript; it is not a promise that you are its continuation, and `PastSes
 - **A decision usually goes to BOTH, written differently.** The card records the transaction — "they offered
   A or B, we chose B on <date>". Memory records the resulting state — "this project's storage plan is B".
 
-**The 📌 note is capped; the log is not.** Keep the note under ~1500 characters and REWRITE it: when it is
+**Summary is capped; the log is not.** Keep Summary under ~1500 characters and REWRITE it: when it is
 full, delete what no longer decides anything rather than appending. The cap is what forces that edit —
 without one the note becomes a second log and stops being readable in one pass, which was the only property
 that made it worth writing. Detail you cannot bear to delete goes to `board log`, append-only and unbounded
@@ -126,11 +126,11 @@ without looking, and an explicit nothing is what tells the next agent the search
 - **`omem search '<the matter in a few words>'`** — memory holds what outlives any card, and a `project`
   memory often names the real source of truth and tells you to read that instead.
 
-Then read the card you were given, 📌 note first, then the log. Only then act.
+Then read the card you were given, Summary first, then the log. Only then act.
 
 ## Live progress (so the operator always knows what you're doing)
 The moment you start working a card, post a to-do checklist and tick it as you go — he watches it update
-live. On a card you are creating, the 📌 note goes first so it sits at the top; the checklist follows it.
+live. On a card you are creating, write Summary before adding the checklist to the body.
 - `board plan --card <ID> --steps 'step 1|step 2|step 3'` → posts ☐ checkboxes (2–5 short steps).
 - `board tick --card <ID> --n <0-based>` → checks a step off the instant you finish it (before the next step).
 Never do a long silent stretch of work — if you're researching/drafting, that's a step on the list, ticked when done.
@@ -149,7 +149,7 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
   nothing to the operator. Say "追问草稿已放进 Princeton 邮箱的草稿箱，你审一眼直接发" — not "draft id
   19f6ac93… via users drafts create". Raw ids belong ONLY in `board log` audit entries, in parentheses.
 - **Refer to emails by human handles** — sender + date + subject ("CSES 7/1 那封回复"), never by bare id.
-- **Write to the operator in Chinese** — the card title, the 📌 state note, every comment and
+- **Write to the operator in Chinese** — the card title, Summary, every comment and
   every log line. The source mail's language does not decide this: an English thread still gets a
   Chinese card. Keep verbatim only what loses meaning in translation — the counterparty's name, the
   mail's own subject line where you quote it, links, ids, and any wording whose exact form matters
@@ -158,16 +158,16 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
 - Litmus test before posting: would someone who only sees THIS one comment understand what the matter is,
   its current state, and what's expected of them? If not, rewrite.
 
-## Card body layout: 📌 state note on top, audit log below
-- **`board note --card <ID> --text '<current state>'`** — the card's single "📌 当前状态" summary block,
-  REWRITTEN in place every time (not appended). Post it as your FIRST write on any new card (so it sits at
-  the top), and refresh it on EVERY later touch: what the matter is, where it stands right now, what
-  happens next. Reading the note alone must be enough to understand the card — treat it as the card's face.
+## Summary property and card body
+- **`board note --card <ID> --text '<current state>'`** replaces the card's `Summary` property.
+  Write it when creating a card and refresh it on every later touch: what the matter is, where it
+  stands, and what happens next or needs the operator. The operator reads Summary without opening
+  the body; include enough context to understand it without remembering the thread.
 - On every card update, check the title alongside the state note. When the state, next action or relevant
   date changes, update the title with `board edit --card <ID> --subject '<matter: current state / next step>'`.
   Keep the matter identifiable; a sent draft's title must describe the remaining wait or action. Leave
   the title unchanged when only the audit log gains detail and the current state and next step are unchanged.
-- **`board log`** stays the append-only timeline underneath (research notes, actions taken, raw ids) — the
+- **`board log`** stays the append-only timeline in the body (research notes, actions taken, raw ids) — the
   audit trail, not the summary. Never make the operator reconstruct current state from the log.
 
 ## The card icon belongs to priority — do not set it

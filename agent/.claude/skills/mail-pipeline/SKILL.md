@@ -191,11 +191,11 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
 7. Update `$INBOARD_STATE/processed.json`: add every handled id →
    `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
    Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
-8. **Card body = that item's working directory + audit.** `board upsert` returns the card id. FIRST post the
-   📌 state note (`board note` — the single current-state summary, rewritten in place, under ~1500
-   characters), then append your **research notes, the drafted
-   reply, and what you did/decided** underneath: `board log --card <CARD_ID> --text '...'` (call it several
-   times). Refresh the 📌 note whenever the state changes. The card body is the only record of this
+8. **Summary is the operator's overview; the body is the item's working directory and audit.**
+   `board upsert` returns the card id. Write `board note` to replace the Summary property with the matter,
+   current progress, and next step, under ~1500 characters. Refresh it whenever the state changes.
+   Append research notes, draft history, and actions with `board log --card <CARD_ID> --text '...'`.
+   The card body is the record of this
    item's research and drafts — where the matter STANDS goes to memory as well (see 5c/6).
 9. **Output**: ONE short tally line for the run log only — there is no chat/notification surface. e.g.
    `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).

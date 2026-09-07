@@ -31,8 +31,7 @@ def draft_for_card(acct_env, gws, rest, sender):
     Gmail draft is created, its text goes into the card's Draft field, and its id goes into the
     card's log. A draft that lives only in Gmail is one the operator cannot see (he reads the card)
     and one the send guard cannot pass (it checks the outgoing body against the card). The Draft
-    field holds the latest draft; earlier ones stay in the log with their ids and are still
-    sendable by id.
+    field holds the current draft; historical log entries do not authorize sending older drafts.
 
         +draft --card C --reply-to-message <msgid> --body TEXT [--cc x@y]
         +draft --card C --to a@b[,c@d] --subject S --body TEXT [--cc x@y] [--thread-id T] [--in-reply-to <Message-ID>]
@@ -213,27 +212,15 @@ def send_approved(acct_env, gws, rest):
     request = AR.intent(page)
     if request:
         AR.require_current(a.card, a.operation, page)
+        approved = AR.approved_draft(page)
     have = request['action'] if request else ((props.get("Action") or {}).get("select") or {}).get("name") or ""
     if _norm(have) != _norm(want):
         blocked("+send-approved on a card whose Action is %r, not the approval action %r "
                 "(only the operator can set it, by tapping the chip)" % (have, want))
 
-    # What the card actually shows him: the Draft property plus every block on the page.
-    def plain(runs):
-        return "".join(x.get("plain_text", "") for x in (runs or []))
-
-    visible = plain((props.get("Draft") or {}).get("rich_text"))
-    cursor = None
-    while True:
-        q = "blocks/%s/children?page_size=100" % a.card + (("&start_cursor=" + cursor) if cursor else "")
-        res = notion("GET", q)
-        for b in res.get("results", []):
-            body = b.get(b.get("type"), {})
-            if isinstance(body, dict):
-                visible += " " + plain(body.get("rich_text"))
-        if not res.get("has_more"):
-            break
-        cursor = res["next_cursor"]
+    visible = AR.property_text(page, 'Draft')
+    if not visible.strip():
+        blocked('no current draft on this card')
 
     got = subprocess.run([gws, "gmail", "users", "drafts", "get", "--params",
                           _json.dumps({"userId": "me", "id": a.draft_id, "format": "full"})],
@@ -254,7 +241,19 @@ def send_approved(acct_env, gws, rest):
     outgoing = body_text((payload.get("message") or {}).get("payload") or {})
     if not _norm(outgoing):
         sys.exit("+send-approved: draft %s has no readable text body" % a.draft_id)
-    if _norm(outgoing) not in _norm(visible):
+    preview_parts = visible.split('\n\n---\n\n', 1)
+    if len(preview_parts) == 2:
+        from email.parser import Parser
+        shown_headers = Parser().parsestr(preview_parts[0])
+        wire_headers = {h['name'].lower(): h['value'] for h in
+                        (payload.get('message', {}).get('payload', {}).get('headers') or [])}
+        for field in ('From', 'To', 'Cc', 'Bcc', 'Subject'):
+            shown = shown_headers.get(field, '')
+            if shown == '无' and field in ('Cc', 'Bcc'):
+                shown = ''
+            if _norm(shown) != _norm(wire_headers.get(field.lower(), '')):
+                blocked('current draft %s differs from the card preview' % field)
+    if _norm(outgoing) != _norm(preview_parts[-1]):
         blocked("+send-approved where the draft body is NOT what the card shows — he can only "
                 "approve text he could read. Post the full reply onto the card, then ask again")
 
@@ -269,7 +268,10 @@ def send_approved(acct_env, gws, rest):
     if request:
         # A replacement claim and send submission serialize on the same local operation lock.
         with AR.lock(a.card):
-            record = AR.require_current(a.card, a.operation, notion('GET', 'pages/' + a.card))
+            latest = notion('GET', 'pages/' + a.card)
+            record = AR.require_current(a.card, a.operation, latest)
+            if AR.approved_draft(latest) != approved:
+                blocked('the approved draft changed before submission; review and approve again')
             if record.get('sent'):
                 blocked('this operation already submitted a send; check Sent before approving another')
             record['sent'] = True
