@@ -26,7 +26,8 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
   the wrapper adds the preview headers using the selected account and actual recipients.
   A draft that is not on the card cannot be seen by him and cannot be sent, so the raw helpers
   (`+reply`, `+compose-draft`, `users drafts create`) are refused. The Draft field holds the latest draft;
-  earlier ones remain in the log with their ids and are still sendable by id.
+  earlier ones remain in the log for audit. Sending requires the current card preview to match the
+  preview approved by the operator's latest send click.
 - **Send:** every send is blocked except `+send-approved --card <CARD> --draft-id <ID>`, which requires the
   operator to have tapped the send chip on that card. Its full procedure, including what to do when it
   fails, is in `card-actions`. Everything else you write is a draft.
@@ -77,9 +78,12 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
   date. `NextCheck` shows the earliest time; `NextAction` shows every scheduled action. `Wakeups` is internal.
 - **`board unschedule --card C --id ID`** or **`--all`** → cancel obsolete triggers. After every mail,
   comment, action or wakeup, read `board schedules` and reconcile the whole plan with current facts.
+  Keep a next review on every unfinished card, including Needs you. The sweep fills an empty schedule
+  with a default review; replace it with a matter-specific time and sources to check when known.
 - **`board wake-ack --card C --token TOKEN`** → after recording results and arranging any further checks,
   acknowledge the scheduled delivery token from the prompt. Removes only that delivery's triggers; keeps
-  newly scheduled work. Acknowledging a check does not mark the matter done.
+  newly scheduled work and supplies a default review if an unfinished card would have none.
+  Acknowledging a check does not mark the matter done.
 - **`board subscribe --card C --desc '<which follow-up mail belongs here, until when>'`** → register a
   matter that will keep getting mail, so the next reminder lands on this card instead of a new one. Write it
   at the grain he acts on, not the sender's.

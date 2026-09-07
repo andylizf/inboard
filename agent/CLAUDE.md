@@ -102,15 +102,23 @@ X?" and "want me to upgrade this dependency?" are not those; they are asking him
 
 `⏳ Waiting` covers mail replies, a future date, external recovery and other conditions. Keep what is
 awaited in Subscription and put the next timed check on the card with `board schedule` (load `board-cli`).
-Choose its time from the matter's deadline, stated response window or a reasonable follow-up interval;
-do not apply one fixed interval to every card. A condition needs a source to inspect and a next-check time.
+Every unfinished card, including `needs_you`, needs a next timed review; a mail Subscription alone
+cannot revive a matter if nobody writes back. Choose the time from the deadline or expected response
+window. With neither, use 3 days; after an unchanged review, use 7 days if no nearer deadline needs
+attention. A condition needs a source to inspect and a next-check time.
 Check public/service state without retrying a login or second factor; an unavailable source means unknown,
 not that the condition failed. Move to `needs_you` only when the next action really needs the operator.
 
 After each event, reconcile every mail/time trigger against the latest state and remove obsolete checks.
-A wakeup resumes your work; it does not simply remind the operator to do your work. Record the result,
-schedule any further check, then acknowledge the wake token. Keep a waiting card scheduled while work
-remains. Use done only for completed matters, expired for a verified closed window with no action left,
+A wakeup rechecks the situation, including while waiting for the operator. Inspect relevant new mail,
+card comments, memory and external sources for changes in progress, blockers, deadlines, options and
+draft validity, including evidence that the operator already acted elsewhere. Log which sources you
+checked, what changed and what remains unknown. Continue authorized work when a blocker clears.
+Refresh Summary and title when facts change; if unchanged, log the review and schedule the next one
+without repeating the same request or notifying the operator. Notify for material changes, a nearing
+deadline or an agreed reminder. Silence never authorizes sending, submission or another login/2FA attempt.
+Schedule any further check, then acknowledge the wake token. Keep every unfinished card scheduled.
+Use done only for completed matters, expired for a verified closed window with no action left,
 and cancelled when the operator drops the matter. A missed deadline or silence alone is never completion.
 
 ## Before you work a matter, find out what is already known
@@ -160,7 +168,7 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
 
 ## Summary property and card body
 - **`board note --card <ID> --text '<current state>'`** replaces the card's `Summary` property.
-  Write it when creating a card and refresh it on every later touch: what the matter is, where it
+  Write it when creating a card and refresh it when facts change: what the matter is, where it
   stands, and what happens next or needs the operator. The operator reads Summary without opening
   the body; include enough context to understand it without remembering the thread.
 - On every card update, check the title alongside the state note. When the state, next action or relevant

@@ -52,7 +52,8 @@ class WakeTests(unittest.TestCase):
     def api(self, method, path, body=None):
         if method == 'POST':
             return {'results': [copy.deepcopy(p) for p in self.pages.values()
-                                if any(W.instant(r['at']) <= self.time for r in W.read(p))], 'has_more': False}
+                                if not p['properties']['NextCheck']['date'] or
+                                any(W.instant(r['at']) <= self.time for r in W.read(p))], 'has_more': False}
         card = path.rsplit('/', 1)[1]
         if method == 'GET':
             return copy.deepcopy(self.pages[card])
@@ -118,7 +119,45 @@ class WakeTests(unittest.TestCase):
         B.unschedule(argparse.Namespace(card='card', all=True, id=None))
         self.sweep()
         self.assertFalse(self.sent)
-        self.assertIsNone(self.pages['card']['properties']['NextCheck']['date'])
+        self.assertEqual(len(W.read(self.pages['card'])), 1)
+        self.assertGreater(W.instant(W.read(self.pages['card'])[0]['at']), self.time)
+
+    def test_missing_review_is_repaired_without_dispatch_or_status_change(self):
+        p = self.page(status='needs_you')
+        self.sweep()
+        self.sweep()
+        self.assertFalse(self.sent)
+        self.assertEqual(p['properties']['Status']['select']['name'], B.S['needs_you'])
+        self.assertEqual(len(W.read(p)), 1)
+        self.assertEqual(W.instant(W.read(p)[0]['at']), self.time + timedelta(days=3))
+        self.assertEqual(len(list(W.root().glob('*-schedule.json'))), 1)
+
+    def test_ack_last_check_retains_review_for_needs_you_but_not_closed(self):
+        for status in ('needs_you', 'done'):
+            self.page(rules=W.add([], self.past, 'Inspect external state'))
+            self.sweep()
+            record = json.loads((W.root() / 'card.json').read_text())
+            self.pages['card']['properties']['Status'] = {'select': {'name': B.S[status]}}
+            W.acknowledge(B, 'card', record['token'])
+            self.assertEqual(bool(W.read(self.pages['card'])), status == 'needs_you')
+
+    def test_pending_button_blocks_review_and_repair(self):
+        p = self.page(status='needs_you')
+        p['properties'].update(ActionRequested={'select': {'name': 'Continue'}}, ActionVersion={'number': 1})
+        self.sweep()
+        self.assertFalse(W.read(p))
+        self.assertFalse(self.sent)
+
+    def test_near_deadline_review_is_earlier_than_default(self):
+        p = self.page(status='needs_you')
+        p['properties']['Due'] = {'date': {'start': (self.time + timedelta(hours=12)).isoformat()}}
+        self.sweep()
+        self.assertEqual(W.instant(W.read(p)[0]['at']), self.time + timedelta(hours=1))
+
+    def test_repair_only_does_not_dispatch_due_checks(self):
+        self.page(rules=W.add([], self.past, 'Inspect'))
+        W.sweep(B, self.emit, send=self.send, busy=lambda _: False, repair_only=True)
+        self.assertFalse(self.sent)
 
     def test_terminal_writes_clear_mail_and_time_subscriptions(self):
         for status in B.CLOSED_KEYS:

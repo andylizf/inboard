@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import ibconfig as C
 
@@ -52,6 +52,29 @@ def add(rules, at, reason):
     return rules
 
 
+REVIEW_REASON = ("Recheck relevant mail, card comments and external sources for changes to progress, "
+                 "blockers, deadlines, available options and draft validity. Check whether the operator "
+                 "already acted elsewhere. Record sources and unknowns; continue authorized work. "
+                 "If unchanged, quietly schedule the next review without repeating the same request.")
+
+
+def ensure_review(board, page, rules, clock=now):
+    """Keep an unfinished matter scheduled even when its agent forgets."""
+    status = board._g(page['properties'], 'Status', 'select')
+    if page.get('archived') or status in {C.status_name(k) for k in board.CLOSED_KEYS} or rules:
+        return rules
+    at = clock() + timedelta(days=3)
+    due = (page['properties'].get('Due', {}).get('date') or {}).get('start')
+    if due:
+        from zoneinfo import ZoneInfo
+        deadline = datetime.fromisoformat(due.replace('Z', '+00:00'))
+        if deadline.tzinfo is None:
+            deadline = deadline.replace(tzinfo=ZoneInfo(C.get('identity.timezone', 'UTC')))
+        if deadline > clock():
+            at = min(at, max(clock() + timedelta(hours=1), deadline - timedelta(days=1)))
+    return add(rules, at.isoformat(), REVIEW_REASON)
+
+
 def root():
     return Path(os.environ.get("INBOARD_STATE", str(Path(C.home()) / "state"))) / "wake-deliveries"
 
@@ -71,6 +94,7 @@ def acknowledge(board, card, token):
     page = board.api("GET", f"/pages/{card}")
     fired = {r["id"] for r in rec["rules"]}
     remaining = [r for r in read(page) if r["id"] not in fired]
+    remaining = ensure_review(board, page, remaining)
     board.api("PATCH", f"/pages/{card}", {"properties": {**properties(remaining), **board.touched()}})
     rec.update(state="complete", completed_at=now().isoformat())
     save(path, rec)
@@ -90,7 +114,11 @@ def load_board():
 def candidates(board):
     cursor = None
     while True:
-        query = {"page_size": 100, "filter": {"property": "NextCheck", "date": {"on_or_before": now().isoformat()}},
+        query = {"page_size": 100, "filter": {"and": [
+                    *[{"property": "Status", "select": {"does_not_equal": C.status_name(k)}}
+                      for k in board.CLOSED_KEYS],
+                    {"or": [{"property": "NextCheck", "date": {"on_or_before": now().isoformat()}},
+                            {"property": "NextCheck", "date": {"is_empty": True}}]}]},
                  "sorts": [{"property": "NextCheck", "direction": "ascending"}]}
         if cursor:
             query["start_cursor"] = cursor
@@ -118,7 +146,7 @@ def active(card):
     return bool(job and job.get("state") in ("working", "running", "adopted"))
 
 
-def sweep(board, emit, send=deliver, busy=active, clock=now):
+def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
     failures = 0
     delivered = 0
     for snapshot in candidates(board):
@@ -143,9 +171,30 @@ def sweep(board, emit, send=deliver, busy=active, clock=now):
             if page.get("archived") or status in {C.status_name(k) for k in board.CLOSED_KEYS}:
                 emit(card, "skip", reason="closed")
                 continue
-            action = board._g(page["properties"], "Action", "select")
+            import action_runs as A
+            action = A.effective_action(page)
             if action and action != board.ACTION_PLACEHOLDER:
                 emit(card, "skip", reason="operator_action_pending")
+                continue
+            if busy(card):
+                emit(card, "skip", reason="agent_working")
+                continue
+            existing = read(page)
+            repaired = ensure_review(board, page, existing, clock)
+            if repaired != existing or (existing and not page['properties'].get('NextCheck', {}).get('date')):
+                backup = root() / f"{card}-{uuid.uuid4().hex}-schedule.json"
+                save(backup, {'at': clock().isoformat(), 'before': page, 'rules': repaired})
+                emit(card, 'repair_start', backup=str(backup), rules=repaired)
+                board.api('PATCH', f'/pages/{card}', {'properties': properties(repaired)})
+                confirmed = board.api('GET', f'/pages/{card}')
+                start = (confirmed['properties']['NextCheck'].get('date') or {}).get('start')
+                expected = properties(repaired)['NextCheck']['date']['start']
+                if read(confirmed) != repaired or not start or abs((instant(start) - instant(expected)).total_seconds()) >= 1:
+                    raise RuntimeError('schedule repair readback mismatch')
+                emit(card, 'repaired', rules=repaired)
+                continue
+            if repair_only:
+                emit(card, 'skip', reason='already_scheduled')
                 continue
             rules = [r for r in read(page) if instant(r["at"]) <= clock()]
             if not rules:
@@ -157,9 +206,6 @@ def sweep(board, emit, send=deliver, busy=active, clock=now):
                 if (clock() - instant(rec["delivered_at"])).total_seconds() < 45 * 60:
                     emit(card, "skip", reason="delivery_pending")
                     continue
-            if busy(card):
-                emit(card, "skip", reason="agent_working")
-                continue
             if delivered >= int(C.get("agent.dispatch_parallel", 4)):
                 emit(card, "skip", reason="batch_limit")
                 continue
@@ -168,10 +214,16 @@ def sweep(board, emit, send=deliver, busy=active, clock=now):
                       "Load board-cli. Read the full card and current mail/state before acting.\n"
                       f"Due checks (these are instructions to inspect, not evidence the condition is true): {json.dumps(rules, ensure_ascii=False)}\n"
                       "Continue the work yourself. Reconcile ALL future triggers against the latest facts; cancel obsolete ones. "
-                      "If still waiting, set a concrete next check with board schedule and put the card in waiting. "
+                      + REVIEW_REASON + "\n"
+                      "If unfinished, set a concrete next check with board schedule, including when needs_you. "
+                      "Choose the interval from the deadline and expected changes; use 3 days when unknown, "
+                      "or 7 days after an unchanged review when no nearer deadline requires attention. "
+                      "Use waiting for external conditions. "
                       "Only use needs_you when the operator has a concrete action now. "
-                      "Due passing alone never proves completion. Record verified results in the card note/log. "
-                      "Never send email; prepare drafts only. "
+                      "Due passing alone never proves completion. Log checked sources, changes and unknowns; "
+                      "update Summary and title when facts change. An unchanged review only needs a log and next check. "
+                      "Never send email; prepare drafts only. Silence is not approval. "
+                      "Do not retry login or second-factor prompts during review. "
                       f"Finish with board wake-ack --card {card} --token {token}. "
                       "This acknowledges these checks, not completion of the matter.\n")
             rec = {"card": card, "token": token, "rules": rules, "prompt": prompt,

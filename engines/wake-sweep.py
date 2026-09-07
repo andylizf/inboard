@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run due card checks without starting the mail dispatcher."""
 import fcntl
+import argparse
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,9 @@ import wakeups as W
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--repair-only', action='store_true', help='Fill missing schedules without dispatching agents')
+    args = parser.parse_args()
     logs = Path(os.environ.get("INBOARD_LOGS", str(ROOT / "logs")))
     logs.mkdir(parents=True, exist_ok=True)
     state = Path(os.environ.get("INBOARD_STATE", str(ROOT / "state")))
@@ -27,7 +31,7 @@ def main():
             return
         emit(None, "start")
         try:
-            W.sweep(W.load_board(), emit)
+            W.sweep(W.load_board(), emit, repair_only=args.repair_only)
         except Exception as exc:
             emit(None, "fail", error=str(exc))
             raise
