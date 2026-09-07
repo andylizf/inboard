@@ -21,9 +21,11 @@ def main():
     (backup / 'schema-before.json').write_text(json.dumps(schema, ensure_ascii=False, indent=2))
     properties = {
         A.REQUEST: {'select': {'options': [{key: opt[key] for key in ('name', 'color')} for opt in schema['properties']['Action']['select']['options']]}},
-        A.WHEN: {'date': {}}, A.HANDLED: {'rich_text': {}}, A.PROGRESS: {'rich_text': {}},
+        A.WHEN: {'date': {}}, A.VERSION: {'number': {'format': 'number'}}, A.HANDLED: {'rich_text': {}}, A.PROGRESS: {'rich_text': {}},
         A.DISPLAY: {'formula': {'expression': A.FORMULA}}}
     missing = {name: value for name, value in properties.items() if name not in schema['properties']}
+    if schema['properties'].get(A.DISPLAY, {}).get('formula', {}).get('expression') != A.FORMULA:
+        missing[A.DISPLAY] = properties[A.DISPLAY]
     if args.apply and missing:
         board.api('PATCH', f'/databases/{board.DB}', {'properties': missing})
     after = board.api('GET', f'/databases/{board.DB}') if args.apply else schema

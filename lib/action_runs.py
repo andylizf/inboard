@@ -14,21 +14,28 @@ import wakeups as W
 
 REQUEST = 'ActionRequested'
 WHEN = 'ActionRequestedAt'
+VERSION = 'ActionVersion'
 HANDLED = 'ActionHandled'
 PROGRESS = 'ActionProgress'
 DISPLAY = '操作状态'
-FORMULA = ('if(empty(prop("ActionRequestedAt")), "", '
+_LEGACY_FORMULA = ('if(empty(prop("ActionRequestedAt")), "", '
            'if(format(timestamp(prop("ActionRequestedAt"))) + "|" + format(prop("ActionRequested")) '
            '!= prop("ActionHandled"), "⏳ 已收到 · " + format(prop("ActionRequested")), prop("ActionProgress")))')
+FORMULA = ('if(empty(prop("ActionVersion")), ' + _LEGACY_FORMULA + ', '
+           'if(format(prop("ActionVersion")) + "|" + format(prop("ActionRequested")) != prop("ActionHandled"), '
+           '"⏳ 已收到 · " + format(prop("ActionRequested")), prop("ActionProgress")))')
 
 
 def intent(page):
     props = page.get('properties', {})
     action = (props.get(REQUEST, {}).get('select') or {}).get('name')
     at = (props.get(WHEN, {}).get('date') or {}).get('start')
-    if not action or not at:
+    version = props.get(VERSION, {}).get('number')
+    if not action or (not at and not version):
         return None
-    key = str(round(datetime.fromisoformat(at.replace('Z', '+00:00')).timestamp() * 1000)) + '|' + action
+    # Time triggered rounds to a minute. Existing clicks retain that receipt until the next counter-based click.
+    sequence = int(version) if version else round(datetime.fromisoformat(at.replace('Z', '+00:00')).timestamp() * 1000)
+    key = str(sequence) + '|' + action
     return dict(action=action, key=key, token=hashlib.sha256(key.encode()).hexdigest()[:24])
 
 

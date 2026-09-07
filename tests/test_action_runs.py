@@ -35,6 +35,14 @@ class ActionRunsTests(unittest.TestCase):
         self.assertNotEqual(first['token'], changed['token'])
         self.assertTrue(first['key'].endswith('123|Continue'))
 
+    def test_counter_distinguishes_same_button_within_a_minute(self):
+        first = page()
+        first['properties'][A.VERSION] = {'number': 1}
+        second = copy.deepcopy(first)
+        second['properties'][A.VERSION]['number'] = 2
+        self.assertEqual(A.intent(first)['key'], '1|Continue')
+        self.assertNotEqual(A.intent(first)['token'], A.intent(second)['token'])
+
     def test_completed_request_does_not_retrigger(self):
         source = page()
         record = self.record(source)
