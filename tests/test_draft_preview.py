@@ -76,11 +76,16 @@ class DraftPreviewTests(unittest.TestCase):
         self.assertIn('get', run.call_args.args[0])
 
     def test_approved_send_places_draft_id_in_request_body(self):
+        from email.header import Header
+        preview = 'From: sender@example.com\nTo: to@example.com\nCc: 无\nBcc: 无\nSubject: 你好\n\n---\n\nHello'
         responses = [
             {'properties': {'Action': {'select': {'name': 'Send'}},
-                            'Draft': {'rich_text': [{'plain_text': 'Hello'}]}}},
+                            'Draft': {'rich_text': [{'plain_text': preview}]}}},
             {}]
         draft = {'message': {'payload': {'mimeType': 'text/plain',
+                 'headers': [{'name': 'From', 'value': 'sender@example.com'},
+                             {'name': 'To', 'value': 'to@example.com'},
+                             {'name': 'Subject', 'value': Header('你好', 'utf-8').encode()}],
                  'body': {'data': base64.urlsafe_b64encode(b'Hello').decode()}}}}
         calls = []
 

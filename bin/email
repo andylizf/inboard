@@ -244,6 +244,7 @@ def send_approved(acct_env, gws, rest):
     preview_parts = visible.split('\n\n---\n\n', 1)
     if len(preview_parts) == 2:
         from email.parser import Parser
+        from email.header import decode_header, make_header
         shown_headers = Parser().parsestr(preview_parts[0])
         wire_headers = {h['name'].lower(): h['value'] for h in
                         (payload.get('message', {}).get('payload', {}).get('headers') or [])}
@@ -251,7 +252,8 @@ def send_approved(acct_env, gws, rest):
             shown = shown_headers.get(field, '')
             if shown == '无' and field in ('Cc', 'Bcc'):
                 shown = ''
-            if _norm(shown) != _norm(wire_headers.get(field.lower(), '')):
+            actual = str(make_header(decode_header(wire_headers.get(field.lower(), ''))))
+            if _norm(shown) != _norm(actual):
                 blocked('current draft %s differs from the card preview' % field)
     if _norm(outgoing) != _norm(preview_parts[-1]):
         blocked("+send-approved where the draft body is NOT what the card shows — he can only "
