@@ -16,7 +16,7 @@ def main():
     args = parser.parse_args()
     board = W.load_board()
     schema = board.api('GET', f'/databases/{board.DB}')
-    backup = Path(__file__).resolve().parents[1] / 'logs/action-ui' / datetime.now().strftime('%Y%m%d-%H%M%S')
+    backup = Path(A.C.home()) / 'logs/action-ui' / datetime.now().strftime('%Y%m%d-%H%M%S')
     backup.mkdir(parents=True)
     (backup / 'schema-before.json').write_text(json.dumps(schema, ensure_ascii=False, indent=2))
     properties = {
