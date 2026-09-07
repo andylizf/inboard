@@ -58,6 +58,9 @@ class WakeTests(unittest.TestCase):
         if method == 'GET':
             return copy.deepcopy(self.pages[card])
         self.pages[card]['properties'].update(copy.deepcopy(body['properties']))
+        date = self.pages[card]['properties'].get('NextCheck', {}).get('date')
+        if date:
+            date['start'] = W.instant(date['start']).replace(second=0, microsecond=0).isoformat()
         return {}
 
     def send(self, card, prompt, board):
@@ -85,7 +88,8 @@ class WakeTests(unittest.TestCase):
         W.acknowledge(B, 'card', record['token'])
         remaining = W.read(self.pages['card'])
         self.assertEqual({r['reason'] for r in remaining}, {'Deadline review', 'Check again after recovery'})
-        self.assertEqual(self.pages['card']['properties']['NextCheck']['date']['start'], self.future)
+        self.assertEqual(W.instant(self.pages['card']['properties']['NextCheck']['date']['start']),
+                         W.instant(self.future).replace(second=0, microsecond=0))
 
     def test_failed_delivery_retries_without_losing_rules(self):
         self.page(rules=W.add([], self.past, 'Check recovery'))

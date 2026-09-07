@@ -189,7 +189,8 @@ def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
                 confirmed = board.api('GET', f'/pages/{card}')
                 start = (confirmed['properties']['NextCheck'].get('date') or {}).get('start')
                 expected = properties(repaired)['NextCheck']['date']['start']
-                if read(confirmed) != repaired or not start or abs((instant(start) - instant(expected)).total_seconds()) >= 1:
+                # Notion stores this date property at minute precision.
+                if read(confirmed) != repaired or not start or instant(start).replace(second=0, microsecond=0) != instant(expected).replace(second=0, microsecond=0):
                     raise RuntimeError('schedule repair readback mismatch')
                 emit(card, 'repaired', rules=repaired)
                 continue
