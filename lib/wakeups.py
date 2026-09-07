@@ -52,10 +52,9 @@ def add(rules, at, reason):
     return rules
 
 
-REVIEW_REASON = ("Recheck relevant mail, card comments and external sources for changes to progress, "
-                 "blockers, deadlines, available options and draft validity. Check whether the operator "
-                 "already acted elsewhere. Record sources and unknowns; continue authorized work. "
-                 "If unchanged, quietly schedule the next review without repeating the same request.")
+REVIEW_REASON = ("复查相关邮件、卡片留言及外部信息：进展、阻碍、截止时间、可选方案和草稿是否变化，"
+                 "用户是否已在别处处理。记录核实来源与未知情况，继续已授权的工作；"
+                 "没有变化就安排下次复查，不重复催促。")
 
 
 def ensure_review(board, page, rules, clock=now):
