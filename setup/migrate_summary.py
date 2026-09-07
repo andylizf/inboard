@@ -4,6 +4,8 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import time
+from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'lib'))
@@ -25,6 +27,25 @@ def migrate(backup, apply=False, card=None):
                         source_sha256=digest, **fields)
             print(json.dumps(line, ensure_ascii=False), file=log, flush=True)
             print(json.dumps(line, ensure_ascii=False), flush=True)
+        original_api = board.api
+        last_request = 0.0
+
+        def paced_api(method, path, body=None):
+            nonlocal last_request
+            # This migration shares the integration's quota with live card agents.
+            for attempt in range(5):
+                time.sleep(max(0, 0.8 - (time.monotonic() - last_request)))
+                last_request = time.monotonic()
+                try:
+                    return original_api(method, path, body)
+                except HTTPError as exc:
+                    if exc.code != 429 or attempt == 4:
+                        event(path, 'failed', reason=str(exc))
+                        raise
+                    delay = max(2, float(exc.headers.get('Retry-After', '2')))
+                    event(path, 'rate_limited', retry_in=delay)
+                    time.sleep(delay)
+        board.api = paced_api
         pages, cursor = [], None
         if card:
             pages = [board.api('GET', f'/pages/{card}')]

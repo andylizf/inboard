@@ -28,8 +28,8 @@ rewritten), or for the send action, which the handler deliberately leaves alone.
   `email <account> gmail +send-approved --card <CARD> --draft-id <GMAIL_DRAFT_ID>` — the sole path by which
   mail can leave. **Do not touch the draft first.** What he approved is the text that was on the card when he
   tapped, so rewriting it — even to improve it — sends something he never read; the guard checks the outgoing
-  body against what the card actually shows and will refuse. If it does refuse for that reason, post the FULL
-  reply onto the card (`board log`, several calls if long), set the card to `⏸ Needs you` saying why, and let
+  draft against the current Draft property and the snapshot captured by the button. If it refuses because
+  the preview changed, put the full current preview in Draft with `board edit --draft`, set the card to `⏸ Needs you` saying why, and let
   him tap again — never work around the check. After a successful send, check all remaining obligations and results: use `board awaiting` for an external
   wait, `needs_you` for an operator commitment, and `board done` only when the matter has no remaining work; then log it to the daily log under the sent type from
   `cfg board.schema.daily_types.sent`, one line saying what went out and to whom.
