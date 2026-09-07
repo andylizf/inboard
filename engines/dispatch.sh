@@ -47,6 +47,7 @@ fi
 export INBOARD_MAIL_WINDOW="$MAIL_WINDOW"
 
 if [ "$DRY" = 0 ]; then
+  python3 "$INBOARD_HOME/lib/orphan_action_sweep.py" >>"$INBOARD_LOGS/agent.log" 2>&1 || true
   python3 "$INBOARD_HOME/engines/wake-sweep.py" >>"$INBOARD_LOGS/agent.log" 2>&1 || exit 1
   if WORK=$("$INBOARD_HOME/bin/has-work" 2>>"$INBOARD_LOGS/agent.log"); then
     echo "[$(date)] work? $WORK → dispatch" >> "$INBOARD_LOGS/agent.log"
@@ -266,9 +267,6 @@ else
   echo "[$(date)] WARN daemon_stall_check failed ($n in a row) — stranded taps go unnoticed while this is down" >>"$LOG"
   [ "$n" -ge 3 ] && { echo "[$(date)] daemon_stall_check has failed $n cycles running" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"; exit 1; }
 fi
-# A tap Notion delivered while the engines were down is never redelivered, so the
-# card keeps showing an Action nobody will ever act on. Recover those here.
-python3 "$INBOARD_HOME/lib/orphan_action_sweep.py" >>"$LOG" 2>&1 || true
 # Priority is derived, not stored: recolour every card from Due/NeedsYou/Status so the
 # strip a glance lands on can never disagree with the properties underneath it.
 board covers >>"$LOG" 2>&1 || true
