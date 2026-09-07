@@ -97,5 +97,6 @@ Account ids come from `board accounts` (each row: `id`, `label`, `address`). The
 — only where a daily-log database is configured; otherwise the FYI is simply marked processed.
 
 **Two surfaces.** The board holds what is live (`📥 New` = mail nobody has worked yet, `🔍 Researching`,
-`⏳ Waiting` = waiting for mail, time or an external condition, `⏸ Needs you` = his move, a ready draft included) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
+`⏳ Waiting` = waiting for mail, time or an external condition, `⏸ Needs you` = his required move,
+including approval of a necessary draft) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
 where they cost him nothing until he chooses to look.

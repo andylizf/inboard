@@ -105,6 +105,11 @@ notices and optional suggestions are information, not requests for the operator 
 On review, remove an invented action from a mixed card while retaining its real work. For a pure notice
 mistakenly carded, preserve its information, clear subscriptions and wakeups, and archive the mistaken
 card using the `mail-pipeline` FYI rules. Do not turn a notice into Done or repeatedly remind about it.
+Once actual work is verified complete, close the matter now and clear its triggers. A draft you chose
+to write, an optional thank-you, or someone else's still-open alert is not a reason to retain the card.
+Keep it open only for a concrete remaining obligation, unresolved risk or required verification.
+Approval gates necessary sends; it does not make an optional send necessary. Delete obsolete drafts
+you can prove you created using the draft ownership rule above, and preserve the audit record.
 
 `⏳ Waiting` covers mail replies, a future date, external recovery and other conditions. Keep what is
 awaited in Subscription and put the next timed check on the card with `board schedule` (load `board-cli`).

@@ -156,7 +156,11 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      if a card was created for a pure notice, preserve its information in the daily log where configured,
      cancel its time/mail triggers and archive the mistaken card. Do not mark a notice Done or keep
      asking for acknowledgement. Keep genuine work on mixed cards and remove only the invented action.
-   - **Actionable** (a draft for him to send, or a decision only he can make = `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`).
+   - **Actionable** (a necessary draft awaiting approval, or a required decision only he can make =
+     `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`). A draft the agent chose
+     to create does not establish a task. When actual work is complete, close the matter without waiting
+     for optional thanks or asking another person to tidy their alert. An upstream alert remaining open
+     matters only when it leaves a concrete risk, restriction or required task outcome unresolved.
      **Optional, no deadline, "if you want", "feel free" = FYI, never a card**, however official the sender —
      a card for something he may ignore is the card that teaches him to ignore cards.
    - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
@@ -171,7 +175,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).
    - **Pure noise, no action** → nothing recorded (the only exception).
    For received mail, then handle by type (outgoing mail follows the outgoing rules above):
-   - **IMPORTANT & substantive** → subagent: research with all materials, write a considered reply, save it
+   - **IMPORTANT & substantive, with a necessary reply under the fork test above** → subagent:
+     research with all materials, write a considered reply, save it
      `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` — it puts the draft on the
      card and logs its id itself. Then
      `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>' --draft '<reply>' --needs '<what he does with it: send it, or the open question>'`.
