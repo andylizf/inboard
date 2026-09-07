@@ -44,6 +44,11 @@ def main():
     stalled = [s for s in P.sweep(_actionof, stall_min * 60)
                if not _agent_alive(s["card"])]
     for s in stalled:
+        import action_runs as A
+        record = A.read(s['card'])
+        if record and record['phase'] in ('starting', 'running'):
+            subprocess.run(['board', 'action-fail', '--card', s['card'], '--operation', record['token'],
+                            '--text', '后台未完成，请重新点击操作'], capture_output=True)
         subprocess.run(["board", "reply", "--card", s["card"], "--text",
                         f"⚠️ Action '{s['action']}' was delivered to this card's agent but it did not "
                         f"finish within {stall_min} min (stalled or died). NOT completed — tap the action "

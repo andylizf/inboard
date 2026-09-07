@@ -84,6 +84,8 @@ def receipt(board, card, token, phase, message):
     with lock(card):
         page = board.api('GET', f'/pages/{card}')
         record = require_current(card, token, page)
+        if phase == 'running':
+            message += ' · ' + record['action']
         progress(board, card, record, message)
         record.update(phase=phase, updated_at=time.time())
         save(card, record)
@@ -105,12 +107,16 @@ def dispatch(card, prompt):
                     return
                 record = dict(request, phase='starting', updated_at=time.time(), sent=False)
                 save(card, record)
+            print(json.dumps(dict(time=time.time(), event='operation_claimed', card=card,
+                                  operation=record['token'], action=record['action'])), flush=True)
             name = 'inboard-card-' + card.replace('-', '')
             try:
                 job = A.find_job(name)
                 if job and job.get('state') not in ('stopped', 'blocked'):
                     progress(board, card, record, '⏳ 正在切换 · ' + request['action'])
-                    A.interrupt(job)
+                    stopped = A.interrupt(job)
+                    print(json.dumps(dict(time=time.time(), event='operation_interrupted', card=card,
+                                          operation=record['token'], result=stopped)), flush=True)
                 latest = intent(board.api('GET', f'/pages/{card}'))
                 if not latest or latest['token'] != record['token']:
                     continue
@@ -128,6 +134,8 @@ def dispatch(card, prompt):
                     "If unable to complete the operation, use `board action-fail` with the same card/operation "
                     "and --text describing the problem. Completing an operation does not mean the matter is done.\n")
                 result = A.ensure_and_deliver(name, str(Path(C.home()) / 'agent'), prompt.replace('__ACTION__', request['action']) + instructions)
+                import daemon_pending
+                daemon_pending.record(card, request['action'])
                 if result.get('sessionId'):
                     board.api('PATCH', f'/pages/{card}', {'properties': {'Session': {'rich_text': W.text(result['sessionId'])}}})
                 print(json.dumps(dict(card=card, operation=token, delivered=True)), flush=True)

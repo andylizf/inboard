@@ -33,6 +33,7 @@ def record(card: str, action: str, now: float | None = None) -> None:
     with open(STATE, "a+", encoding="utf-8") as fh:
         fcntl.flock(fh, fcntl.LOCK_EX)
         items = _load(fh)
+        items = [item for item in items if item['card'] != card]
         items.append({"card": card, "action": action, "ts": now if now is not None else time.time()})
         fh.seek(0); fh.truncate(); fh.write(json.dumps(items, indent=1))
         fcntl.flock(fh, fcntl.LOCK_UN)
