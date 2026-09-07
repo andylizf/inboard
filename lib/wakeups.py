@@ -212,6 +212,10 @@ def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
             token = uuid.uuid4().hex
             prompt = (f"Scheduled wakeup for card {card}. Receipt: {token}.\n"
                       "Load board-cli. Read the full card and current mail/state before acting.\n"
+                      "First check whether real unfinished work remains. A routine notice or optional suggestion "
+                      "does not need acknowledgement. If mistakenly carded, load mail-pipeline, preserve the "
+                      "information, clear its subscriptions/wakeups and archive it; do not mark it Done. "
+                      "On mixed cards, keep real work and remove only invented requests.\n"
                       f"Due checks (these are instructions to inspect, not evidence the condition is true): {json.dumps(rules, ensure_ascii=False)}\n"
                       "Continue the work yourself. Reconcile ALL future triggers against the latest facts; cancel obsolete ones. "
                       + REVIEW_REASON + "\n"

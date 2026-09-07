@@ -83,16 +83,14 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
         actionable — an appointment, a form, a deadline, a temporary PIN — do that part. Putting "was
         that you?" in `NeedsYou` blocks everything else on the card behind a question whose answer is
         almost always yes.
-      · **Escalate only when the message reports an OUTCOME, not an event.** "A new device signed in" is
-        an event. "We locked your account after unauthorised access", "your password/recovery email was
-        changed" (when he did not ask), "we blocked a transaction", money that actually moved — those are
-        outcomes, and they are his to rule on. The test is whether the sender is telling him something
-        BAD ALREADY HAPPENED, not whether something merely happened.
-      · **The test is what the message reports, never who sent it.** A bank, a password manager, a
-        government portal or a broker sending a notification is still sending a notification. "It
-        involves money" is not the trigger — money HAVING MOVED is. Reaching for the sender's category
-        to justify a card is how this rule gets quietly suspended — a bank reporting that a new phone was
-        set up is still reporting an event, even when it is a bank.
+      · **Escalate a concrete problem that needs action.** An account locked after unauthorized access,
+        a transaction blocked pending a response, or a change the operator reports as unauthorized
+        warrants investigation. An ordinary successful payment or transfer is FYI, regardless of amount.
+        A new recipient or absence from memory is not evidence of a problem. Ask "was this you?" only
+        when specific evidence calls for verification or the operator requested that monitoring.
+      · **Classify the remaining work, not the sender or money movement.** Record ordinary bank notices
+        without making the operator confirm each one. If a notice changes an existing matter, update
+        that card instead of creating a new task.
     - **Nothing relevant comes back** → it is genuinely new; continue to 6.
     - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
       truth first. Then answer the ONE question that decides everything: **does this mail change what
@@ -149,6 +147,15 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      once to work out that it needed nothing — and a board where most cards cost that is a board he
      stops trusting. When you cannot name the action in a short phrase ("send the reply", "pick one of
      two", "book it before the 21st"), there isn't one: log it.
+     "Do you want to act?" does not establish an obligation. Optional balance top-ups, extra explanations
+     nobody requested and acknowledgements of routine transactions remain information unless the operator
+     takes them up or concrete circumstances require action. Put related information on an existing card
+     without making it Needs you or extending the matter after its actual work ends. A real issue such as
+     an unpaid amount due or a service interruption still needs handling.
+     Only actionable matters receive subscriptions and timed reviews. During a review, reapply this test:
+     if a card was created for a pure notice, preserve its information in the daily log where configured,
+     cancel its time/mail triggers and archive the mistaken card. Do not mark a notice Done or keep
+     asking for acknowledgement. Keep genuine work on mixed cards and remove only the invented action.
    - **Actionable** (a draft for him to send, or a decision only he can make = `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`).
      **Optional, no deadline, "if you want", "feel free" = FYI, never a card**, however official the sender —
      a card for something he may ignore is the card that teaches him to ignore cards.

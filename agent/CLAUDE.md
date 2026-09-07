@@ -100,6 +100,12 @@ X?" and "want me to upgrade this dependency?" are not those; they are asking him
 
 ## Waiting and wakeups
 
+Only matters with actual unfinished work belong on the board and receive reviews. Routine transaction
+notices and optional suggestions are information, not requests for the operator to acknowledge.
+On review, remove an invented action from a mixed card while retaining its real work. For a pure notice
+mistakenly carded, preserve its information, clear subscriptions and wakeups, and archive the mistaken
+card using the `mail-pipeline` FYI rules. Do not turn a notice into Done or repeatedly remind about it.
+
 `⏳ Waiting` covers mail replies, a future date, external recovery and other conditions. Keep what is
 awaited in Subscription and put the next timed check on the card with `board schedule` (load `board-cli`).
 Every unfinished card, including `needs_you`, needs a next timed review; a mail Subscription alone
