@@ -172,9 +172,6 @@ def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
                 continue
             import action_runs as A
             action = A.effective_action(page)
-            if action and action != board.ACTION_PLACEHOLDER:
-                emit(card, "skip", reason="operator_action_pending")
-                continue
             if busy(card):
                 emit(card, "skip", reason="agent_working")
                 continue
@@ -195,6 +192,9 @@ def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
                 continue
             if repair_only:
                 emit(card, 'skip', reason='already_scheduled')
+                continue
+            if action and action != board.ACTION_PLACEHOLDER:
+                emit(card, "skip", reason="operator_action_pending")
                 continue
             rules = [r for r in read(page) if instant(r["at"]) <= clock()]
             if not rules:

@@ -145,11 +145,13 @@ class WakeTests(unittest.TestCase):
             W.acknowledge(B, 'card', record['token'])
             self.assertEqual(bool(W.read(self.pages['card'])), status == 'needs_you')
 
-    def test_pending_button_blocks_review_and_repair(self):
+    def test_pending_button_keeps_coverage_but_blocks_dispatch(self):
         p = self.page(status='needs_you')
         p['properties'].update(ActionRequested={'select': {'name': 'Continue'}}, ActionVersion={'number': 1})
         self.sweep()
-        self.assertFalse(W.read(p))
+        self.assertTrue(W.read(p))
+        self.time += timedelta(days=4)
+        self.sweep()
         self.assertFalse(self.sent)
 
     def test_near_deadline_review_is_earlier_than_default(self):
