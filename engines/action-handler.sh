@@ -15,6 +15,18 @@ CARD="${1:-}"; [ -n "$CARD" ] || exit 0
 ACTION=$(board actionof --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log")
 { [ -z "$ACTION" ] || [ "$ACTION" = "$ACTION_PLACEHOLDER" ]; } && exit 0
 
+# Native buttons keep intent separate from the legacy Action field that old agents clear.
+if [ -n "$(board action-request --card "$CARD")" ]; then
+  PROMPT="The operator picked Action='__ACTION__' on card $CARD.
+Read the card and handle this action per the card-actions skill. Use board plan and board tick to show progress.
+Email may leave only for the configured send action and only via email gmail +send-approved.
+Complete all card updates and the final receipt before clearing the operation.
+$GOAL_TRAILER
+$MORTAL_TRAILER"
+  python3 "$INBOARD_HOME/lib/action_runs.py" --card "$CARD" --prompt "$PROMPT" >>"$INBOARD_LOGS/webhook.log" 2>&1
+  exit $?
+fi
+
 TS=$(date +%Y%m%d_%H%M%S)_$$   # +PID: same-second handlers must not share a log file
 # Per-card lock (SHARED with comment-handler so an Action + a comment on the same card serialize).
 LK="$INBOARD_STATE/.lock-$CARD"

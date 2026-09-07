@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
                                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import ibconfig as C  # noqa: E402
+import action_runs as AR
 
 BLOCK = [  # (needle-in-args, human label) — irreversible sends; refuse unless it's a --draft variant
     ("+send", None), ("+forward", None),
@@ -188,6 +189,7 @@ def send_approved(acct_env, gws, rest):
     ap = argparse.ArgumentParser(prog="email <acct> gmail +send-approved", add_help=True)
     ap.add_argument("--card", required=True, help="the board card carrying the operator's approval")
     ap.add_argument("--draft-id", required=True, help="the Gmail draft id to send")
+    ap.add_argument('--operation', help='the current button operation receipt')
     a = ap.parse_args(rest)
 
     token = os.environ.get("NOTION_TOKEN")
@@ -208,7 +210,10 @@ def send_approved(acct_env, gws, rest):
 
     page = notion("GET", "pages/" + a.card)
     props = page.get("properties", {})
-    have = ((props.get("Action") or {}).get("select") or {}).get("name") or ""
+    request = AR.intent(page)
+    if request:
+        AR.require_current(a.card, a.operation, page)
+    have = request['action'] if request else ((props.get("Action") or {}).get("select") or {}).get("name") or ""
     if _norm(have) != _norm(want):
         blocked("+send-approved on a card whose Action is %r, not the approval action %r "
                 "(only the operator can set it, by tapping the chip)" % (have, want))
@@ -256,13 +261,25 @@ def send_approved(acct_env, gws, rest):
     # The draft id belongs in the request BODY (a Draft resource), not in the URL parameters:
     # passed via --params it lands in the query string, Gmail receives an empty body and answers
     # 400 "Invalid draft", so the send never happened. Same split the drafts create calls use.
-    sent = subprocess.run([gws, "gmail", "users", "drafts", "send",
+    def submit():
+        return subprocess.run([gws, "gmail", "users", "drafts", "send",
                            "--params", '{"userId": "me"}',
                            "--json", _json.dumps({"id": a.draft_id})],
                           env=acct_env, capture_output=True, text=True)
+    if request:
+        # A replacement claim and send submission serialize on the same local operation lock.
+        with AR.lock(a.card):
+            record = AR.require_current(a.card, a.operation, notion('GET', 'pages/' + a.card))
+            if record.get('sent'):
+                blocked('this operation already submitted a send; check Sent before approving another')
+            record['sent'] = True
+            AR.save(a.card, record)
+            sent = submit()
+    else:
+        sent = submit()
     sys.stdout.write(sent.stdout)
     sys.stderr.write(sent.stderr)
-    if sent.returncode == 0:
+    if sent.returncode == 0 and not request:
         # One tap sends once: leaving the Action set would let the next cycle reuse this approval.
         try:
             notion("PATCH", "pages/" + a.card, {"properties": {"Action": {"select": None}}})

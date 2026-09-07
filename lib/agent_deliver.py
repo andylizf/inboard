@@ -103,6 +103,86 @@ def reply(short: str, text: str, sock: str | None = None) -> dict:
     return r
 
 
+def interrupt(job, timeout=20):
+    """Cancel the current response through the supported attach terminal; retain the worker."""
+    import fcntl
+    import pathlib
+    import pty
+    import re
+    import select
+    import struct
+    import termios
+    short = job['short']
+    roster = json.loads((pathlib.Path.home() / '.claude/daemon/roster.json').read_text())
+    worker = roster.get('workers', {}).get(short) or {}
+    sid = worker.get('sessionId') or worker.get('dispatch', {}).get('sessionId')
+    cwd = worker.get('cwd') or job.get('cwd')
+    if not sid or not cwd:
+        raise DaemonError('Cannot locate the response transcript to confirm interruption')
+    transcript = pathlib.Path.home() / '.claude/projects' / re.sub(r'[^a-zA-Z0-9]', '-', cwd) / (sid + '.jsonl')
+
+    def ended():
+        if not transcript.exists():
+            return False
+        with transcript.open('rb') as fh:
+            fh.seek(max(0, transcript.stat().st_size - 262144))
+            lines = fh.read().splitlines()
+        meaningful = []
+        for line in lines:
+            try:
+                record = json.loads(line)
+            except (ValueError, UnicodeError):
+                continue
+            if record.get('type') in ('user', 'assistant') or record.get('subtype') == 'turn_duration':
+                meaningful.append(record)
+        if not meaningful:
+            return False
+        last = meaningful[-1]
+        return last.get('subtype') == 'turn_duration' or (
+            last.get('type') == 'user' and any(
+                isinstance(part, dict) and part.get('text', '').startswith('[Request interrupted by user')
+                for part in last.get('message', {}).get('content', [])
+            ))
+
+    if ended():
+        return 'already idle'
+    master, slave = pty.openpty()
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 160, 0, 0))
+    proc = subprocess.Popen(['claude', 'attach', short], stdin=slave, stdout=slave, stderr=slave,
+                            env=dict(os.environ, TERM='xterm-256color'), start_new_session=True)
+    os.close(slave)
+    try:
+        deadline = time.monotonic() + timeout
+        output = b''
+        while time.monotonic() < deadline and len(output) < 100:
+            if proc.poll() is not None:
+                raise DaemonError('Attach exited before it was ready')
+            if select.select([master], [], [], .1)[0]:
+                output += os.read(master, 65536)
+        if len(output) < 100:
+            raise DaemonError('Attach did not render the session')
+        # Rendering precedes terminal input readiness on the current CLI.
+        time.sleep(1)
+        if ended():
+            return 'finished before cancel'
+        os.write(master, b'\x03')
+        while time.monotonic() < deadline:
+            if select.select([master], [], [], .1)[0]:
+                os.read(master, 65536)
+            if ended():
+                return 'response stopped'
+        raise DaemonError('No interruption receipt; replacement was not delivered')
+    finally:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+        os.close(master)
+
+
 def spawn(name: str, cwd: str, allowed_tools: str = "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill") -> str:
     """Start an idle background agent named `name` under `cwd`. Returns its short id."""
     # No --model here on purpose: the model is a PROJECT setting, agent/.claude/settings.json, which

@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
                                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import ibconfig as C  # noqa: E402
 import wakeups as W
+import action_runs as AR
 
 TOK = os.environ.get(C.get("board.token_env", "NOTION_TOKEN") or "NOTION_TOKEN")
 DB = C.get("board.database_id")
@@ -150,13 +151,27 @@ def upsert(a):
 def pending(_):
     # Only cards with a REAL Action picked — exclude the always-present placeholder chip, so `pending`
     # (and the has-work precheck that counts it) doesn't fire on every card that merely shows the chip.
-    r = api("POST", f"/databases/{DB}/query", {"filter": {"and": [
+    old_filter = {"and": [
         {"property": "Action", "select": {"is_not_empty": True}},
-        {"property": "Action", "select": {"does_not_equal": ACTION_PLACEHOLDER}}]}})
+        {"property": "Action", "select": {"does_not_equal": ACTION_PLACEHOLDER}}]}
+    schema = api('GET', f'/databases/{DB}')
+    query_filter = {'or': [old_filter, {'property': AR.REQUEST, 'select': {'is_not_empty': True}}]} if AR.REQUEST in schema['properties'] else old_filter
+    pages, cursor = [], None
+    while True:
+        query = {'filter': query_filter, 'page_size': 100}
+        if cursor:
+            query['start_cursor'] = cursor
+        result = api('POST', f'/databases/{DB}/query', query)
+        pages.extend(result['results'])
+        if not result.get('has_more'):
+            break
+        cursor = result['next_cursor']
     out = []
-    for p in r["results"]:
+    for p in pages:
         pr = p["properties"]
-        out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "action": _g(pr, "Action", "select"),
+        if not AR.effective_action(p):
+            continue
+        out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "action": AR.effective_action(p),
                     "subject": _g(pr, "Subject", "title"), "account": _g(pr, "Account", "select"),
                     "status": _g(pr, "Status", "select"), "draft": _g(pr, "Draft", "rich_text"),
                     "needs": _g(pr, "NeedsYou", "rich_text")})
@@ -166,7 +181,20 @@ def pending(_):
 def actionof(a):
     # The Action currently set on one card (empty if none). Cheap gate for the webhook.
     r = api("GET", f"/pages/{a.card}")
-    print((r["properties"].get("Action", {}).get("select") or {}).get("name") or "")
+    print(AR.effective_action(r))
+
+
+def action_request(a):
+    request = AR.intent(api('GET', f'/pages/{a.card}'))
+    print(json.dumps(request) if request else '')
+
+
+def action_receipt(a):
+    phase, message = {'action-start': ('running', '⚙️ 执行中'),
+                      'action-fail': ('failed', '❌ 操作未完成')}[a.cmd]
+    AR.receipt(sys.modules[__name__], a.card, a.operation, phase,
+               message + (' · ' + a.text if a.text else ''))
+    print(json.dumps({'operation': a.operation, 'phase': phase}))
 
 
 def statusof(a):
@@ -176,6 +204,11 @@ def statusof(a):
 
 
 def clear_action(a):
+    page = api('GET', f'/pages/{a.card}')
+    if AR.intent(page):
+        AR.receipt(sys.modules[__name__], a.card, getattr(a, 'operation', None), 'done', '✅ 本次操作已完成')
+        print(json.dumps({'completed': a.card}))
+        return
     # Reset to the placeholder (not empty) so the tappable chip stays visible in the preview.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Action": {"select": {"name": ACTION_PLACEHOLDER}}}})
     print(json.dumps({"reset": a.card}))
@@ -701,6 +734,9 @@ def main():
     u.add_argument("--due")  # DUE-20260818
     sub.add_parser("pending")
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
+    arq = sub.add_parser('action-request'); arq.add_argument('--card', required=True)
+    for command in ('action-start', 'action-fail'):
+        receipt = sub.add_parser(command); receipt.add_argument('--card', required=True); receipt.add_argument('--text', default='')
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
     so = sub.add_parser("statusof"); so.add_argument("--card", required=True)
     l = sub.add_parser("log"); l.add_argument("--card", required=True); l.add_argument("--text", required=True)
@@ -736,14 +772,19 @@ def main():
     cv = sub.add_parser("covers"); cv.add_argument("--dry", action="store_true")
     sub.add_parser("accounts")
     sub.add_parser("whoami")
+    for command in sub.choices.values():
+        command.add_argument('--operation')
     a = ap.parse_args()
+    if a.operation and getattr(a, 'card', None) and a.cmd not in ('clear-action', 'action-start', 'action-fail'):
+        AR.require_current(a.card, a.operation, api('GET', f'/pages/{a.card}'))
     # config-only commands don't need live Notion creds; everything else hits the API.
     if a.cmd != "accounts":
         if not TOK:
             sys.exit("board: Notion token not configured — put it in .env (run `inboard init`).")
         if not DB and a.cmd != "whoami":
             sys.exit("board: board.database_id not configured — run `inboard init`.")
-    {"upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "log": log, "note": note,
+    {"action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
+     "upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
      "subscriptions": subscriptions, "cards": cards, "search": search, "schedule": schedule, "unschedule": unschedule, "schedules": schedules, "wake-ack": wake_ack, "edit": edit, "status-for": status_for,

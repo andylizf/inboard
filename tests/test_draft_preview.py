@@ -19,6 +19,29 @@ loader.exec_module(email_cli)
 
 
 class DraftPreviewTests(unittest.TestCase):
+    def test_replacement_click_blocks_send_before_submission(self):
+        import action_runs as A
+        first = {'id': 'card-1', 'properties': {
+            A.REQUEST: {'select': {'name': 'Send'}},
+            A.WHEN: {'date': {'start': '2026-09-07T03:00:00Z'}},
+            'Draft': {'rich_text': [{'plain_text': 'Hello'}]}}}
+        replacement = {'id': 'card-1', 'properties': {
+            A.REQUEST: {'select': {'name': 'Continue'}},
+            A.WHEN: {'date': {'start': '2026-09-07T03:00:01Z'}}}}
+        record = dict(A.intent(first), phase='running', sent=False)
+        responses = [first, {'results': []}, replacement]
+        draft = {'message': {'payload': {'mimeType': 'text/plain',
+                 'body': {'data': base64.urlsafe_b64encode(b'Hello').decode()}}}}
+        import tempfile
+        with tempfile.TemporaryDirectory() as state, patch.dict('os.environ', NOTION_TOKEN='test-token', INBOARD_STATE=state), \
+                patch.object(email_cli.C, 'get', return_value='Send'), patch.object(A, 'read', return_value=record), \
+                patch('urllib.request.urlopen', side_effect=lambda *a, **k: io.BytesIO(json.dumps(responses.pop(0)).encode())), \
+                patch('subprocess.run', return_value=CompletedProcess([], 0, json.dumps(draft), '')) as run:
+            with self.assertRaisesRegex(RuntimeError, 'superseded'):
+                email_cli.send_approved({}, 'gws', ['--card', 'card-1', '--draft-id', 'draft-1', '--operation', record['token']])
+        self.assertEqual(run.call_count, 1)
+        self.assertIn('get', run.call_args.args[0])
+
     def test_approved_send_places_draft_id_in_request_body(self):
         responses = [
             {'properties': {'Action': {'select': {'name': 'Send'}},
