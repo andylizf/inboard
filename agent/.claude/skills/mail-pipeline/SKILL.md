@@ -176,10 +176,12 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    - **Pure noise, no action** → nothing recorded (the only exception).
    For received mail, then handle by type (outgoing mail follows the outgoing rules above):
    - **IMPORTANT & substantive, with a necessary reply under the fork test above** → subagent:
-     research with all materials, write a considered reply, save it
+     research with all materials, load `writing-for-people`, write a considered reply and complete its
+     `writing-reviewer` review before saving it (follow the drafting and review-record rules in `board-cli`):
      `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` — it puts the draft on the
      card and logs its id itself. Then
-     `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>' --draft '<reply>' --needs '<what he does with it: send it, or the open question>'`.
+     `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>' --needs '<what he does with it: send it, or the open question>'`.
+     Keep the header-bearing Draft preview written by `+draft`; do not replace it with the bare body.
    - **IMPORTANT but you need their input first** → don't draft blind:
      `board upsert ... --status '⏸ Needs you' --needs '<the specific question they must answer>'`. `⏸ Needs you`
      is the column that means his move; `📥 New` is mail nobody has worked yet, and a card should not sit

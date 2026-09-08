@@ -12,6 +12,13 @@ any value from the deployment's config (`cfg identity.name`, `cfg preferences.ca
 
 Account ids come from `board accounts` (each row: `id`, `label`, `address`). Then `email <id> gmail ...`.
 
+Before writing or editing an email draft, load `writing-for-people`. Before publishing the draft to
+the card or Gmail, complete its `writing-reviewer` review and apply the accepted fixes. Its one-sentence
+instant-reply exception still requires checking the reviewer's tables yourself. Record the reviewed
+draft version, reviewer findings and fixes (or the exception and self-check results) in `board log`,
+not Summary or the email body. Follow the skill's revision rules when editing an existing draft.
+Review precedes operator approval; never silently rewrite an approved draft before sending.
+
 - **Read:** `+triage --query '<gmail search>' --max N --format json` → headers only (id, from, subject,
   date). `+read --message-id <ID>` → one message's body and headers, text only — use the `email-images`
   skill when it has a figure or looks empty. Raw API: `users messages list --params '{"userId":"me","q":"from:<addr>","maxResults":20}'`
