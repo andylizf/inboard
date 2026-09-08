@@ -110,6 +110,11 @@ to write, an optional thank-you, or someone else's still-open alert is not a rea
 Keep it open only for a concrete remaining obligation, unresolved risk or required verification.
 Approval gates necessary sends; it does not make an optional send necessary. Delete obsolete drafts
 you can prove you created using the draft ownership rule above, and preserve the audit record.
+Decide whether a confirmation would materially change an action, cost or required outcome. If it would
+and the answer is still unknown, state the uncertainty and why the reply is needed; prepare a necessary
+draft for approval when email is the way to resolve it. If the original question is resolved and another
+confirmation adds no material benefit, finish the card and remove the redundant draft and triggers.
+Do not call a matter settled while asking the operator to send an optional confirmation "just in case".
 
 `⏳ Waiting` covers mail replies, a future date, external recovery and other conditions. Keep what is
 awaited in Subscription and put the next timed check on the card with `board schedule` (load `board-cli`).
@@ -179,9 +184,13 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
 
 ## Summary property and card body
 - **`board note --card <ID> --text '<current state>'`** replaces the card's `Summary` property.
-  Write it when creating a card and refresh it when facts change: what the matter is, where it
-  stands, and what happens next or needs the operator. The operator reads Summary without opening
-  the body; include enough context to understand it without remembering the thread.
+  Write it when creating a card. Apply `status-report`'s zero-context standard, with this card-specific shape: why the matter exists
+  and its goal, the key events needed to understand it, confirmed conclusions and remaining uncertainty,
+  then who actually does what next (or that no action remains). The operator reads it without the body
+  or earlier versions. Rewrite the complete current account when facts change; a "this round" delta
+  cannot replace it. Keep only history that explains the current state, not a chronological research log.
+  State whether the operator must act; an optional draft does not make the card Needs you. Keep the
+  title, Summary, status and NeedsYou consistent about whether the matter is settled or awaiting an answer.
 - On every card update, check the title alongside the state note. When the state, next action or relevant
   date changes, update the title with `board edit --card <ID> --subject '<matter: current state / next step>'`.
   Keep the matter identifiable; a sent draft's title must describe the remaining wait or action. Leave

@@ -67,7 +67,10 @@ Review precedes operator approval; never silently rewrite an approved draft befo
   clears Action, Subscription and all time triggers.
 - **`--due`** stores the deadline. Passing it flags overdue work; it never completes the matter.
 - `board note --card C --text TXT` → replaces the `Summary` property, kept under ~1500 characters.
-  Include the matter, current progress, and next step. The operator reads it without the body or prior context.
+  Follow the Summary shape in the project instructions: origin and goal, essential history, current
+  conclusions and uncertainty, and who does what next. Rewrite the complete current account for a reader
+  with no prior context; keep research details in the log. A resolved matter with no material next action
+  is complete, not waiting for approval of an optional draft.
 - `board log --card C --text TXT` → the append-only timeline in the body: research, actions, raw ids.
 - `board reply --card C --text TXT` → a comment in the card's thread, where he reads answers to what he asked.
 - `board plan --card C --steps 'a|b|c'` (2–5 steps) / `board tick --card C --n <0-based>` → the live checklist.

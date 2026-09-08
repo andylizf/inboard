@@ -206,8 +206,9 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
    Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
 8. **Summary is the operator's overview; the body is the item's working directory and audit.**
-   `board upsert` returns the card id. Write `board note` to replace the Summary property with the matter,
-   current progress, and next step, under ~1500 characters. Refresh it whenever the state changes.
+   `board upsert` returns the card id. Write `board note` to replace the Summary property with the origin
+   and goal, essential history, current conclusions and uncertainty, and who does what next, under ~1500
+   characters. Refresh the whole current account whenever the state changes, not just the latest delta.
    Append research notes, draft history, and actions with `board log --card <CARD_ID> --text '...'`.
    The card body is the record of this
    item's research and drafts — where the matter STANDS goes to memory as well (see 5c/6).
