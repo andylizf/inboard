@@ -244,6 +244,13 @@ not the mail carrying one. **Load the `calendar` skill** for what each setting d
 - A login wall, or any saved credential/password → use the **`cred-login`** skill (a secret broker; the secret
   never enters your context). Both skills carry the full procedure + gotchas; invoke them instead of inlining here.
 
+Checking a portal record includes logging in with available credentials under the existing login/2FA limits.
+A requirement that the operator personally complete a course, sign or attest applies to that act; continue
+the login and status check. Before handing a login back, record the actual credential error, rejected login,
+`twofa-gate` refusal or pending second factor, with tool output or a screenshot. A login form alone is not
+evidence that only the operator can proceed. Keep a blocker scoped to the observed condition when writing
+card notes, memory or wakeup instructions; do not turn it into a standing ban on login or second factors.
+
 ## Second factors ring a phone — gate before you push one
 **Anything that rings his phone — a Duo push, an SMS code, an authenticator prompt, a passkey tap — goes
 through `twofa-gate acquire <service>` first. Exit 1 means STOP, not wait and retry**: put one line on the

@@ -16,7 +16,11 @@ For ANY web task use the **`browser`** command. It drives a persistent REAL HEAD
 **Refs go STALE across page reloads.** After any submit/navigation, re-snapshot before acting again — reusing old refs silently fills detached nodes and the form submits empty.
 
 The Chrome keeps saved logins in its profile, so once a site is logged in it just works across cycles.
-**`browser` will NOT log in** — it pauses on login pages. The moment you hit a login wall, load the **`cred-login`** skill.
+When navigation lands on a login form, load **`cred-login`** and continue with available credentials;
+the browser command does not fill them automatically. A read-only status check can require a login.
+Before a login that may send a second factor, follow **`twofa-gate`**: acquire the gate, proceed once if
+allowed, tell the operator what to approve and any displayed matching code, then continue after approval.
+An actual credential or authentication blocker goes through **`human-gate`**; a login form by itself does not.
 
 **SCREENSHOT AT EVERY CHECKPOINT** — not just the final result. Your TEXT summaries are NOT trusted (they have been contradictory/wrong before, e.g. "login succeeded" and "authentication failed" for the same step). The screenshot is the ground truth the operator checks. Take + upload a screenshot at EACH of: after every login attempt (success OR the exact on-screen error), the instant you hit any gate (2FA, "Authentication failed", a hold/consent page), any error, the pre-submit confirm screen, and the final success/failure. NEVER claim a step succeeded or failed without the screenshot that proves it. Upload with:
 `board image --card <id> --file <screenshot.png> --caption '<one line>'` — NEVER paste a local file path in text (Notion can't render it). Then VERIFY before claiming success.
