@@ -48,7 +48,7 @@ def _sock_candidates():
     return glob.glob(f"/tmp/cc-daemon-{uid}/*/control.sock")
 
 
-def _call(sock_path: str, obj: dict, timeout: float = 5.0) -> dict:
+def _call(sock_path: str, obj: dict, timeout: float = 30.0) -> dict:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.settimeout(timeout)
     try:
@@ -70,7 +70,9 @@ def live_control_sock() -> str:
     failures = []
     for cand in _sock_candidates():
         try:
-            r = _call(cand, {"op": "ping"}, timeout=2.0)
+            # A live daemon took 9s to respond during host swapping. A 2s probe
+            # misclassified it as absent; wait without resending a delivery.
+            r = _call(cand, {"op": "ping"}, timeout=15.0)
             if r.get("ok") and r.get("op") == "ping":
                 return cand
             failures.append(f"{cand}: unexpected ping response")

@@ -1,6 +1,11 @@
 import sys
 from pathlib import Path
 import unittest
+import tempfile
+import shutil
+import subprocess
+import json
+import os
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
@@ -22,3 +27,31 @@ class DiscoveryTests(unittest.TestCase):
         with patch.object(A, '_sock_candidates', return_value=['stale', 'live']), \
              patch.object(A, '_call', side_effect=[ConnectionRefusedError(), {'ok': True, 'op': 'ping'}]):
             self.assertEqual(A.live_control_sock(), 'live')
+
+    def test_launch_wrapper_waits_for_existing_supervisor(self):
+        root_path = Path(__file__).resolve().parents[1]
+        for alive in (True, False):
+            with self.subTest(alive=alive), tempfile.TemporaryDirectory() as td:
+                root = Path(td)
+                (root / '.claude').mkdir()
+                (root / 'bin').mkdir()
+                stub = root / 'bin/claude'
+                stub.write_text('#!/bin/bash\necho spawned\n')
+                stub.chmod(0o755)
+                (root / '.claude/daemon.status.json').write_text(json.dumps(
+                    {'supervisorPid': os.getpid()} if alive else {}))
+                shutil.copy(root_path / 'engines/daemon-launch.sh', root / 'daemon-launch.sh')
+                (root / '_common.sh').write_text('''
+ps() { echo /usr/bin/claude; }
+sleep() { exit 42; }
+export PATH="$HOME/bin:$PATH"
+''')
+                result = subprocess.run(['bash', str(root / 'daemon-launch.sh')],
+                                        env=dict(os.environ, HOME=td, CLAUDE_CODE_OAUTH_TOKEN='test'),
+                                        capture_output=True, text=True)
+                if alive:
+                    self.assertEqual(result.returncode, 42, result.stderr)
+                    self.assertNotIn('spawned', result.stdout)
+                else:
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn('spawned', result.stdout)
