@@ -67,14 +67,17 @@ def _call(sock_path: str, obj: dict, timeout: float = 5.0) -> dict:
 
 def live_control_sock() -> str:
     """The one control.sock whose daemon answers ping with ok:true. Raises if none."""
+    failures = []
     for cand in _sock_candidates():
         try:
             r = _call(cand, {"op": "ping"}, timeout=2.0)
             if r.get("ok") and r.get("op") == "ping":
                 return cand
-        except (OSError, ValueError):
-            continue
-    raise DaemonError("no live Claude Code daemon control socket found")
+            failures.append(f"{cand}: unexpected ping response")
+        except (OSError, ValueError) as exc:
+            failures.append(f"{cand}: {type(exc).__name__}: {exc}")
+    detail = "; ".join(failures) if failures else "no socket paths found"
+    raise DaemonError(f"Claude Code daemon discovery failed: {detail}")
 
 
 def list_jobs(sock: str | None = None) -> list[dict]:
