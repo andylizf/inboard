@@ -184,7 +184,8 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
 
 ## Summary property and card body
 - **`board note --card <ID> --text '<current state>'`** replaces the card's `Summary` property.
-  Write it when creating a card. Apply `status-report`'s zero-context standard, with this card-specific shape: why the matter exists
+  Before writing or updating Summary, load `status-report`. Write Summary when creating a card.
+  Apply its zero-context standard, with this card-specific shape: why the matter exists
   and its goal, the key events needed to understand it, confirmed conclusions and remaining uncertainty,
   then who actually does what next (or that no action remains). The operator reads it without the body
   or earlier versions. Rewrite the complete current account when facts change; a "this round" delta

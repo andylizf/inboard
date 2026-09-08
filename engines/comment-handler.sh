@@ -42,11 +42,16 @@ if [ -n "$CARD" ] && [ -z "$BOT_UID" ]; then
   echo "[$(date)] WARN: board.bot_user_id empty -> self-echo dedup DISABLED (run inboard init or set board.bot_user_id)" >> "$INBOARD_LOGS/webhook.log"
 fi
 if [ -n "$CARD" ] && [ -n "$BOT_UID" ]; then
-  read -r LAST_AUTHOR LAST_ID < <(board comments --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log" | python3 -c 'import json,sys
+  read -r LAST_AUTHOR LAST_ID FAILURE_NOTICE < <(board comments --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log" | python3 -c 'import json,sys
 try: cs=json.load(sys.stdin)
 except Exception: cs=[]
+bot=sys.argv[1]
+def failed(c):
+    return c.get("author")==bot and c.get("text", "").startswith(("⚠️ Handling this comment failed (rc=", "⚠️ 评论交付失败，系统会自动重试。"))
+notice=int(bool(cs and failed(cs[-1])))
+cs=[c for c in cs if not failed(c)]
 c=cs[-1] if cs else {}
-print((c.get("author") or "-"), (c.get("id") or "-"))' 2>>"$INBOARD_LOGS/webhook.log")
+print((c.get("author") or "-"), (c.get("id") or "-"), notice)' "$BOT_UID" 2>>"$INBOARD_LOGS/webhook.log")
   if [ "$LAST_AUTHOR" = "$BOT_UID" ]; then
     echo "[$(date)] newest comment on $CARD is our own bot reply → self-echo/dup, skip (no LLM)" >> "$INBOARD_LOGS/webhook.log"
     exit 0
@@ -85,6 +90,8 @@ redo / send-it / drop) OR a PREFERENCE ('stop surfacing this kind of CI', 'this 
 If a comment has a non-empty \"attachments\" list (the operator pasted a screenshot), run
 \`comment-images --card $CARD\` and Read the returned local paths BEFORE answering — they are
 usually asking about what is IN that image, and answering without looking reads as ignoring them.
+System-generated comment-delivery failure notices are not answers. Ignore those notices when finding
+the latest operator instruction; the target comment id is ${LAST_ID:-$ENT_ID}.
 The ONLY dedup
 that counts: after reading the comments, look at the LATEST comment — if it is the operator's and you have NOT
 already answered it (no bot reply of yours AFTER it), ANSWER it. Skip ONLY when the newest comment is your OWN
@@ -154,7 +161,7 @@ fi
 if [ -n "$CARD" ] && [ -n "$NEWSID" ] && [ "$RC" = 0 ]; then
   board session --card "$CARD" --set "$NEWSID" >>"$INBOARD_LOGS/webhook.log" 2>&1
 fi
-if [ -n "$CARD" ] && [ "$RC" != 0 ]; then
-  board reply --card "$CARD" --text "⚠️ Handling this comment failed (rc=$RC, log comment-$TS). Not completed — comment again to retry." >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
+if [ -n "$CARD" ] && [ "$RC" != 0 ] && [ "${FAILURE_NOTICE:-0}" != 1 ]; then
+  board reply --card "$CARD" --text "⚠️ 评论交付失败，系统会自动重试。你不需要重复评论。（记录 comment-$TS）" >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
 fi
 echo "[$(date)] comment-handler done (card=${CARD:-?} sid=${SID:-${NEWSID:-none}}) rc=$RC" >> "$INBOARD_LOGS/webhook.log"

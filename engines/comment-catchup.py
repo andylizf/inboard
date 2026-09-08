@@ -92,6 +92,13 @@ for p in active:
     if not cs:
         continue
     cs.sort(key=lambda x: x.get("created_time", ""))
+    # A transport failure notice never answers the operator's instruction.
+    cs = [c for c in cs if not (
+        (c.get("created_by") or {}).get("id") == BOT
+        and "".join(x.get("plain_text", "") for x in c.get("rich_text", [])).startswith(
+            ("⚠️ Handling this comment failed (rc=", "⚠️ 评论交付失败，系统会自动重试。")))]
+    if not cs:
+        continue
     last = cs[-1]
     if (last.get("created_by") or {}).get("id") == BOT:
         continue  # already answered
