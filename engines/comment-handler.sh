@@ -162,6 +162,6 @@ if [ -n "$CARD" ] && [ -n "$NEWSID" ] && [ "$RC" = 0 ]; then
   board session --card "$CARD" --set "$NEWSID" >>"$INBOARD_LOGS/webhook.log" 2>&1
 fi
 if [ -n "$CARD" ] && [ "$RC" != 0 ] && [ "${FAILURE_NOTICE:-0}" != 1 ]; then
-  board reply --card "$CARD" --text "⚠️ 评论交付失败，系统会自动重试。你不需要重复评论。（记录 comment-$TS）" >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
+  board reply --card "$CARD" --text "⚠️ 评论交付失败，系统会自动重试。你不需要重复评论。（记录 comment-${TS}）" >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
 fi
 echo "[$(date)] comment-handler done (card=${CARD:-?} sid=${SID:-${NEWSID:-none}}) rc=$RC" >> "$INBOARD_LOGS/webhook.log"

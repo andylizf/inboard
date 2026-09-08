@@ -23,12 +23,13 @@ class CommentRecoveryTests(unittest.TestCase):
         return rows
 
     def test_handler_recovers_failure_but_skips_real_answer(self):
-        for answered in (False, True):
-            with self.subTest(answered=answered), tempfile.TemporaryDirectory() as td:
+        for answered, failure in ((False, False), (True, False), (False, True)):
+            with self.subTest(answered=answered, failure=failure), tempfile.TemporaryDirectory() as td:
                 root = Path(td)
                 for name in ('agent', 'state', 'logs', 'engines'):
                     (root / name).mkdir()
-                (root / 'comments.json').write_text(json.dumps(self.comments(answered)))
+                rows = self.comments(answered) if not failure else self.comments()[:1]
+                (root / 'comments.json').write_text(json.dumps(rows))
                 shutil.copy(ROOT / 'engines/comment-handler.sh', root / 'engines/comment-handler.sh')
                 (root / 'engines/_common.sh').write_text('''
 cfg() { case "$1" in board.bot_user_id) echo bot;; agent.delivery) echo daemon;; *) echo "${2:-}";; esac; }
@@ -37,12 +38,13 @@ lock_or_exit() { :; }
 sleep() { :; }
 prep_session() { SID=""; }
 card_agent_name() { echo "inboard-card-$1"; }
-deliver_to_daemon() { printf '%s' "$3" > "$INBOARD_HOME/delivered"; DAEMON_SID=""; }
+deliver_to_daemon() { printf '%s' "$3" > "$INBOARD_HOME/delivered"; DAEMON_SID=""; return "${TEST_DELIVERY_RC:-0}"; }
 valid_uuid() { return 1; }
 SESSION_NOTICE=""; GOAL_TRAILER=""; MORTAL_TRAILER=""
 ''')
                 env = dict(os.environ, INBOARD_HOME=td, INBOARD_STATE=str(root / 'state'),
-                           INBOARD_LOGS=str(root / 'logs'), NOTION_TOKEN_V2='')
+                           INBOARD_LOGS=str(root / 'logs'), NOTION_TOKEN_V2='',
+                           TEST_DELIVERY_RC='1' if failure else '0')
                 result = subprocess.run(['bash', str(root / 'engines/comment-handler.sh'),
                                          json.dumps({'entity': {'type': 'page', 'id': 'card'}})],
                                         env=env, capture_output=True, text=True)
@@ -50,7 +52,11 @@ SESSION_NOTICE=""; GOAL_TRAILER=""; MORTAL_TRAILER=""
                 self.assertEqual((root / 'delivered').exists(), not answered)
                 if not answered:
                     self.assertIn('target comment id is human-comment', (root / 'delivered').read_text())
-                    self.assertTrue((root / 'state/.picked-card').read_text().startswith('human-comment '))
+                    if failure:
+                        self.assertIn('评论交付失败，系统会自动重试。', (root / 'board-calls').read_text())
+                        self.assertFalse((root / 'state/.picked-card').exists())
+                    else:
+                        self.assertTrue((root / 'state/.picked-card').read_text().startswith('human-comment '))
 
     def test_catchup_selects_original_comment_after_failure(self):
         for answered in (False, True):
