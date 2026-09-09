@@ -315,6 +315,9 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
                     f"{name} came back blocked ({job.get('needs') or 'unknown'}) — "
                     "the daemon itself is unauthenticated; check its env carries a token")
             short = job["short"]
+    # Bind before delivery: a short turn can reach Stop before the caller writes Session.
+    from card_hooks import bind_session
+    bind_session(name, (job or {}).get("sessionId", ""))
     r = _reply_with_retry(short, text, sock)
     # Hand the caller the session this actually landed in. The card records a session id, and
     # under daemon delivery nothing was writing it back — so a card kept naming the session that

@@ -1,3 +1,7 @@
 {
-  "model": "opus"
+  "model": "opus",
+  "hooks": {
+    "Stop": [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"", "timeout": 30}]}],
+    "StopFailure": [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"", "timeout": 30}]}]
+  }
 }
