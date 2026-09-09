@@ -13,6 +13,22 @@ import agent_deliver as A
 
 
 class DiscoveryTests(unittest.TestCase):
+    def test_spawn_does_not_consume_controller_input(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            stub = root / 'claude'
+            stub.write_text('#!/bin/bash\ncat > inherited-input\necho "backgrounded · abcdef12 · test"\n')
+            stub.chmod(0o755)
+            driver = root / 'driver.py'
+            driver.write_text(
+                f'import sys\nsys.path.insert(0, {str(Path(A.__file__).parent)!r})\n'
+                f'import agent_deliver as A\nprint(A.spawn("test", {td!r}))\n')
+            result = subprocess.run([sys.executable, str(driver)], input='controller-only instruction\n',
+                                    env=dict(os.environ, PATH=td + os.pathsep + os.environ['PATH']),
+                                    capture_output=True, text=True, check=True)
+            self.assertEqual(result.stdout.strip(), 'abcdef12')
+            self.assertEqual((root / 'inherited-input').read_text(), '')
+
     def test_errors_distinguish_timeout_refusal_and_missing_socket(self):
         for error in (TimeoutError('timed out'), ConnectionRefusedError('refused')):
             with self.subTest(error=error), patch.object(A, '_sock_candidates', return_value=['test.sock']), \
@@ -42,11 +58,15 @@ class DiscoveryTests(unittest.TestCase):
                     {'supervisorPid': os.getpid()} if alive else {}))
                 shutil.copy(root_path / 'engines/daemon-launch.sh', root / 'daemon-launch.sh')
                 (root / '_common.sh').write_text('''
-ps() { echo /usr/bin/claude; }
-sleep() { exit 42; }
 export PATH="$HOME/bin:$PATH"
 ''')
-                result = subprocess.run(['bash', str(root / 'daemon-launch.sh')],
+                # Process mocks must exist before the launcher reads credentials.
+                result = subprocess.run(['bash', '-c', '''
+ps() { echo /usr/bin/claude; }
+sleep() { exit 42; }
+export -f ps sleep
+exec bash "$1"
+''', 'bash', str(root / 'daemon-launch.sh')],
                                         env=dict(os.environ, HOME=td, CLAUDE_CODE_OAUTH_TOKEN='test'),
                                         capture_output=True, text=True)
                 if alive:

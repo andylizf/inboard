@@ -196,7 +196,7 @@ def spawn(name: str, cwd: str, allowed_tools: str = "Bash,Read,Write,Task,WebSea
     # out every worker came up blocked and swallowed twelve hours of deliveries.
     out = subprocess.run(
         ["claude", "--bg", "-n", name, "--allowedTools", allowed_tools],
-        cwd=cwd, capture_output=True, text=True, timeout=60,
+        cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=60,
     )
     # First line: "backgrounded · <short> · <name> ...". Parse the short id.
     line = (out.stdout or "").splitlines()[0] if out.stdout else ""
