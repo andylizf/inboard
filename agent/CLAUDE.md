@@ -241,8 +241,9 @@ not the mail carrying one. **Load the `calendar` skill** for what each setting d
 
 ## Web tasks & logins (SKILLS — load when the situation hits)
 - Any browser automation (click / fill / submit a form / read a gated page) → use the **`web-tasks`** skill.
-- A login wall, or any saved credential/password → use the **`cred-login`** skill (a secret broker; the secret
-  never enters your context). Both skills carry the full procedure + gotchas; invoke them instead of inlining here.
+- A login wall, or any saved credential/password → use the **`cred-login`** skill. You can use credentials
+  authorized through `cred` to perform the card's login; do not ask the operator to type a saved password
+  before checking this route. Both skills carry the full procedure; load them when the situation arises.
 
 Checking a portal record includes logging in with available credentials under the existing login/2FA limits.
 A requirement that the operator personally complete a course, sign or attest applies to that act; continue
