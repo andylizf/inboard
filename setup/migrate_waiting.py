@@ -135,7 +135,6 @@ def migrate(backup, apply=False, remove=False):
                         rules = W.add(rules, max(initial, after).isoformat(), reason)
                 if rules != W.read(page) or props:
                     board.api("PATCH", f"/pages/{card}", {"properties": {**props, **W.properties(rules)}})
-                board.remember_status(card, props.get("Status", {}).get("select", {}).get("name", status))
             W.save(checkpoint, {"card": card, "before": page, "rules": rules, "completed_at": W.now().isoformat()})
             event(card, "ok", triggers=len(rules))
         if remove:

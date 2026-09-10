@@ -155,7 +155,6 @@ def dispatch(card, prompt):
                 status = C.ACTION_STATUS.get(request['action'])
                 if status:
                     board.api('PATCH', f'/pages/{card}', {'properties': {'Status': {'select': {'name': C.status_name(status)}}}})
-                    board.remember_status(card, C.status_name(status))
                 progress(board, card, record, '⏳ 正在启动 · ' + request['action'])
                 token = request['token']
                 instructions = (f"\nCURRENT OPERATION {token}: this replaces any older button request. "

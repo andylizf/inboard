@@ -196,6 +196,9 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
   date changes, update the title with `board edit --card <ID> --subject '<matter: current state / next step>'`.
   Keep the matter identifiable; a sent draft's title must describe the remaining wait or action. Leave
   the title unchanged when only the audit log gains detail and the current state and next step are unchanged.
+  When a matter returns to Needs you, say in the title and opening of Summary what was already completed,
+  what new reply or event changed the next step, and what approval or action is now needed. Distinguish
+  a new draft from the one already sent; a failed send must say it failed rather than look like a new request.
 - **`board log`** stays the append-only timeline in the body (research notes, actions taken, raw ids) — the
   audit trail, not the summary. Never make the operator reconstruct current state from the log.
 

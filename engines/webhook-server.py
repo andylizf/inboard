@@ -72,7 +72,9 @@ class H(BaseHTTPRequestHandler):
         # 3) ack fast, then react
         self.send_response(200); self.end_headers(); self.wfile.write(b"ok")
         ev = data.get("type", "")
-        log(f"event={ev} entity={json.dumps(data.get('entity', {}))[:120]}")
+        log(f"event={ev} entity={json.dumps(data.get('entity', {}))[:120]} "
+            f"authors={json.dumps(data.get('authors', []))} "
+            f"updated_properties={json.dumps(data.get('data', {}).get('updated_properties', []))}")
         # Human comment → comment-handler (instant reaction to what they typed).
         if ev == "comment.created":
             subprocess.Popen(["bash", os.path.join(ENGINES, "comment-handler.sh"), json.dumps(data)],
@@ -84,10 +86,8 @@ class H(BaseHTTPRequestHandler):
             if eid:
                 subprocess.Popen(["bash", os.path.join(ENGINES, "action-handler.sh"), eid],
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                # Notion sends nothing for this integration's own writes, so an event here is a
-                # person editing the card. Only the Action chips are meant to move a card; a dragged
-                # Status is invisible to every engine, which is why it gets put back.
-                subprocess.Popen(["bash", os.path.join(ENGINES, "status-guard.sh"), eid],
+                # Bot edits also produce events. Only explicit human edits may be restored.
+                subprocess.Popen(["bash", os.path.join(ENGINES, "status-guard.sh"), eid, json.dumps(data)],
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def log_message(self, *a):

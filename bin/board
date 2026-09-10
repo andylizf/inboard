@@ -27,7 +27,7 @@ S = C.STATUS
 ACTION_PLACEHOLDER = C.ACTION_PLACEHOLDER
 
 
-def api(method, path, body=None):
+def _api(method, path, body=None):
     req = urllib.request.Request(
         "https://api.notion.com/v1" + path,
         data=json.dumps(body).encode() if body is not None else None, method=method,
@@ -41,23 +41,77 @@ def api(method, path, body=None):
         raise
 
 
-def remember_status(card, display):
-    """Record the Status this tool just wrote, so a later change can be recognised as not ours.
+def api(method, path, body=None):
+    status = (body or {}).get('properties', {}).get('Status', {}).get('select', {}) or {}
+    if method == 'PATCH' and path.startswith('/pages/') and status.get('name'):
+        card = path.rsplit('/', 1)[-1]
+        # The guard must not see the new page with the previous local status record.
+        with AR.lock(card, 'status'):
+            result = _api(method, path, body)
+            remember_status(card, status['name'])
+            return result
+    result = _api(method, path, body)
+    if method == 'POST' and path == '/pages' and status.get('name'):
+        with AR.lock(result['id'], 'status'):
+            remember_status(result['id'], status['name'])
+    return result
 
-    Notion does not deliver a webhook for a change made by the same integration, so every
-    properties_updated event we receive came from a person. Comparing against this file is how the
-    guard knows WHICH status to put back."""
+
+def remember_status(card, display):
+    """Record an accepted status while holding the card's status lock."""
     if not card or not display:
         return
     d = os.path.join(os.environ.get("INBOARD_STATE") or
                      os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "state"),
                      "status")
+    record = os.path.join(d, card)
     try:
         os.makedirs(d, exist_ok=True)
-        with open(os.path.join(d, card), "w") as f:
+        with open(record + '.tmp', "w") as f:
             f.write(display)
+        os.replace(record + '.tmp', record)
     except OSError:
-        pass          # a lost record only means the guard declines to act, never that it acts wrongly
+        # A stale record could undo the successful remote write. Remove it before reporting failure.
+        if os.path.exists(record):
+            os.unlink(record)
+        raise
+
+
+def guard_status(a):
+    event = json.loads(a.event)
+    authors = event.get('authors') or []
+    if (event.get('type') != 'page.properties_updated'
+            or event.get('entity', {}).get('id') != a.card
+            or not authors or any(x.get('type') != 'person' for x in authors)):
+        return
+    with AR.lock(a.card, 'status'):
+        record = os.path.join(os.environ.get('INBOARD_STATE') or os.path.join(C.home(), 'state'),
+                              'status', a.card)
+        if not os.path.isfile(record):
+            return
+        with open(record) as f:
+            want = f.read().strip()
+        page = _api('GET', '/pages/' + a.card)
+        status = page.get('properties', {}).get('Status', {})
+        now = (status.get('select') or {}).get('name')
+        # Aggregated or delayed notifications must not undo a later agent write.
+        if (not want or not now or now == want
+                or status.get('id') not in event.get('data', {}).get('updated_properties', [])
+                or page.get('last_edited_by', {}).get('id') not in {x.get('id') for x in authors}
+                or not event.get('timestamp') or not page.get('last_edited_time')
+                or datetime.fromisoformat(page['last_edited_time'].replace('Z', '+00:00')) >
+                   datetime.fromisoformat(event['timestamp'].replace('Z', '+00:00'))):
+            return
+        action = AR.effective_action(page)
+        if action and action != ACTION_PLACEHOLDER:
+            return
+        _api('PATCH', '/pages/' + a.card, {'properties': {
+            'Status': {'select': {'name': want}}, **touched()}})
+        remember_status(a.card, want)
+    print(json.dumps({'status-restored': a.card, 'from': now, 'to': want}, ensure_ascii=False))
+    reply(argparse.Namespace(card=a.card, text=
+        f'状态被手动改成「{now}」，已经改回「{want}」。请使用右上角的动作，或在评论里说明下一步：'
+        '继续处理会唤醒 agent；忽略/归档表示取消；确认完成表示事情已经做完。'))
 
 
 def touched():
@@ -138,13 +192,11 @@ def upsert(a):
     ex = find_card(a.msgid)
     if ex:
         api("PATCH", f"/pages/{ex['id']}", {"properties": props})
-        remember_status(ex["id"], C.status_name(a.status))
         print(json.dumps({"updated": ex["id"]}))
     else:
         if C.status_name(a.status) not in {C.status_name(k) for k in CLOSED_KEYS}:
             props["Action"] = {"select": {"name": ACTION_PLACEHOLDER}}
         r = api("POST", "/pages", {"parent": {"database_id": DB}, "properties": props})
-        remember_status(r["id"], C.status_name(a.status))
         print(json.dumps({"created": r["id"]}))
 
 
@@ -272,7 +324,6 @@ def done(a):
     # Subscription (matter resolved → future matching mail becomes noise). This is a record, NOT archive.
     api("PATCH", f"/pages/{a.card}", {"properties": {"Status": {"select": {"name": S["done"]}},
         **closing_props(S["done"]), **touched()}})
-    remember_status(a.card, S["done"])
     print(json.dumps({"done": a.card}))
 
 
@@ -285,7 +336,6 @@ def awaiting(a):
     if a.desc is not None:
         props["Subscription"] = {"rich_text": ([{"text": {"content": a.desc[:1900]}}] if a.desc else [])}
     api("PATCH", f"/pages/{a.card}", {"properties": props})
-    remember_status(a.card, S["awaiting"])
     print(json.dumps({"awaiting": a.card}))
 
 
@@ -601,8 +651,6 @@ def edit(a):
     if a.status is not None:
         props.update(closing_props(C.status_name(a.status)))
     api("PATCH", f"/pages/{a.card}", {"properties": {**props, **touched()}})
-    if a.status is not None:
-        remember_status(a.card, C.status_name(a.status))
     print(json.dumps({"edited": a.card}))
 
 
@@ -725,6 +773,7 @@ def main():
         receipt = sub.add_parser(command); receipt.add_argument('--card', required=True); receipt.add_argument('--text', default='')
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
     so = sub.add_parser("statusof"); so.add_argument("--card", required=True)
+    sg = sub.add_parser('guard-status'); sg.add_argument('--card', required=True); sg.add_argument('--event', required=True)
     l = sub.add_parser("log"); l.add_argument("--card", required=True); l.add_argument("--text", required=True)
     nt = sub.add_parser("note"); nt.add_argument("--card", required=True); nt.add_argument("--text", required=True)
     dl = sub.add_parser("daily"); [dl.add_argument("--" + x) for x in ["subject", "type", "account", "detail"]]
@@ -770,7 +819,7 @@ def main():
         if not DB and a.cmd != "whoami":
             sys.exit("board: board.database_id not configured — run `inboard init`.")
     {"action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
-     "upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "log": log, "note": note,
+     "upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "guard-status": guard_status, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,
      "subscriptions": subscriptions, "cards": cards, "search": search, "schedule": schedule, "unschedule": unschedule, "schedules": schedules, "wake-ack": wake_ack, "edit": edit, "status-for": status_for,
