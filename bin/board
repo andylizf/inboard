@@ -761,6 +761,11 @@ def whoami(_):
     print(r.get("id") or "")
 
 
+def approved_draft(a):
+    page = api('GET', f'/pages/{a.card}')
+    print(AR.require_approved_draft(a.card, a.operation, page))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -769,6 +774,7 @@ def main():
     sub.add_parser("pending")
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
     arq = sub.add_parser('action-request'); arq.add_argument('--card', required=True)
+    ad = sub.add_parser('approved-draft'); ad.add_argument('--card', required=True)
     for command in ('action-start', 'action-fail'):
         receipt = sub.add_parser(command); receipt.add_argument('--card', required=True); receipt.add_argument('--text', default='')
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
@@ -818,7 +824,7 @@ def main():
             sys.exit("board: Notion token not configured — put it in .env (run `inboard init`).")
         if not DB and a.cmd != "whoami":
             sys.exit("board: board.database_id not configured — run `inboard init`.")
-    {"action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
+    {"approved-draft": approved_draft, "action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
      "upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "guard-status": guard_status, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,

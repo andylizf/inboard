@@ -101,6 +101,56 @@ class ActionRunsTests(unittest.TestCase):
             deliver.assert_not_called()
             self.assertEqual(A.read('test-card'), old)
 
+    def approved_page(self, action='Send'):
+        source = page(action)
+        preview = ('Action: GitHub comment\nAccount: example-user\n'
+                   'Target: https://github.com/example/project/issues/1\n\n---\n\nThanks for checking.')
+        for name in ('Draft', A.APPROVED_DRAFT):
+            source['properties'][name] = {'rich_text': A.W.text(preview)}
+        return source, preview
+
+    def test_native_action_approval_needs_no_gmail_draft(self):
+        source, preview = self.approved_page()
+        record = self.record(source)
+        with patch.object(A.C, 'get', return_value='Send'):
+            self.assertEqual(A.require_approved_draft(source['id'], record['token'], source), preview)
+
+    def test_non_send_action_cannot_approve_matching_preview(self):
+        source, _ = self.approved_page('Continue')
+        record = self.record(source)
+        with patch.object(A.C, 'get', return_value='Send'), self.assertRaisesRegex(RuntimeError, 'not a send'):
+            A.require_approved_draft(source['id'], record['token'], source)
+
+    def test_approval_checks_target_account_action_and_body(self):
+        source, preview = self.approved_page()
+        record = self.record(source)
+        for old, new in [('issues/1', 'issues/2'), ('example-user', 'another-user'),
+                         ('GitHub comment', 'Close issue'), ('Thanks', 'Sorry')]:
+            changed = copy.deepcopy(source)
+            changed['properties']['Draft'] = {'rich_text': A.W.text(preview.replace(old, new))}
+            with self.subTest(old=old), patch.object(A.C, 'get', return_value='Send'), \
+                    self.assertRaisesRegex(RuntimeError, '草稿已修改'):
+                A.require_approved_draft(source['id'], record['token'], changed)
+
+    def test_missing_superseded_and_finished_tokens_cannot_read_approval(self):
+        source, _ = self.approved_page()
+        record = self.record(source)
+        for token in (None, 'older-token'):
+            with self.assertRaisesRegex(RuntimeError, 'superseded'):
+                A.require_approved_draft(source['id'], token, source)
+        record['phase'] = 'done'
+        A.save(source['id'], record)
+        with self.assertRaisesRegex(RuntimeError, 'no longer active'):
+            A.require_approved_draft(source['id'], record['token'], source)
+
+    def test_attempted_email_requires_result_verification(self):
+        source, _ = self.approved_page()
+        record = self.record(source)
+        record['sent'] = True
+        A.save(source['id'], record)
+        with patch.object(A.C, 'get', return_value='Send'), self.assertRaisesRegex(RuntimeError, 'already attempted'):
+            A.require_approved_draft(source['id'], record['token'], source)
+
 
 if __name__ == '__main__':
     unittest.main()

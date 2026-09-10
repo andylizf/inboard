@@ -19,7 +19,7 @@ ACTION=$(board actionof --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log")
 if [ -n "$(board action-request --card "$CARD")" ]; then
   PROMPT="The operator picked Action='__ACTION__' on card $CARD.
 Read the card and handle this action per the card-actions skill. Use board plan and board tick to show progress.
-Email may leave only for the configured send action and only via email gmail +send-approved.
+For the configured send action, follow card-actions: check current facts, validate the approved preview, then execute with the destination's tool. Email uses email gmail +send-approved.
 Complete all card updates and the final receipt before clearing the operation.
 $GOAL_TRAILER
 $MORTAL_TRAILER"
@@ -62,7 +62,7 @@ $SESSION_NOTICE
 FIRST post a live plan so they can watch: \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 steps); \`board tick --card $CARD --n <0-based>\` the instant each step is done.
 Then read the card (subject, draft, needs, body) and handle Action='$ACTION' EXACTLY per the **card-actions** skill (load it) — that playbook, including its daily-log step when a daily log is configured, is the single source of truth; do not improvise a different flow.
 Finish: \`board clear-action --card $CARD\` (so it can be re-triggered), then \`board reply --card $CARD --text '<one line: what you did>'\` so they see it in the thread.
-Email may leave ONLY when this Action is the send action, and ONLY via the +send-approved path in §A; for every other action, drafts only — never send.
+Outward messages and submissions require the send action and the current-facts/approval checks in card-actions. Email uses +send-approved; other destinations use their native tools.
 $GOAL_TRAILER
 $MORTAL_TRAILER"
 if [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then

@@ -8,6 +8,23 @@ description: The `board` and `email` command reference AND the rules bound to sp
 `board`, `email` and `cfg` are on PATH; the proxy and the Notion token are already set. `cfg <key>` reads
 any value from the deployment's config (`cfg identity.name`, `cfg preferences.calendar_events`).
 
+### Drafts and approval
+
+The card's Draft is a preview of a proposed outward action, including email, a GitHub comment or a form
+submission. Before staging text, apply `writing-for-people` and its review procedure; log review evidence
+on the card. For non-email actions use `board edit --card C --draft TEXT`: include the action and platform,
+sending account, exact destination URL or recipient, and the full content or submitted fields. A comment
+and closing a PR are separate actions; show each proposed action explicitly rather than inferring one
+from the other's wording. Keep the preview self-contained so the operator can approve it without reading
+the log. Preview labels describe the operation; publish only its content, without those labels.
+Changes to any of these details require a new send click.
+
+`board approved-draft --card C --operation TOKEN` returns the approved current preview, or fails if the
+operation is stale, is not a send action, or the preview changed. It requires the token delivered for
+this click and does not send anything. Follow `card-actions` to check current facts before executing the
+approved action with the platform's own tools. Gmail keeps the helper below; other platforms need no Gmail
+draft. Pass `--operation TOKEN` on card updates during the operation.
+
 ### Gmail, per account
 
 Account ids come from `board accounts` (each row: `id`, `label`, `address`). Then `email <id> gmail ...`.
@@ -35,7 +52,7 @@ Review precedes operator approval; never silently rewrite an approved draft befo
   (`+reply`, `+compose-draft`, `users drafts create`) are refused. The Draft field holds the latest draft;
   earlier ones remain in the log for audit. Sending requires the current card preview to match the
   preview approved by the operator's latest send click.
-- **Send:** every send is blocked except `+send-approved --card <CARD> --draft-id <ID>`, which requires the
+- **Send:** the email wrapper blocks every send except `+send-approved --card <CARD> --draft-id <ID>`, which requires the
   operator to have tapped the send chip on that card. Its full procedure, including what to do when it
   fails, is in `card-actions`. Everything else you write is a draft.
 

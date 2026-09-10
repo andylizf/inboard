@@ -98,6 +98,15 @@ def require_current(card, token, page):
     return record
 
 
+def require_approved_draft(card, token, page):
+    record = require_current(card, token, page)
+    if record['action'] != C.get('board.schema.send_action', ''):
+        raise RuntimeError('This operation is not a send approval.')
+    if record.get('sent'):
+        raise RuntimeError('Sending was already attempted. Verify the result before retrying.')
+    return approved_draft(page)
+
+
 def progress(board, card, record, message):
     # Results carry their request key. A later click stays visible even if it races this PATCH.
     board.api('PATCH', f'/pages/{card}', {'properties': {
@@ -160,7 +169,9 @@ def dispatch(card, prompt):
                 instructions = (f"\nCURRENT OPERATION {token}: this replaces any older button request. "
                     f"FIRST run `board action-start --card {card} --operation {token}`. "
                     f"Pass `--operation {token}` on every board command that changes this card and on "
-                    "`email ... gmail +send-approved`. Stop immediately if a tool says superseded. "
+                    "`email ... gmail +send-approved`. Before an approved send, follow card-actions: "
+                    "re-read the relevant current sources, then run `board approved-draft` with this card/operation. "
+                    "Stop immediately if a tool says superseded. "
                     f"Finish with `board clear-action --card {card} --operation {token}`. "
                     "If unable to complete the operation, use `board action-fail` with the same card/operation "
                     "and --text describing the problem. Completing an operation does not mean the matter is done.\n")
