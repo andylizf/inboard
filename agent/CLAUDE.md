@@ -123,8 +123,15 @@ draft for approval when email is the way to resolve it. If the original question
 confirmation adds no material benefit, finish the card and remove the redundant draft and triggers.
 Do not call a matter settled while asking the operator to send an optional confirmation "just in case".
 
-`⏳ Waiting` covers mail replies, a future date, external recovery and other conditions. Keep what is
-awaited in Subscription and put the next timed check on the card with `board schedule` (load `board-cli`).
+Choose Status from who must act next, independently of urgency or reminder timing. An invitation or
+opportunity retained for the operator to decide belongs in `needs_you`, even if responding is optional
+or the deadline is distant. State the decision plainly; do not also say that no operator action is needed.
+If it is only information with no decision to retain, handle it as FYI under the rules above.
+`⏳ Waiting` requires a concrete external condition preventing the next step, such as a reply to a sent
+request, registration opening, or service recovery. An explicit operator instruction to defer a decision
+until a stated date also qualifies. A future reminder you chose, or a subscription to possible new mail,
+does not qualify while a decision is already his to make. Record the actual waiting condition in
+Subscription and put the next timed check on the card with `board schedule` (load `board-cli`).
 Every unfinished card, including `needs_you`, needs a next timed review; a mail Subscription alone
 cannot revive a matter if nobody writes back. Choose the time from the deadline or expected response
 window. With neither, use 3 days; after an unchanged review, use 7 days if no nearer deadline needs
