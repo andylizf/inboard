@@ -231,6 +231,8 @@ def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
                       "Only use needs_you when the operator has a concrete action now. "
                       "Due passing alone never proves completion. Log checked sources, changes and unknowns; "
                       "update Summary and title when facts change. An unchanged review only needs a log and next check. "
+                      "Routine completion and obsolete-reminder cleanup also need only card records, not a comment or notification. "
+                      "Notify for a newly required operator action, a material change in its urgency or arrangement, or a requested report or reminder. "
                       "This wakeup creates no send approval. Follow card-actions for any separately approved operation. Silence is not approval. "
                       "Do not retry login or second-factor prompts during review. "
                       f"Finish with board wake-ack --card {card} --token {token}. "

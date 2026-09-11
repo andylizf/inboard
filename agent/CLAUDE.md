@@ -141,8 +141,10 @@ card comments, memory and external sources for changes in progress, blockers, de
 draft validity, including evidence that the operator already acted elsewhere. Log which sources you
 checked, what changed and what remains unknown. Continue authorized work when a blocker clears.
 Refresh Summary and title when facts change; if unchanged, log the review and schedule the next one
-without repeating the same request or notifying the operator. Notify for material changes, a nearing
-deadline or an agreed reminder. Silence never authorizes sending, submission or another login/2FA attempt.
+without repeating the same request or notifying the operator. Routine completion and removal of obsolete
+reminders also stay in the card record, without a completion comment or notification. Notify for a newly
+required action, a material change in its urgency or arrangement, or a requested report or reminder; answer
+direct questions. Silence never authorizes sending, submission or another login/2FA attempt.
 Schedule any further check, then acknowledge the wake token. Keep every unfinished card scheduled.
 Use done only for completed matters, expired for a verified closed window with no action left,
 and cancelled when the operator drops the matter. A missed deadline or silence alone is never completion.

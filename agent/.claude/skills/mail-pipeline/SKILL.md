@@ -52,7 +52,9 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       `board log --card <ID> --text '<one-line update>'`, then set that card's Status to match reality:
       · **the reply RESOLVES it** (handled / no further action) → `board done --card <ID>` so the card they
         tracked as UNFINISHED visibly flips to `✅ Done` (**NEVER** leave a card they think is open sitting open
-        after a reply resolved it); note what resolved it via `board reply --card <ID> --text '...'`.
+        after a reply resolved it); record the resolution in Summary and `board log` without a completion
+        comment. Reply only to answer his question, provide a requested report, or surface a newly required
+        action or material change in its urgency or arrangement.
       · **it still needs their action** → `board edit --card <ID> --status '⏸ Needs you'`; open Summary with the required action using `board note`.
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed as `handled` — the disposition for mail that belonged to an
