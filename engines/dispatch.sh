@@ -277,7 +277,7 @@ else
   echo "[$(date)] WARN daemon_stall_check failed ($n in a row) — stranded taps go unnoticed while this is down" >>"$LOG"
   [ "$n" -ge 3 ] && { echo "[$(date)] daemon_stall_check has failed $n cycles running" | tee -a "$INBOARD_LOGS/agent.log" >>"$LOG"; exit 1; }
 fi
-# Priority is derived, not stored: recolour every card from Due/NeedsYou/Status so the
+# Priority is derived, not stored: recolour every card from Due/Status so the
 # strip a glance lands on can never disagree with the properties underneath it.
 board covers >>"$LOG" 2>&1 || true
 # The operator edits preferences in the Notion panel; pull them in each cycle so a

@@ -51,7 +51,7 @@ and parameterized.
 ```
 
 **Board.** One card per matter. Properties: `Subject` (scannable title), `Sender`, `Account`, `Status`,
-`NeedsYou`, `Draft`, `Action` (tappable), `Subscription`, `MsgID`. Statuses: `🔍 Researching`
+`Summary`, `Draft`, `Action` (tappable), `Subscription`, `MsgID`. Statuses: `🔍 Researching`
 `⏳ Waiting` `⏸ Needs you` `✅ Done` `⌛ Expired` `✖ Cancelled` `🚫 Unsubscribed`.
 Researching covers queued and active agent work; Needs you identifies an operator decision or action.
 

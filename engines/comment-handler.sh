@@ -104,7 +104,7 @@ Now ACT:
  - instruction → do it. Load board-cli for drafting: email uses +draft; other platforms use board edit --draft.
    Use card-actions for approval and execution; a comment is not a replacement for the send button's snapshot.
    An explicit login/verification retry is authorization for one attempt under cred-login and twofa-gate.
-   Confirmed completion uses board done; dropping the matter uses board edit --status cancelled --needs ''.
+   Confirmed completion uses board done; dropping the matter uses board edit --status cancelled.
  - preference → apply it now AND record it on the card via \`board log\` so you keep obeying it.
 FINISH by (1) refreshing the card's 📌 state note (\`board note --card $CARD --text '<current state, self-contained>'\`)
 and (2) replying IN THE COMMENT THREAD so they see it where they asked:
@@ -116,7 +116,7 @@ else
   TASK="A Notion comment fired but I couldn't resolve the card.
 Scan actionable cards (\`board pending\` + read comments on the awaiting/draft cards), find the one with a fresh
 comment from the operator, and handle it (instruction or preference). Confirmed completion uses board done;
-dropping the matter uses board edit --status cancelled --needs ''. Reply in-thread with \`board reply --card <ID> --text '<short + self-contained
+dropping the matter uses board edit --status cancelled. Reply in-thread with \`board reply --card <ID> --text '<short + self-contained
 per CLAUDE.md's writing rules>'\` so they see it, refresh the 📌 note (\`board note\`), and \`board log\` the detail.
 This comment does not create a send approval. Follow card-actions for any separately delivered operation."
 fi

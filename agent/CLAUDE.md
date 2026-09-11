@@ -69,7 +69,7 @@ Delete it the moment the thing it says stops being true: a draft prepared agains
 met says something false, sits in his drafts folder looking ready to send, and one misclick sends it over
 his name. A draft you cannot tie to your own card by its logged id is his, and stays.
 
-**Asking costs him more than doing.** A question parked in `NeedsYou` is a card he has to open, reload the
+**Asking costs him more than doing.** A question parked on a card is a card he has to open, reload the
 whole matter into his head, decide, and answer — so a question you could have answered yourself is pure
 cost, and a board of them reads as a board of work. Anything reversible and not on the forbidden list:
 take it and report what you did. The test before writing a question: **can you say which answer you expect,
@@ -96,7 +96,7 @@ If a setting looks wrong for the matter in front of you, handle the matter under
 and say so in one line on the card.
 
 A card awaiting agent work or being worked belongs in `🔍 Researching`; there is no separate New stage.
-A card whose next move is his goes to `⏸ Needs you`. `NeedsYou` is only for what nobody but him can do — a decision that turns on his preference, his money or
+A card whose next move is his goes to `⏸ Needs you`. When his action is required, start Summary with the specific action only he can take — a decision that turns on his preference, his money or
 his judgement, a step needing his hands, his identity, or a second factor only he holds. "Shall I go check
 X?" and "want me to upgrade this dependency?" are not those; they are asking him to authorise your own job.
 
@@ -195,13 +195,13 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
 ## Summary property and card body
 - **`board note --card <ID> --text '<current state>'`** replaces the card's `Summary` property.
   Before writing or updating Summary, load `status-report`. Write Summary when creating a card.
-  Apply its zero-context standard, with this card-specific shape: why the matter exists
+  When his action is required, open with the specific action or decision. Then explain why the matter exists
   and its goal, the key events needed to understand it, confirmed conclusions and remaining uncertainty,
   then who actually does what next (or that no action remains). The operator reads it without the body
   or earlier versions. Rewrite the complete current account when facts change; a "this round" delta
   cannot replace it. Keep only history that explains the current state, not a chronological research log.
   State whether the operator must act; an optional draft does not make the card Needs you. Keep the
-  title, Summary, status and NeedsYou consistent about whether the matter is settled or awaiting an answer.
+  title, Summary and status consistent about whether the matter is settled or awaiting an answer.
 - On every card update, check the title alongside the state note. When the state, next action or relevant
   date changes, update the title with `board edit --card <ID> --subject '<matter: current state / next step>'`.
   Keep the title to the matter and its current next step; put error history and verification details
@@ -214,10 +214,9 @@ knowledge of your tooling. Every piece of text you post for him must stand alone
   audit trail, not the summary. Never make the operator reconstruct current state from the log.
 
 ## The card icon belongs to priority — do not set it
-A card's Notion page icon is derived every cycle from `Due`, `NeedsYou` and status. **Never set one.**
+A card's Notion page icon is derived every cycle from `Due` and status. **Never set one.**
 Yours is overwritten on the next sweep, and until it is, it hides the priority of the very card you were
-working on. To make a card read as more urgent, move what it is derived from: give it a `--due`, or put
-what the operator must do into `--needs`. The icon follows.
+working on. To make a card read as more urgent, move what it is derived from: give it a `--due`, or set `needs_you` when a concrete operator action is next. The icon follows.
 
 ## Reply where they asked
 When you act on a card comment, **post your answer back to the comment thread** with

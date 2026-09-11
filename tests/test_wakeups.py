@@ -176,12 +176,11 @@ class WakeTests(unittest.TestCase):
         B.done(argparse.Namespace(card='card'))
         self.assertEqual(W.read(self.pages['card']), [])
 
-    def test_waiting_clears_operator_request_but_keeps_triggers(self):
+    def test_waiting_keeps_triggers_without_removed_property(self):
         p = self.page(status='needs_you', rules=W.add([], self.future, 'Check'))
-        p['properties']['NeedsYou'] = {'rich_text': W.text('Send materials')}
         B.awaiting(argparse.Namespace(card='card', desc='Wait for recovery'))
         self.assertEqual(len(W.read(p)), 1)
-        self.assertEqual(p['properties']['NeedsYou']['rich_text'], [])
+        self.assertNotIn('NeedsYou', p['properties'])
 
     def test_no_silent_timestamp_guess_or_text_truncation(self):
         with self.assertRaisesRegex(ValueError, 'explicit UTC offset'):

@@ -66,14 +66,14 @@ Review precedes operator approval; never silently rewrite an approved draft befo
 
 **Reading**
 - `board accounts` → the mailboxes to watch. `board whoami` → the integration's own identity.
-- `board pending` → cards the operator set an Action on (card, msgid, action, subject, account, status, draft, needs).
+- `board pending` → cards the operator set an Action on (card, msgid, action, subject, account, status, draft, summary).
 - `board actionof --card C` / `board statusof --card C` → one card's current Action / Status.
 - **`board subscriptions`** → the watchlist: open cards that wrote down what mail they expect
   (`card, subject, subscription, status, sender`). A hit is the card claiming the mail.
 - **`board cards`** → every open card, compactly (`card, status, subject, sender, account, edited`). The
   dispatcher reads this whole; a card agent rarely needs it.
 - **`board search --query '<words>'`** → substring match across EVERY card, `✅ Done` included, over Subject,
-  Sender, NeedsYou, Subscription **and the card body** — a name written once in a log line is findable. Each
+  Sender, Summary, Subscription **and the card body** — a name written once in a log line is findable. Each
   hit reports `matched` and a body `snippet`. Filters: `--open-only`, `--status`, `--account`,
   `--since YYYY-MM-DD`, `--limit`; `--no-body` for a title-only sweep. It answers "what cards mention
   this?", never "does this mail belong there" — a bank's name matches every card that bank ever appeared on.
@@ -81,16 +81,16 @@ Review precedes operator approval; never silently rewrite an approved draft befo
 - `board comments --card C` → the card's comment thread.
 
 **Creating and editing**
-- `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--needs TXT] [--due YYYY-MM-DD]`
+- `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--due YYYY-MM-DD]`
   → creates, or updates the card keyed on that msgid. **`--subject` is the CARD TITLE — a self-contained,
   scannable one-liner**: `<core matter> — <deadline if any> → <what he must do / what you did>`, in Chinese
   like everything he reads: `保险 waiver 6/30 截止 → 上门户确认牙科/视力`. Never the raw email subject.
-- `board edit --card C [--status S] [--needs TXT] [--subject S] [--draft TXT] [--sender S] [--due D]`
+- `board edit --card C [--status S] [--subject S] [--draft TXT] [--sender S] [--due D]`
   → change only the fields you pass, by card id. Landing in an ending status (`done`, `unsub`, `expired`, `cancelled`)
   clears Action, Subscription and all time triggers.
 - **`--due`** stores the deadline. Passing it flags overdue work; it never completes the matter.
 - `board note --card C --text TXT` → replaces the `Summary` property, kept under ~1500 characters.
-  Follow the Summary shape in the project instructions: origin and goal, essential history, current
+  When his action is required, state it in the opening sentence. Follow the Summary shape in the project instructions: origin and goal, essential history, current
   conclusions and uncertainty, and who does what next. Rewrite the complete current account for a reader
   with no prior context; keep research details in the log. A resolved matter with no material next action
   is complete, not waiting for approval of an optional draft.
@@ -104,7 +104,7 @@ Review precedes operator approval; never silently rewrite an approved draft befo
   `board edit --card C --status cancelled`; when a verified window has shut with no remaining action use
   `--status expired`. All ending statuses keep the card as a record and clear mail/time subscriptions.
 - **`board awaiting --card C --desc '<what is awaited>'`** → `⏳ Waiting`: mail, a date, recovery or another
-  external condition. Clears NeedsYou and Action, keeps time triggers, and sets the readable Subscription.
+  external condition. Clears Action, keeps time triggers, and sets the readable Subscription.
   When a trigger arrives, continue working yourself; use `⏸ Needs you` only for a concrete operator action.
 - **`board schedule --card C --at '2026-10-01T09:00:00-04:00' --reason '<what to check or do, and where>'`**
   → add a time trigger without replacing the others or changing Status. Use an explicit UTC offset for that

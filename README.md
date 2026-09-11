@@ -23,7 +23,7 @@ gated on your approval, then executed for you.
 
 ### The board
 
-One card per matter, with a scannable one-line `Subject`, the `Draft`, `NeedsYou` (what you must decide),
+One card per matter, with a scannable one-line `Subject`, the `Draft`, `Summary` (current state and any action you must take),
 and a tappable `Action`. Statuses:
 
 `🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `⌛ Expired` · `✖ Cancelled` · `🚫 Unsubscribed`

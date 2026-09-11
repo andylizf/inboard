@@ -24,7 +24,7 @@ more agent work or a completed matter. The handler leaves send status for you to
   Read the latest request and card, identify the intended result, then execute the steps you can perform
   under existing authorization. This includes producing the actual deliverable, not just researching
   how to do it, checking availability, drafting a plan or reminding the operator to do the work.
-  A card's old NeedsYou text is not evidence that the task requires his hands. If it assigns him work
+  A card's old assignment of work is not evidence that the task requires his hands. If it assigns him work
   you can perform, take that work on; do not ask whether he wants you to continue after this click.
   For example, a request to complete an assignment includes working through the available problems and
   preparing the answers, rather than only checking the release date and reporting the deadline.
@@ -67,7 +67,7 @@ more agent work or a completed matter. The handler leaves send status for you to
   `needs_you` for a concrete remaining operator action, and `board done` only when no work remains.
   When a daily log is configured, log what went out and to whom under `cfg board.schema.daily_types.sent`.
 - **✅ Done** → the operator confirmed completion: log the outcome, then `board done --card <CARD>`.
-- **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled --needs ''`.
+- **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled`.
 
 Action labels are deployment-specific. Use `cfg board.schema.action_status` to distinguish completion
 from cancellation; the send action has its separate guarded path above. An unknown chip is a

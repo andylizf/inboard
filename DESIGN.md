@@ -37,7 +37,7 @@ truly resolved.
 ```
 
 **Board.** One card per matter. Properties: `Subject` (a scannable one-liner title), `Sender`, `Account`,
-`Status`, `NeedsYou` (what *you* must do / the open question), `Draft`, `Action` (the tappable chip that
+`Status`, `Summary` (current state, opening with any required operator action), `Draft`, `Action` (the tappable chip that
 fires engine 2), `Subscription` (natural-language "which follow-up mail belongs here"), `MsgID`, plus
 `Due`, `NextCheck`, `NextAction`, and internal `Wakeups` / `Session` / `StepBlocks`.
 Statuses: `🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` ·

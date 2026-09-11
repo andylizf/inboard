@@ -53,7 +53,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · **the reply RESOLVES it** (handled / no further action) → `board done --card <ID>` so the card they
         tracked as UNFINISHED visibly flips to `✅ Done` (**NEVER** leave a card they think is open sitting open
         after a reply resolved it); note what resolved it via `board reply --card <ID> --text '...'`.
-      · **it still needs their action** → `board edit --card <ID> --status '⏸ Needs you' --needs '<what they must do>'`.
+      · **it still needs their action** → `board edit --card <ID> --status '⏸ Needs you'`; open Summary with the required action using `board note`.
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed as `handled` — the disposition for mail that belonged to an
       existing card. Complete the Summary, memory and trigger updates in 6–8 before moving on.
@@ -80,7 +80,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       is not suspicion.
       · **Never let a confirmation question gate the work.** If the same mail also carries something
         actionable — an appointment, a form, a deadline, a temporary PIN — do that part. Putting "was
-        that you?" in `NeedsYou` blocks everything else on the card behind a question whose answer is
+        that you?" on the card blocks everything else behind a question whose answer is
         almost always yes.
       · **Escalate a concrete problem that needs action.** An account locked after unauthorized access,
         a transaction blocked pending a response, or a change the operator reports as unauthorized
@@ -128,7 +128,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    record is stale the moment another session touches the same matter. Route it:
    - **Outgoing mail:** work out whose move remains from the latest conversation, not just the sent item.
      Waiting for a reply or result is actionable: create or update ONE card, use `board awaiting --card
-     <ID> --desc '<who owes what response or result>'`, and `board edit --card <ID> --needs ''`.
+     <ID> --desc '<who owes what response or result>'`, and update Summary to describe the remaining wait.
      A commitment by the operator (for example, promising to send materials by Friday) stays open with
      `Needs you`, a concrete next action, and Due and scheduled checks when dated. If both sides owe work, keep the
      operator's next action visible and subscribe to the expected reply. Close an existing card only when
@@ -155,7 +155,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      cancel its time/mail triggers and archive the mistaken card. Do not mark a notice Done or keep
      asking for acknowledgement. Keep genuine work on mixed cards and remove only the invented action.
    - **Actionable** (a necessary draft awaiting approval, or a required decision only he can make =
-     `⏸ Needs you` + NeedsYou / in progress) → a BOARD card (`board upsert`). A draft the agent chose
+     `⏸ Needs you` with the request in Summary / in progress) → a BOARD card (`board upsert`). A draft the agent chose
      to create does not establish a task. When actual work is complete, close the matter without waiting
      for optional thanks or asking another person to tidy their alert. An upstream alert remaining open
      matters only when it leaves a concrete risk, restriction or required task outcome unresolved.
@@ -179,10 +179,11 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      `writing-reviewer` review before saving it (follow the drafting and review-record rules in `board-cli`):
      `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` — it puts the draft on the
      card and logs its id itself. Then
-     `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>' --needs '<what he does with it: send it, or the open question>'`.
+     `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>'`.
+     Use `board note` to open the complete Summary with the required decision or draft approval.
      Keep the header-bearing Draft preview written by `+draft`; do not replace it with the bare body.
    - **IMPORTANT but you need their input first** → don't draft blind:
-     `board upsert ... --status '⏸ Needs you' --needs '<the specific question they must answer>'`. `⏸ Needs you`
+     `board upsert ... --status '⏸ Needs you'`, then put the specific question at the start of Summary with `board note`. `⏸ Needs you`
      is the column that means his move. Use `🔍 Researching` while agent work remains; there is no New column.
    - **If the matter will keep generating mail** (recurring reminders — holds/enrollment/insurance, an ongoing
      thread awaiting replies) → after creating its card, `board subscribe --card <ID> --desc '<which follow-up
@@ -204,7 +205,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
    `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
    Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
 8. **Summary is the operator's overview; the body is the item's working directory and audit.**
-   `board upsert` returns the card id. Write `board note` to replace the Summary property with the origin
+   `board upsert` returns the card id. When his action is required, begin Summary with that action.
+   Use `board note` to replace the full Summary, including the origin
    and goal, essential history, current conclusions and uncertainty, and who does what next, under ~1500
    characters. Refresh the whole current account whenever the state changes, not just the latest delta.
    Append research notes, draft history, and actions with `board log --card <CARD_ID> --text '...'`.

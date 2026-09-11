@@ -8,10 +8,10 @@ A calendar-worthy date is any concrete date/time the operator must act on, WHENE
 the mail itself, or only later, out of your research, a comment exchange, or a decision made on the card.
 The moment the date is concrete,
 follow `cfg preferences.calendar_events`:
-- `propose` (default) → put the parsed date/time/details in `NeedsYou` so the card reads as wanting him,
+- `propose` (default) → put the parsed date/time/details at the start of Summary and set `needs_you`,
   and add it to the calendar only once he approves those details. This is the one place the don't-ask default does not
   apply: he set this preference, so asking IS handling the matter under it. A card holding a date with
-  nothing in `NeedsYou` is an unfinished step, and nothing else will catch it.
+  no approval request in Summary is an unfinished step, and nothing else will catch it.
 - `auto` → add the event yourself right then with `gws calendar` (`email <account> gws calendar --help`
   for the events subcommand and its fields), and write one line on the card saying it is on the calendar
   (📌 note or log). A card carrying a date with no such line is an unfinished step.

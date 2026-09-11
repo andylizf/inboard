@@ -174,6 +174,7 @@ def _due_props(a, props):  # DUE-20260818
 
 
 def upsert(a):
+    reject_legacy_needs(a)
     props = {
         "Subject": {"title": rt(a.subject)},
         "Status":  {"select": {"name": C.status_name(a.status)}},
@@ -185,8 +186,6 @@ def upsert(a):
         props["Sender"] = {"rich_text": rt(a.sender)}
     if a.draft is not None:
         props["Draft"] = {"rich_text": W.text(a.draft)}
-    if a.needs is not None:
-        props["NeedsYou"] = {"rich_text": rt(a.needs)}
     _due_props(a, props)  # DUE-20260818
     props.update(closing_props(C.status_name(a.status)))
     ex = find_card(a.msgid)
@@ -228,7 +227,7 @@ def pending(_):
         out.append({"card": p["id"], "msgid": _g(pr, "MsgID", "rich_text"), "action": AR.effective_action(p),
                     "subject": _g(pr, "Subject", "title"), "account": _g(pr, "Account", "select"),
                     "status": _g(pr, "Status", "select"), "draft": _g(pr, "Draft", "rich_text"),
-                    "needs": _g(pr, "NeedsYou", "rich_text")})
+                    "summary": _g(pr, "Summary", "rich_text")})
     print(json.dumps(out, ensure_ascii=False))
 
 
@@ -334,7 +333,7 @@ def awaiting(a):
     # 'Awaiting reply' and keeps/sets a Subscription so their reply routes back to THIS card instead of
     # opening a disconnected new one. NOT `done`. Pass --desc to (re)set what to watch for.
     props = {"Status": {"select": {"name": S["awaiting"]}}, "Action": {"select": None},
-             "NeedsYou": {"rich_text": []}, **touched()}
+             **touched()}
     if a.desc is not None:
         props["Subscription"] = {"rich_text": ([{"text": {"content": a.desc[:1900]}}] if a.desc else [])}
     api("PATCH", f"/pages/{a.card}", {"properties": props})
@@ -606,7 +605,7 @@ def search(a):
             continue
         fields = {"subject": _g(pr, "Subject", "title"), "sender": _g(pr, "Sender", "rich_text"),
                   "summary": _g(pr, "Summary", "rich_text"),
-                  "needs": _g(pr, "NeedsYou", "rich_text"), "subscription": _g(pr, "Subscription", "rich_text")}
+                  "subscription": _g(pr, "Subscription", "rich_text")}
         where = [k for k, v in fields.items() if q and q in (v or "").lower()]
         snippet = ""
         if q and not a.no_body:
@@ -643,14 +642,21 @@ def verify_draft(card, expected):
                            f'read {len(actual)}. Draft is not verified; do not request approval.')
 
 
+def reject_legacy_needs(a):
+    # Running sessions may still clear the removed property. Never discard a new request.
+    if getattr(a, 'needs', None):
+        sys.exit('The --needs field has been removed. Rerun without --needs, then put the request '
+                 'at the start of the complete Summary with board note --card C --text TEXT. '
+                 'No card changes were made by this command.')
+
+
 def edit(a):
+    reject_legacy_needs(a)
     # Generic property tweak on an EXISTING card BY CARD-ID (unlike `upsert`, which keys on msgid and can
     # create). Only the fields you pass change; everything else (incl. Subscription/Action) is left intact.
     props = {}
     if a.status is not None:
         props["Status"] = {"select": {"name": C.status_name(a.status)}}
-    if a.needs is not None:
-        props["NeedsYou"] = {"rich_text": ([{"text": {"content": a.needs[:1900]}}] if a.needs else [])}
     if a.subject is not None:
         props["Subject"] = {"title": rt(a.subject)}
     if a.draft is not None:
@@ -659,7 +665,10 @@ def edit(a):
         props["Sender"] = {"rich_text": rt(a.sender)}
     _due_props(a, props)  # DUE-20260818
     if not props:
-        sys.exit("board edit: pass at least one of --status/--needs/--subject/--draft/--sender/--due")
+        if getattr(a, 'needs', None) == '':
+            print(json.dumps({'edited': a.card, 'legacy_clear': 'no-op'}))
+            return
+        sys.exit("board edit: pass at least one of --status/--subject/--draft/--sender/--due")
     if a.status is not None:
         props.update(closing_props(C.status_name(a.status)))
     api("PATCH", f"/pages/{a.card}", {"properties": {**props, **touched()}})
@@ -714,7 +723,7 @@ def _cover_level(page, now):
                 return "urgent"          # overdue, or lands inside two days
         except ValueError:
             pass
-    if status == C.status_name("needs_you") or txt("NeedsYou").strip():
+    if status == C.status_name("needs_you"):
         return "soon"                    # wants him, but no clock on it
     if status == C.status_name("awaiting"):
         return "waiting"                 # someone else owes the next move
@@ -782,7 +791,8 @@ def approved_draft(a):
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    u = sub.add_parser("upsert"); [u.add_argument("--" + x) for x in ["msgid", "subject", "account", "status", "sender", "draft", "needs"]]
+    u = sub.add_parser("upsert"); [u.add_argument("--" + x) for x in ["msgid", "subject", "account", "status", "sender", "draft"]]
+    u.add_argument('--needs', help=argparse.SUPPRESS)
     u.add_argument("--due")  # DUE-20260818
     sub.add_parser("pending")
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
@@ -820,7 +830,8 @@ def main():
     choice = uc.add_mutually_exclusive_group(required=True); choice.add_argument("--id"); choice.add_argument("--all", action="store_true")
     ss = sub.add_parser("schedules"); ss.add_argument("--card", required=True)
     wa = sub.add_parser("wake-ack"); wa.add_argument("--card", required=True); wa.add_argument("--token", required=True)
-    ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "needs", "subject", "draft", "sender"]]
+    ed = sub.add_parser("edit"); ed.add_argument("--card", required=True); [ed.add_argument("--" + x) for x in ["status", "subject", "draft", "sender"]]
+    ed.add_argument('--needs', help=argparse.SUPPRESS)
     ed.add_argument("--due")  # DUE-20260818
     sf = sub.add_parser("status-for"); sf.add_argument("--action", required=True)
     cv = sub.add_parser("covers"); cv.add_argument("--dry", action="store_true")
