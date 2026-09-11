@@ -19,8 +19,9 @@ ACTION=$(board actionof --card "$CARD" 2>>"$INBOARD_LOGS/webhook.log")
 if [ -n "$(board action-request --card "$CARD")" ]; then
   PROMPT="The operator picked Action='__ACTION__' on card $CARD.
 Read the card and handle this action per the card-actions skill. Use board plan and board tick to show progress.
+For Continue/redo, carry out the remaining substantive work and produce the deliverable; do not stop at research, a plan or instructions for the operator. Preserve existing authorization and follow card-actions for any new outward approval.
 For the configured send action, follow card-actions: check current facts, validate the approved preview, then execute with the destination's tool. Email uses email gmail +send-approved.
-Complete all card updates and the final receipt before clearing the operation.
+Complete card updates, then use the single final receipt prescribed by card-actions.
 $GOAL_TRAILER
 $MORTAL_TRAILER"
   python3 "$INBOARD_HOME/lib/action_runs.py" --card "$CARD" --prompt "$PROMPT" >>"$INBOARD_LOGS/webhook.log" 2>&1
@@ -61,7 +62,8 @@ PROMPT="The operator picked Action='$ACTION' on card $CARD (the inbox board) —
 $SESSION_NOTICE
 Read the card (subject, draft, needs, body) before posting a live plan with \`board plan --card $CARD --steps 'step 1|step 2|step 3'\`; tick each step when done.
 Handle Action='$ACTION' per the card-actions skill, including its final receipt and configured daily-log procedure.
-Record the outcome and reply with \`board reply --card $CARD --text '<what happened and what remains>'\`, then clear-action as the final receipt. On failure or unknown outcome use action-fail per card-actions.
+For Continue/redo, execute the remaining work and produce the deliverable; a reminder or instruction for the operator does not complete it. Preserve existing authorization.
+Record the outcome and reply with \`board reply --card $CARD --text '<what happened and what remains>'\`. Complete card updates, then use the single final receipt prescribed by card-actions.
 Outward messages and submissions require the send action and the current-facts/approval checks in card-actions. Email uses +send-approved; other destinations use their native tools.
 $GOAL_TRAILER
 $MORTAL_TRAILER"

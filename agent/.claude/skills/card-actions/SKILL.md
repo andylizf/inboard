@@ -20,10 +20,22 @@ Keep that initial state while handling the request, then set Status from who mus
 A rewritten necessary draft awaits approval in needs_you; a verified send may leave an external wait,
 more agent work or a completed matter. The handler leaves send status for you to determine.
 
-- **▶️ Continue / redo** → re-read the relevant source thread and the card's context, then research or
-  revise per the feedback. Stage the full proposed action in Draft using `board-cli`: Gmail uses
-  `email ... gmail +draft`; other destinations use `board edit --draft`. A necessary draft awaiting
-  approval belongs in `needs_you`, with `--needs` naming what the click will do.
+- **▶️ Continue / redo** → the operator is asking you to carry the matter through its remaining work.
+  Read the latest request and card, identify the intended result, then execute the steps you can perform
+  under existing authorization. This includes producing the actual deliverable, not just researching
+  how to do it, checking availability, drafting a plan or reminding the operator to do the work.
+  A card's old NeedsYou text is not evidence that the task requires his hands. If it assigns him work
+  you can perform, take that work on; do not ask whether he wants you to continue after this click.
+  For example, a request to complete an assignment includes working through the available problems and
+  preparing the answers, rather than only checking the release date and reporting the deadline.
+  A statement that collaboration is prohibited does not by itself establish the policy on AI assistance;
+  apply any explicit task restrictions without inventing additional ones.
+  Carry forward approvals already given. If the remaining step requires approval of new outward content,
+  prepare the complete deliverable and stage that action in Draft using `board-cli` for the send button.
+  The Continue click authorizes continued work; the send click approves the exact outward proposal.
+  When blocked, state the observed obstacle and the smallest step only the operator can perform, retain
+  ownership of the remaining work, and resume when it clears. A genuine future release can be scheduled;
+  resume the substantive work when the material becomes available.
 - **Send-it-for-me (`cfg board.schema.send_action`)** → the tap approves the exact action, account,
   destination and content displayed in this card's Draft snapshot for this operation. The operator chose
   this GUI click as the send-gate approval for that preview; do not ask for an additional SEND token.

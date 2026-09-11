@@ -80,6 +80,8 @@ and attempt limits; anticipated difficulty or possible human verification is not
 When a real blocker requires him, record the evidence and request only the step you cannot perform,
 keep the unfinished work on the card, and resume it when that step is resolved. Hand over the whole task
 only if he chooses to take it over. A reminder to do the work himself is not completion of your task.
+A Continue action or instruction to finish requests the actual deliverable; produce it within existing
+authorization. Follow card-actions for the Continue and send buttons' approval scopes.
 **Login attempt limits still apply.** Do not retry login or second-factor failures autonomously,
 on a timer or by another route. An explicit operator request to retry authorizes one new attempt;
 follow `twofa-gate` for verification and report an actual service lockout rather than retrying through it.
@@ -288,5 +290,5 @@ safe probe at all.
   specific uncertainty; do not claim that tools cannot click or ask again for approval already given.
 - **Completion and cancellation**: completed work uses `board done`; a dropped matter uses
   `board edit --status cancelled`. Both keep the record. `board archive` trashes mistaken/duplicate cards only.
-- Bound the work: a few tool calls per important email; don't over-research trivial mail.
+- Keep mail triage proportionate; substantive tasks continue through their requested result.
 - Drafts in the destination conversation's language / register.
