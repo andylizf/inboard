@@ -40,9 +40,9 @@ truly resolved.
 `Status`, `NeedsYou` (what *you* must do / the open question), `Draft`, `Action` (the tappable chip that
 fires engine 2), `Subscription` (natural-language "which follow-up mail belongs here"), `MsgID`, plus
 `Due`, `NextCheck`, `NextAction`, and internal `Wakeups` / `Session` / `StepBlocks`.
-Statuses: `📥 New` · `🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` ·
+Statuses: `🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `🚫 Unsubscribed` ·
 `⌛ Expired` · `✖ Cancelled`. A card whose next move is the operator's sits in `⏸ Needs you`;
-`📥 New` is mail nobody has worked yet.
+`🔍 Researching` covers queued and active agent work.
 The canonical status/action names live in `lib/ibconfig.py`, so the board creator, the `board` CLI, and
 `agent/CLAUDE.md` cannot drift apart.
 

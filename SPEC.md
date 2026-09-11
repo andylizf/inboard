@@ -51,8 +51,9 @@ and parameterized.
 ```
 
 **Board.** One card per matter. Properties: `Subject` (scannable title), `Sender`, `Account`, `Status`,
-`NeedsYou`, `Draft`, `Action` (tappable), `Subscription`, `MsgID`. Statuses: `📥 新` `🔍 研究中`
-`✍️ 草稿就绪` `⏳ 等回复` `✅ 完成` `🚫 已退订`. A `📥 新` card with a filled `NeedsYou` = "decide this".
+`NeedsYou`, `Draft`, `Action` (tappable), `Subscription`, `MsgID`. Statuses: `🔍 Researching`
+`⏳ Waiting` `⏸ Needs you` `✅ Done` `⌛ Expired` `✖ Cancelled` `🚫 Unsubscribed`.
+Researching covers queued and active agent work; Needs you identifies an operator decision or action.
 
 **Memory (3 layers).** Own seen-ledger (`processed.json`), per-card session, and a cross-session memory
 store (learned preferences/facts, injected each run, extracted after). See §7 on the memory backend.

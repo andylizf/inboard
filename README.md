@@ -26,7 +26,7 @@ gated on your approval, then executed for you.
 One card per matter, with a scannable one-line `Subject`, the `Draft`, `NeedsYou` (what you must decide),
 and a tappable `Action`. Statuses:
 
-`📥 New` · `🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `⌛ Expired` · `✖ Cancelled` · `🚫 Unsubscribed`
+`🔍 Researching` · `⏳ Waiting` · `⏸ Needs you` · `✅ Done` · `⌛ Expired` · `✖ Cancelled` · `🚫 Unsubscribed`
 
 A card whose next move is yours sits in `⏸ Needs you`. `⏳ Waiting` covers replies, future dates and
 external conditions. Matching mail or a scheduled check resumes the card's agent, which checks the

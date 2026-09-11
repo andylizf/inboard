@@ -88,6 +88,6 @@ fi
 # A silent failure strands the tap: the operator approved an action, nothing happened, and nothing
 # said so (found the hard way: a send died at max-turns and sat unnoticed for three days).
 if [ "$RC" != 0 ]; then
-  board reply --card "$CARD" --text "⚠️ Action '$ACTION' failed (rc=$RC, log action-$TS). It was NOT completed — tap the action again to retry." >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
+  board reply --card "$CARD" --text "⚠️ Action '$ACTION' returned an execution error (rc=$RC, log action-$TS). The external outcome is unverified; check the destination before any resend." >>"$INBOARD_LOGS/webhook.log" 2>&1 || true
 fi
 echo "[$(date)] action-handler done (card=$CARD action='$ACTION' sid=${SID:-${NEWSID:-none}}) rc=$RC" >> "$INBOARD_LOGS/webhook.log"

@@ -36,7 +36,6 @@ board:
   # The agent always writes the English canonical names; the board CLI translates them to these on write.
   schema:
     status:                         # Status select values, by role
-      new: "📥 New"
       researching: "🔍 Researching"
       awaiting: "⏳ Waiting"
       needs_you: ⏸ Needs you        # his move; New is mail nobody has worked yet

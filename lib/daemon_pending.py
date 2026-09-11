@@ -39,7 +39,7 @@ def record(card: str, action: str, now: float | None = None) -> None:
         fcntl.flock(fh, fcntl.LOCK_UN)
 
 
-def sweep(current_action, stall_secs: int, now: float | None = None):
+def sweep(current_action, stall_secs: int, now: float | None = None, busy=None):
     """current_action(card) -> the card's live Action string (or "" if cleared).
     Returns (stalled, ...) where stalled is a list of {card, action} whose agent
     never cleared the Action within stall_secs. All resolved/stalled records are
@@ -56,6 +56,10 @@ def sweep(current_action, stall_secs: int, now: float | None = None):
             if cleared:
                 continue  # done — drop silently
             if now - rec["ts"] >= stall_secs:
+                # Keep the record while work is active or its runtime state is unavailable.
+                if busy is not None and busy(rec['card']) is not False:
+                    keep.append(rec)
+                    continue
                 stalled.append({"card": rec["card"], "action": rec["action"]})
                 continue  # stalled — drop, caller reports
             keep.append(rec)  # still working, still in time — keep

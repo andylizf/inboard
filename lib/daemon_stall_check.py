@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Once per dispatch cycle: post a loud reply for any daemon-delivered ACTION
-whose agent never cleared the card's Action within agent.daemon_stall_min.
+"""Investigate overdue action receipts after workers stop, without assuming a failed send.
 
-This is the async path's completion check — the shell only ever learns "queued",
-so a tap whose agent silently died (the 8/23 failure mode) is caught here, not by
-an exit code. Only action deliveries are tracked; a comment/dispatch agent's
-completion is its own card writes. Runs in the engine env (board/cfg on PATH)."""
+Only action deliveries are tracked. Active or unobservable workers retain their pending
+records; stopped workers receive a destination-verification request, not a resend.
+Runs in the engine env (board/cfg on PATH).
+"""
 import os
 import pathlib
 import subprocess
@@ -22,7 +21,7 @@ def _cfg(key, default):
 
 
 def _actionof(card):
-    r = subprocess.run(["board", "actionof", "--card", card], capture_output=True, text=True)
+    r = subprocess.run(["board", "actionof", "--card", card], capture_output=True, text=True, check=True)
     return r.stdout.strip()
 
 
@@ -34,26 +33,50 @@ def _agent_alive(card):
         sys.path.insert(0, str(INBOARD / "lib"))
         import agent_deliver as A
         job = A.find_job("inboard-card-" + card.replace("-", ""))
-        return bool(job) and job.get("state") in ("working", "running", "adopted")
+        if not job:
+            return False
+        if job.get('state') in ('working', 'running', 'adopted'):
+            return True
+        import card_hooks as H
+        import json
+        path = H.session_path(job.get('sessionId', ''))
+        if path.exists():
+            tasks = json.loads(path.read_text()).get('background_tasks') or []
+            if any(t.get('status') not in ('completed', 'failed', 'killed') for t in tasks):
+                return True
+        return False
     except Exception:
-        return False          # cannot tell → fall back to the timeout alone
+        return None           # unavailable is not evidence that the worker stopped
 
 
 def main():
     stall_min = int(_cfg("agent.daemon_stall_min", "45"))
-    stalled = [s for s in P.sweep(_actionof, stall_min * 60)
-               if not _agent_alive(s["card"])]
+    stalled = P.sweep(_actionof, stall_min * 60, busy=_agent_alive)
     for s in stalled:
         import action_runs as A
-        record = A.read(s['card'])
-        if record and record['phase'] in ('starting', 'running'):
-            subprocess.run(['board', 'action-fail', '--card', s['card'], '--operation', record['token'],
-                            '--text', '后台未完成，请重新点击操作'], capture_output=True)
-        subprocess.run(["board", "reply", "--card", s["card"], "--text",
-                        f"⚠️ Action '{s['action']}' was delivered to this card's agent but it did not "
-                        f"finish within {stall_min} min (stalled or died). NOT completed — tap the action "
-                        f"again to retry."], capture_output=True)
-        print(f"stalled: {s['card'][:8]} '{s['action']}'")
+        import agent_deliver as D
+        with A.lock(s['card'], 'dispatch'):
+            # A new click may have replaced this action during the sweep.
+            if _actionof(s['card']) != s['action']:
+                continue
+            record = A.read(s['card'])
+            token = (record or {}).get('token', '')
+            prompt = (f"Investigate missing completion for card {s['card']}, action {s['action']}, "
+                      f"operation {token}. The watchdog has no completion receipt after {stall_min} minutes. "
+                      "This does not establish whether an external action occurred. Read the current card, "
+                      "execution transcript, receipts, and actual destination. This is a verification-only "
+                      "recovery: do not send or repeat an external action. If already completed, record its "
+                      "verified receipt and finish the current operation. If confirmed not completed, finish "
+                      "available preparation, retain the complete draft, and report the precise failure. "
+                      "If the outcome is unknown, report what cannot be verified; do not recommend resending. "
+                      "Use the current operation token on card mutations and stop if superseded.")
+            try:
+                D.ensure_and_deliver('inboard-card-' + s['card'].replace('-', ''),
+                                     str(INBOARD / 'agent'), prompt)
+            except Exception:
+                P.record(s['card'], s['action'])
+                raise
+            print(f"completion verification queued: {s['card']} '{s['action']}'")
     print(f"daemon stall-check: {len(stalled)} stalled")
 
 

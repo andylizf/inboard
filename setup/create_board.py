@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.join(os.environ.get("INBOARD_HOME") or
                                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import ibconfig as C  # noqa: E402
 
-STATUS_COLORS = {"new": "gray", "researching": "blue", "draft": "green",
+STATUS_COLORS = {"researching": "blue", "draft": "green",
                  "awaiting": "yellow", "done": "default", "unsub": "red"}  # keyed by status KEY, not display
 ACCOUNT_COLORS = ["blue", "orange", "green", "purple", "pink", "brown"]
 

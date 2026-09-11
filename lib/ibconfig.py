@@ -110,9 +110,9 @@ def label_to_id(label):
 # `agent/CLAUDE.md` always writes the English canonical names; the `board` CLI translates them to the
 # deployment's configured display strings on write (see status_name()/daily_type_name()), and filters/writes
 # in bin/board read STATUS/DAILY_* below — so both sides agree in whatever language the board uses.
-STATUS_ORDER = ["new", "researching", "awaiting", "needs_you", "done", "expired", "cancelled", "unsub"]
+STATUS_ORDER = ["researching", "awaiting", "needs_you", "done", "expired", "cancelled", "unsub"]
 _STATUS_DEFAULT = {
-    "new": "📥 New", "researching": "🔍 Researching",
+    "researching": "🔍 Researching",
     "awaiting": "⏳ Waiting", "needs_you": "⏸ Needs you", "done": "✅ Done",
     "expired": "⌛ Expired", "cancelled": "✖ Cancelled", "unsub": "🚫 Unsubscribed",
 }
@@ -140,7 +140,7 @@ def _schema(key, default):
 
 
 def __getattr__(name):  # PEP 562 — resolve these from config lazily (no config read at import time)
-    if name == "STATUS":            return _schema("status", _STATUS_DEFAULT)
+    if name == "STATUS":            return {k: v for k, v in _schema("status", _STATUS_DEFAULT).items() if k in STATUS_ORDER}
     if name == "STATUS_NAMES":      s = _schema("status", _STATUS_DEFAULT); return [s.get(k, k) for k in STATUS_ORDER]
     if name == "ACTIONS":           return _schema("actions", _ACTIONS_DEFAULT)
     if name == "ACTION_PLACEHOLDER":return _schema("action_placeholder", _ACTION_PLACEHOLDER_DEFAULT)
@@ -155,6 +155,8 @@ def status_name(v):
     already-correct display string) to the deployment's configured Status display value."""
     # Persistent workers may still carry the old display name during a deployment.
     v = get("board.schema.status_aliases", {}).get(v, v)
+    if v in {'new', '📥 New', '📥 新', get('board.schema.status.new')}:
+        v = 'researching'
     if v == "⏳ Awaiting reply":
         v = "awaiting"
     st = _schema("status", _STATUS_DEFAULT)

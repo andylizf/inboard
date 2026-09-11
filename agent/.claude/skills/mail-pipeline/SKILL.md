@@ -165,7 +165,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      a card for something he may ignore is the card that teaches him to ignore cards.
    - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
      third party) → the card goes to `⏳ Waiting` with `board awaiting --desc '<what you are waiting
-     for>'`, never left in `📥 New`: New is mail nobody has worked yet, and you just worked it.
+     for>'`.
    - **If the matter has a deadline, put it on the card** with `--due YYYY-MM-DD`. Schedule a useful
      pre-deadline check with `board schedule`, and an expiry check only if the window shutting ends the
      matter. On any new development, reconcile all schedules: a reply may make an unanswered-mail check
@@ -184,8 +184,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      Keep the header-bearing Draft preview written by `+draft`; do not replace it with the bare body.
    - **IMPORTANT but you need their input first** → don't draft blind:
      `board upsert ... --status '⏸ Needs you' --needs '<the specific question they must answer>'`. `⏸ Needs you`
-     is the column that means his move; `📥 New` is mail nobody has worked yet, and a card should not sit
-     there once you have.
+     is the column that means his move. Use `🔍 Researching` while agent work remains; there is no New column.
    - **If the matter will keep generating mail** (recurring reminders — holds/enrollment/insurance, an ongoing
      thread awaiting replies) → after creating its card, `board subscribe --card <ID> --desc '<which follow-up
      mail belongs here, until when>'`. The next reminder appends to this card (5b) instead of duplicating.
