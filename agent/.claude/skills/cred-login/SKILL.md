@@ -64,7 +64,11 @@ authorization, proceed with one allowed challenge without asking for separate pe
 Ask for his part when the service actually requests an action only he can perform, using the current
 challenge's evidence; then monitor it under `human-gate` and continue after confirmation. A real gate
 refusal or rejected credential remains a blocker under the attempt limits.
-Reuse a successful session on later tasks and check whether it is still accepted.
+After verification, complete the site's remaining login steps. When offered on the operator's
+own persistent browser profile, select the option to remember or trust this device unless he
+restricted it; do not select it on a temporary profile or one shared with other people. Record the observed result
+and verify access to the destination before reporting login success. Reuse that profile on
+later tasks and check whether the session is still accepted.
 
 **When the vault is locked** every fetch fails until a human unlocks it, and it stays locked until then —
 there is no timer that will clear it. Do NOT retry in a loop. Say so on the card in one line and follow

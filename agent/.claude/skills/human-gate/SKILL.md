@@ -12,6 +12,10 @@ condition; a running probe does not change who must act next.
 If a read-only signal can detect readiness without submitting credentials, sending a new prompt or
 changing account state, run one bounded background probe. Use the runtime's tracked background task,
 record its task id, signal and timeout in the card log, and consume its result in this session.
+For browser verification, detect changes in the page's challenge state, including a follow-up
+button, success or expiry; the URL can remain unchanged after approval. A probe error is not
+evidence that the operator has not acted. On a state change, inspect the page and continue the
+authorized flow, including steps you can complete yourself, before asking him again.
 Choose a timeout that fits the challenge's validity; a vault-status check can wait up to 30 minutes.
 Ending the foreground turn while the probe runs is allowed; it is not completion or a reason to
 discard the session. On readiness, resume the authorized work immediately. On timeout, record what
