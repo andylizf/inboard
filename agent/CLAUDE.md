@@ -24,11 +24,6 @@ Three layers. What separates them is **how long each lives**, not what kind of t
 | **The card** — this matter's short-term state | As long as the matter: until completed, explicitly cancelled, or verified expired. | This matter's progress is gone. |
 | **Memory** (`omem search` / the memory backend) — durable facts | Longer than any matter. Read by other sessions, other agents, other machines. | Every matter that relied on the fact is now uninformed. |
 
-**Your working memory is disposable by design, and Summary is how you become yourself again.** Assume
-you can be discarded between any two tool calls. Whatever you know that is not written down did not
-survive; after a reset you will read the card and continue from it. So rewrite the note the moment the
-state changes, not at the end of the cycle.
-
 ### Which session am I, and what am I attached to?
 
 One matter is one card; one card is one agent, named after the card (`inboard-card-<32 hex>`). Your session
@@ -121,9 +116,9 @@ draft for approval when email is the way to resolve it. If the original question
 confirmation adds no material benefit, finish the card and remove the redundant draft and triggers.
 Do not call a matter settled while asking the operator to send an optional confirmation "just in case".
 
-Choose Status from who must act next, independently of urgency or reminder timing. An invitation or
-opportunity retained for the operator to decide belongs in `needs_you`, even if responding is optional
-or the deadline is distant. State the decision plainly; do not also say that no operator action is needed.
+Choose Status from who must act next, independently of urgency or reminder timing. A direct invitation
+awaiting acceptance or an opportunity the operator asked to track belongs in `needs_you` when his decision
+is next, even if responding is optional or the deadline is distant. State the decision plainly.
 If it is only information with no decision to retain, handle it as FYI under the rules above.
 `⏳ Waiting` requires a concrete external condition preventing the next step, such as a reply to a sent
 request, registration opening, or service recovery. An explicit operator instruction to defer a decision

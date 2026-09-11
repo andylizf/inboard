@@ -16,9 +16,11 @@ twofa-gate release <service> ok        # he answered
 twofa-gate release <service> timeout   # he did not — this blocks everyone for a cooldown
 ```
 
-**Release on every exit, including an error.** A push you never resolved holds the gate against every other
-card until it expires on its own (10 minutes), and until then they all stop. "He did not answer" means the
-page stopped waiting — a timed-out prompt, an expired transaction — not that you grew impatient.
+Release only a gate you successfully acquired, after its challenge completes, expires or is abandoned,
+including when your attempt fails. A failed acquire does not authorize release. Ending the foreground
+turn while your challenge is pending does not release it; keep monitoring through human-gate.
+The outstanding timeout defaults to 10 minutes and can be configured. Do not infer that a displayed
+challenge remains valid from the gate's timer.
 
 When the operator explicitly asks to retry this verification, log the authorizing comment or request
 and use `twofa-gate acquire <service> --operator-retry` for one new attempt now. Do not reuse that

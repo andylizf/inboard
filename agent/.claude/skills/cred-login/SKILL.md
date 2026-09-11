@@ -8,8 +8,10 @@ machine and hands a secret only into a command's environment — never onto your
 way you may touch a secret. Use credentials it authorizes for the card's task without asking for another
 approval. An explicit operator restriction on that account or action still applies.
 
-Try the browser's existing session and autofilled login first, then the site's own vault credential,
-then its established identity-provider login. A command-line 401 does not test the browser's cookies.
+Check the browser's existing session and available autofill, then the site's own vault credential,
+then its established identity-provider route. Choose the account's route before submitting once;
+after a rejected login, do not try another route without an explicit operator retry request.
+A command-line 401 does not test the browser's cookies.
 Do not extract passwords from Chrome's store. For a login form, run `cred status` and `cred find <site>`,
 then use the matching item through `cred with`. `UNLOCKED` alone does not prove that an item can be fetched;
 record the fetch result and the browser outcome in the card log, without the secret. A login form or an

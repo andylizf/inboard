@@ -9,8 +9,11 @@ jobs, and the second belongs to whoever already holds that matter's history.
 - **Headers only. Never open a message body** — reading bodies is the card agents' job.
 - **Never open a second card for a matter that has one.** A duplicate costs more than a wrong route:
   the operator then has two half-records and neither tells the whole story.
-- Identify cross-card overlaps and route the evidence to the responsible card agent. Header-only
-  dispatch cannot establish completion; the card agent verifies the business outcome.
+- Coordinate duplicate-card maintenance from verified card records; individual card agents own
+  business work and provide its evidence. Header-only dispatch cannot establish completion.
+  Preserve the duplicate's unique findings and receipts on the surviving card before archiving it,
+  and route the final plan to the survivor. Do not change drafts or execute either card's business
+  action while consolidating records.
 
 ## Recognising a matter that already exists
 
@@ -21,6 +24,7 @@ matter is new.
 
 So before routing anything `new`, read `board cards` for open matters and search closed cards for
 relevant history. A closed card supplies context for a new matter, not a destination to reopen.
+Include relevant card ids and verified routing evidence in the group's reason, which reaches its agent.
 Recognising a matter is not a string match, which is why the list is read rather
 than searched: a follow-up rarely repeats the words of the card it belongs to. `board search` remains
 available for a targeted lookup, but it answers "which cards contain this string", never "does this

@@ -143,11 +143,12 @@ python3 "$INBOARD_HOME/engines/dispatch_plan.py" mark-noise "$PLAN" "$INBOARD_ST
 
 # ---------- phase 2: one agent per matter ----------
 run_group() {   # $1 = group index
-  local idx="$1" route card matter ids
+  local idx="$1" route card matter ids reason
   route=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" route)
   card=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" card)
   matter=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" matter)
   ids=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" pairs)
+  reason=$(python3 "$INBOARD_HOME/engines/dispatch_plan.py" field "$PLAN" "$idx" reason)
   local glog="$INBOARD_LOGS/dispatch-$TS-g$idx.log"
 
   CARD=""; SESS=(); NEWSID=""
@@ -161,6 +162,7 @@ run_group() {   # $1 = group index
     trap "rmdir '$LK' 2>/dev/null" RETURN
     prep_session
     PROMPT="You own ONE matter on the inbox board: card $CARD ('$matter').
+Routing context (verify against the card and sources): $reason
 $SESSION_NOTICE
 New mail on this matter, as <message-id>(<account>,<kind>): $ids
 Read these messages' bodies (\`email <account> gmail +read --message-id <ID>\`) and relevant current context, then handle them per
@@ -179,12 +181,19 @@ Output one short line."
     # starts it cold, and one-card-one-agent silently does not hold for anything newly created.
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
     PROMPT="You own ONE new matter from the inbox: '$matter'.
+Routing context (verify against the card and sources): $reason
 Its messages, as <message-id>(<account>,<kind>): $ids
 Read these messages' bodies and relevant current context, then handle them per the **mail-pipeline** skill (load it), steps 5b,
 5c and 6: check it is really not an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
 subscription and are invisible to the latter), ask memory, then either create ONE card (with 📌 note,
 Due and future wakeups if a deadline appeared) or — if it turns out to be noise or a clean unsubscribe — do that and
 create no card.
+If you discover a matching open card, do not edit it from this new-matter session. Relay the message ids,
+accounts and relevant context to its responsible agent. Before attempting delivery, run
+\`touch '$FAILDIR/$idx'\` so this cycle cannot mark the relayed work complete; then use
+\`python3 $INBOARD_HOME/lib/agent_deliver.py deliver --name inboard-card-<card-id-without-dashes> --cwd $INBOARD_HOME/agent --text '<mail delivery context>'\`.
+Delivery acceptance is not completion: leave these messages unprocessed for that agent to record after
+handling them. If delivery fails, report the error in the run log and leave them eligible for the next cycle.
 Messages marked sent already went out. Apply the mail-pipeline skill's outgoing-mail rules, including
 operator commitments and waiting for results. A finished acknowledgement alone needs no card.
 If you create a card, \`board subscribe\` it whenever more mail on this matter is even plausible, and
@@ -219,7 +228,7 @@ Output one short line."
   fi
   echo "[$(date)] g$idx route=$route card=${CARD:-new} rc=$RC matter='$matter'" >>"$LOG"
 
-  if [ "$RC" = 0 ]; then
+  if [ "$RC" = 0 ] && [ ! -f "$FAILDIR/$idx" ]; then
     # Only a successful agent gets its mail marked handled; a crash leaves it for the next cycle.
     python3 "$INBOARD_HOME/engines/dispatch_plan.py" mark-done "$PLAN" "$idx" "$INBOARD_STATE/processed.json" >>"$LOG" 2>&1
     [ -n "$NEWSID" ] && [ -n "$CARD" ] && board session --card "$CARD" --set "$NEWSID" >>"$LOG" 2>&1

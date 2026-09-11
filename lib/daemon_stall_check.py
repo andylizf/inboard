@@ -66,9 +66,12 @@ def main():
                       "This does not establish whether an external action occurred. Read the current card, "
                       "execution transcript, receipts, and actual destination. This is a verification-only "
                       "recovery: do not send or repeat an external action. If already completed, record its "
-                      "verified receipt and finish the current operation. If confirmed not completed, finish "
+                      "verified receipt. If confirmed not completed, finish "
                       "available preparation, retain the complete draft, and report the precise failure. "
                       "If the outcome is unknown, report what cannot be verified; do not recommend resending. "
+                      "After all card updates and trigger reconciliation, use board clear-action for verified "
+                      "completion or board action-fail --text with the precise failure or unknown outcome. "
+                      "Use exactly one final receipt and do not mutate this operation afterward. "
                       "Use the current operation token on card mutations and stop if superseded.")
             try:
                 D.ensure_and_deliver('inboard-card-' + s['card'].replace('-', ''),

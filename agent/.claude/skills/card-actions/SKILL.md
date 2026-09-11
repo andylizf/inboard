@@ -7,9 +7,9 @@ description: Handle an operator Action chip or a legacy inbox cycle. Covers each
 The engine delivers scheduled checks to their card agents before mail triage. A per-card agent handles
 only its assigned card; the legacy whole-inbox runner uses `board pending` to find operator actions.
 
-For each assigned actioned card, act on the operator's request, record the outcome and reply, then
-use `board clear-action` as the final receipt. Clearing first invalidates later operation-scoped writes.
-If execution failed or its outcome cannot be verified, record the evidence and use `board action-fail`.
+For each assigned actioned card, act on the request, record the outcome, reply and reconcile mail/time
+triggers before the final receipt. Use `board clear-action` for a completed operation or `board action-fail`
+for failure or an unverified outcome, never both. Either receipt ends operation-scoped writes.
 Pass the delivered `--operation` token on every card mutation; a superseded operation must stop.
 Legacy actions without a delivered token retain `board clear-action` as their receipt. For a legacy
 send, stage the preview for approval with the current send button to obtain its snapshot and token.
@@ -50,11 +50,11 @@ more agent work or a completed matter. The handler leaves send status for you to
   unknown outcome distinctly via `board reply` and `board action-fail`.
   Once verified sent, clear the consumed Draft, then use `board awaiting` for an external wait,
   `needs_you` for a concrete remaining operator action, and `board done` only when no work remains.
-  Log what went out and to whom under `cfg board.schema.daily_types.sent` in the daily log.
+  When a daily log is configured, log what went out and to whom under `cfg board.schema.daily_types.sent`.
 - **✅ Done** → the operator confirmed completion: log the outcome, then `board done --card <CARD>`.
 - **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled --needs ''`.
 
 Action labels are deployment-specific. Use `cfg board.schema.action_status` to distinguish completion
 from cancellation; the send action has its separate guarded path above. An unknown chip is a
-misconfiguration: report it on the card rather than inventing a meaning. After handling any action,
-reconcile mail and time subscriptions using `board-cli` so obsolete reminders do not survive the change.
+misconfiguration: report it on the card rather than inventing a meaning. Reconcile mail and time
+subscriptions using `board-cli` before the final receipt so obsolete reminders do not survive the change.

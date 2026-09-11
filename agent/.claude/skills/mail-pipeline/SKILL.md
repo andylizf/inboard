@@ -40,15 +40,15 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · `board subscriptions` — the **watchlist**: open cards that have written down, in their own words,
         what mail they are still expecting (set by `board subscribe` or `board awaiting --desc`, cleared by
         `board done`). A hit here is a card saying *this mail is mine*, so it decides on its own.
-      · `board search --query '<sender / key subject words>'` — a **substring match** on Subject and Sender
+      · `board search --query '<sender / key subject words>'` — substring matches across card properties and body
         over every card, closed ones included. It produces candidates, not evidence: a bank's name matches
         unrelated matters. Read the candidate's Status and context; an empty Subscription does not mean done.
       So route straight off a watchlist hit. A search hit still has to earn it under the rules below.
-    - **A closed card is context, never a destination — thread or no thread.** Read it, then open a new card
-      that names it in the first line and carries the thread forward. Reopening a matter he finished, and had
-      stopped thinking about, costs him more than a second card ever would, and `✅ Done` has to mean done.
+    - Read a closed card for context. Create a new card referencing it only if the incoming message
+      leaves actual work; an acknowledgement or repeated confirmation is FYI. Do not reopen completed work.
     - **If it belongs to an ongoing matter** (semantic match to a subscription — a reminder / follow-up for
-      something tracked, or a continuing reply thread) → do **NOT** open a new card. Append to it:
+      something tracked, or a continuing reply thread) → do **NOT** open a new card. Apply the memory
+      lookup and reconciliation in 5c before changing it, then append to it:
       `board log --card <ID> --text '<one-line update>'`, then set that card's Status to match reality:
       · **the reply RESOLVES it** (handled / no further action) → `board done --card <ID>` so the card they
         tracked as UNFINISHED visibly flips to `✅ Done` (**NEVER** leave a card they think is open sitting open
@@ -56,14 +56,14 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · **it still needs their action** → `board edit --card <ID> --status '⏸ Needs you' --needs '<what they must do>'`.
       · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
       Then mark the message processed as `handled` — the disposition for mail that belonged to an
-      existing card — and move on.
+      existing card. Complete the Summary, memory and trigger updates in 6–8 before moving on.
     - **On an open card, same thread is identity.** Mail carrying the card's `threadId`, or replying to a
       message it tracks, belongs there however old the card is: a bank answering in October the question you
       asked in July is that conversation. A *semantic* resemblance is a weaker claim — that the mail looks
       like the matter — and lands on an open card only.
     - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
-5c. **Ask memory before opening ANY new card.** Only for mail that survived triage as important or
-    actionable — never for noise, and never when 5b already routed it to an existing card.
+5c. **Check memory before working an actionable matter**, whether its card is new or existing.
+    Noise needs no lookup. Reuse a lookup already made for this matter in the current event.
     - **`omem search '<the matter in a few words>'`** — the matter, not the email subject
       (`ACME storage-quota request`, not `Re: FW: ACTION REQUIRED - please respond`).
     - **One lookup per thing, not per group.** If several unrelated alerts arrived together, each
@@ -90,17 +90,19 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
       · **Classify the remaining work, not the sender or money movement.** Record ordinary bank notices
         without making the operator confirm each one. If a notice changes an existing matter, update
         that card instead of creating a new task.
-    - **Nothing relevant comes back** → it is genuinely new; continue to 6.
+    - No memory match adds no context; retain the card routing established in 5b and continue to 6.
     - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
       truth first. Then answer the ONE question that decides everything: **does this mail change what
       is already known?**
       · **An outgoing obligation is still open but has no open card** → create the todo even if memory
         already records it. Memory cannot surface a waiting card or remind the operator to fulfil a promise.
-      · **No, and no untracked outgoing obligation remains** — a repeat reminder, a status already on record, a deadline already scheduled, a
+      · **No, there is no existing destination card, and no untracked outgoing obligation remains** — a repeat reminder, a status already on record, a deadline already scheduled, a
         decision already made → **do NOT open a card.** `board daily --type 'ℹ️ FYI' --subject
         '<one line: what arrived and why it needs nothing>' --account <label>` and move on. A card
         that hands back something already settled costs the operator attention twice: once to read
         it, once to remember why he can ignore it. Enough of those and he stops trusting the board.
+      · An existing destination card still receives reconciliation and state updates even when memory
+        already knows the event; a memory match does not skip that card's work.
       · **Yes** — new information, a changed deadline, something now genuinely blocked on him →
         handle it per 6.
     - **Write the change back.** Whenever this cycle moved a matter that memory tracks — a date got
@@ -113,8 +115,8 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
         reader cannot recover the difference, and a bare date gets restated as a commitment by the next
         file that copies it. Someone confirming a DEADLINE is never evidence the
         operator has committed to a date inside it — record the deadline as a deadline.
-      · **Never state as settled anything the operator has not confirmed.** If the card says you
-        are waiting on him, the memory says you are waiting on him.
+      · Do not record an operator decision as settled without his confirmation. Record verified
+        external outcomes from their sources; an old card saying it awaits him may be stale.
     - **Repair conflicting records from evidence.** When a relevant memory and card disagree, compare
       their dates and underlying sources, then correct the stale account. Neither location wins by
       itself. If the conflict cannot be resolved, retain the uncertainty. Limit this reconciliation
@@ -157,9 +159,9 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      to create does not establish a task. When actual work is complete, close the matter without waiting
      for optional thanks or asking another person to tidy their alert. An upstream alert remaining open
      matters only when it leaves a concrete risk, restriction or required task outcome unresolved.
-     An optional suggestion with no retained decision is FYI. An invitation or opportunity retained for
-     the operator to decide belongs in needs_you even without a deadline; optional wording alone does
-     not settle whether there is a decision to track.
+     An optional suggestion with no decision to track is FYI. A direct invitation awaiting acceptance
+     or an opportunity the operator asked to track belongs in needs_you when his decision is next,
+     even without a deadline. Optional wording alone does not make a direct invitation FYI.
    - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
      third party) → the card goes to `⏳ Waiting` with `board awaiting --desc '<what you are waiting
      for>'`.
