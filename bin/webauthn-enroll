@@ -18,9 +18,13 @@ platform authenticator (transport internal), "Security key" a cross-platform one
 
 The store is a real second factor on disk: 0600, outside the repository, never committed.
 """
-import asyncio, json, os, sys, time, urllib.request, websockets
+import asyncio, json, os, re, subprocess, sys, time, urllib.request, websockets
 
-PORT = 9223
+discovery = subprocess.check_output(["web-plane", "-s=main", "cdp"], text=True)
+match = re.search(r"CDP port:\s*(\d+)", discovery)
+if not match:
+    sys.exit("web-plane did not report main's CDP port")
+PORT = int(match[1])
 STORE = os.path.expanduser("~/.config/inboard/webauthn-credentials.json")
 KINDS = [("internal", "platform / Touch ID"), ("usb", "cross-platform / security key")]
 

@@ -4,7 +4,13 @@ description: Complete browser work for a card, including login and verification.
 ---
 
 Load the installed `browser` skill and use its managed browser and current commands. Keep its window
-hidden unless the operator needs a specific step. Reuse the authorized session; do not launch another
+hidden unless the operator needs a specific step. Inboard uses web-plane's `main` identity; `browser`
+routes each agent to its own tab in that profile. For direct web-plane commands, use `-s=main` and a
+distinct lane for the card. The `local.inboard-webauthn` service attaches existing local security-key
+credentials to this browser. Check that service and `$INBOARD_HOME/logs/webauthn-main.log`
+(errors: `$INBOARD_HOME/logs/webauthn-main.err`) before treating a
+security-key prompt as requiring the operator. Enrollment of a new key is a separate account change.
+Reuse the authorized session; do not launch another
 profile or worker to evade login limits. Snapshot before acting and refresh references after navigation:
 
 - `browser open <url>` — navigate

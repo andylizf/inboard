@@ -1,42 +1,7 @@
 #!/usr/bin/env bash
-# Unified browser driver for the inbox agent. Drives a persistent REAL headed Chrome (a dedicated
-# profile) via `agent-browser` over CDP. Launched in the GUI session so a self-healed launch inherits
-# GPU + Keychain → saved logins/cookies persist across cycles.
-#
-# Depends on `agent-browser` (a documented external dependency) and Google Chrome. Overridable via env:
-#   INBOARD_BROWSER_PORT (default 9223) · INBOARD_CHROME · INBOARD_CHROME_PROFILE · AGENT_BROWSER
-set -uo pipefail
-PORT="${INBOARD_BROWSER_PORT:-9223}"
-CHROME="${INBOARD_CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
-STATE="${INBOARD_STATE:-${INBOARD_HOME:-$HOME/.local/share/inboard}/state}"
-PROFILE="${INBOARD_CHROME_PROFILE:-$STATE/chrome-profile}"
-AB="${AGENT_BROWSER:-$HOME/.local/bin/agent-browser}"
-
-if ! curl -s --max-time 3 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
-  mkdir -p "$PROFILE"
-  nohup "$CHROME" --user-data-dir="$PROFILE" --remote-debugging-port="$PORT" \
-    --no-first-run --no-default-browser-check --restore-last-session=false \
-    >/tmp/inboard-chrome.log 2>&1 &
-  for _ in $(seq 1 20); do
-    curl -s --max-time 2 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1 && break
-    sleep 1
-  done
-fi
-# Every card agent shares this one Chrome, and agent-browser tracks a single active tab
-# per SESSION — so without a session per agent they all steer the same tab: one navigates,
-# another types into whatever landed there. That is not hypothetical, it put a password
-# into the wrong page on 2026-09-02. The lane key is the owning `claude` process, which is
-# stable for an agent's whole life and differs between agents, unlike $PPID (a fresh shell
-# per command) or the card id (not in this process's environment under daemon delivery).
-# Duo defaults to a security key for this account and this browser has none, so the
-# WebAuthn call raises a macOS system dialog outside the page that nothing here can
-# reach, wedging the tab until Chrome is killed. The shim puts a credential-less
-# virtual authenticator on every page so the call fails fast and Duo's "Other options"
-# stays clickable. See bin/webauthn-shim.
-if ! pgrep -f "webauthn-shim $PORT" >/dev/null 2>&1; then
-  nohup uv run --quiet --with websockets python3 "$(dirname "${BASH_SOURCE[0]}")/webauthn-shim" "$PORT" \
-    >>"${INBOARD_LOGS:-/tmp}/webauthn-shim.log" 2>&1 &
-fi
+# Each card gets its own tabs in web-plane's shared main profile. Browser lifecycle and UI
+# routing belong to web-plane; this adapter never launches a separate Chrome.
+set -euo pipefail
 
 lane="${INBOARD_BROWSER_LANE:-}"
 if [ -z "$lane" ]; then
@@ -50,5 +15,16 @@ if [ -z "$lane" ]; then
     pid=$parent
   done
 fi
-lane="${lane:-shared}"
-exec "$AB" --cdp "$PORT" --session "$lane" --pin-tab "$@"
+if [ -z "$lane" ]; then
+  echo 'browser: set INBOARD_BROWSER_LANE outside a card agent' >&2
+  exit 2
+fi
+lane="inboard-$lane"
+if ! result=$(web-plane lane "$lane" get url 2>&1); then
+  if [[ "$result" != *"has no web-plane session mapping"* ]]; then
+    printf '%s\n' "$result" >&2
+    exit 1
+  fi
+  web-plane -s=main attach --as "$lane" about:blank >&2
+fi
+exec web-plane lane "$lane" "$@"

@@ -21,10 +21,13 @@ command -v uv      >/dev/null || die "uv not found — install it: https://docs.
 command -v claude  >/dev/null || die "Claude Code CLI (claude) not found — inboard's agent runtime. Install it first."
 command -v gws     >/dev/null || warn "gws (google-workspace CLI) not on PATH — needed to read mail. Install + auth before first run."
 command -v cred    >/dev/null || warn "cred broker not on PATH — the default secret backend (for logins). Optional but recommended."
-[ -x "$HOME/.local/bin/agent-browser" ] || warn "agent-browser not found (~/.local/bin) — needed only for web-task cards."
+command -v web-plane >/dev/null || warn "web-plane not found — needed for web-task cards."
 
 say "Syncing Python venv (uv sync)"
 uv sync || die "uv sync failed"
+if command -v web-plane >/dev/null; then
+  "$INBOARD_HOME/.venv/bin/python" "$INBOARD_HOME/setup/deploy_browser.py" || die "browser service setup failed"
+fi
 
 # --- collect identity + accounts (only if no config yet) ---
 if [ -f "$CONFIG" ]; then

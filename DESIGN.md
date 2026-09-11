@@ -162,7 +162,8 @@ Situational procedures are `agent/.claude/skills/*/SKILL.md`: their *description
 - `agent/CLAUDE.md` — the agent's lean standing orders. `agent/.claude/skills/*` — on-demand procedures.
 - `bin/board` — the Notion board/log CLI (upsert/search/awaiting/schedule/wake-ack/done/reply/comments/…).
 - `bin/email` — the send-guarded per-account Gmail wrapper. `bin/mail-images` — email image fetcher.
-  `bin/browser` — agent-browser wrapper. `bin/has-work` — the no-LLM precheck. `bin/cfg` — config reader.
+  `bin/browser` — separate tabs for each card in web-plane's `main` profile. `bin/has-work` — the no-LLM precheck. `bin/cfg` — config reader.
+  `setup/deploy_browser.py` installs the service that connects saved security keys to `main`.
 - `bin/inboard` — top-level entry (`init` / `run` / `webhook` / passthroughs).
 - `setup/create_board.py` — parameterized Notion DB creator. `setup/init.sh` — the setup wizard.
 - `state/`, `logs/`, `.env`, `inboard.config.yaml` — runtime + secrets (all git-ignored).

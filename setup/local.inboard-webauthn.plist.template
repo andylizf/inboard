@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>local.inboard-webauthn</string>
+  <key>ProgramArguments</key><array>
+    <string>__INBOARD_HOME__/.venv/bin/python</string>
+    <string>__INBOARD_HOME__/bin/webauthn-shim</string>
+    <string>main</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>__INBOARD_HOME__/logs/webauthn-main.log</string>
+  <key>StandardErrorPath</key><string>__INBOARD_HOME__/logs/webauthn-main.err</string>
+</dict></plist>

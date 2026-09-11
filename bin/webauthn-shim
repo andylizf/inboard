@@ -21,16 +21,33 @@ Deliberately NOT Target.setAutoAttach(waitForDebuggerOnStart): that pauses every
 until this process resumes it, so a dead shim would hang the whole browser. Polling can
 only ever attach late, which is merely the old behaviour.
 """
-import asyncio, json, os, sys, urllib.request, urllib.error
+import asyncio, fcntl, json, os, re, subprocess, sys, urllib.request, urllib.error
+from datetime import datetime, timezone
 
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 9223
+MODE = sys.argv[1] if len(sys.argv) > 1 else "main"
+PORT = None if MODE == "main" else int(MODE)
 STORE = os.path.expanduser("~/.config/inboard/webauthn-credentials.json")
 POLL = 2.0
 KINDS = ("internal", "usb")   # platform and cross-platform; Duo asks for either
 
 
 def log(m):
-    print(m, flush=True)
+    print(f"{datetime.now(timezone.utc).isoformat()} {m}", flush=True)
+
+
+def main_port():
+    """Discover the managed main browser without starting or replacing it."""
+    profile = os.path.expanduser("~/.web-plane/profiles/main")
+    commands = subprocess.check_output(["ps", "-axo", "command="], text=True)
+    for command in commands.splitlines():
+        if "--type=" in command:
+            continue
+        if f"--user-data-dir={profile} " not in command + " ":
+            continue
+        match = re.search(r"--remote-debugging-port=(\d+)(?:\s|$)", command)
+        if match:
+            return int(match[1])
+    return None
 
 
 def options(transport):
@@ -56,6 +73,8 @@ def stored():
 
 
 def page_targets():
+    if PORT is None:
+        return []
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json", timeout=5) as r:
             return [t for t in json.load(r) if t.get("type") == "page"]
@@ -95,24 +114,45 @@ async def equip(target, creds_by_transport):
                     log(f"addCredential failed ({c.get('rpId')}): {a['error']}")
                 else:
                     loaded += 1
-        log(f"equipped {target['id'][:8]} creds={loaded} {target.get('url','')[:55]}")
+        log(f"equipped port={PORT} target={target['id']} creds={loaded}")
         async for _ in ws:      # hold until the tab closes
             pass
 
 
 async def main():
+    global PORT
+    # A supervised service and an accidental manual launch must not install two
+    # competing authenticators in the same browser.
+    lock_path = os.path.join(os.path.dirname(STORE), f"webauthn-{MODE}.lock")
+    os.makedirs(os.path.dirname(lock_path), exist_ok=True)
+    lock = open(lock_path, "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return
     creds = stored()
     total = sum(len(v) for v in creds.values())
     log(f"webauthn-shim watching CDP :{PORT} — {total} stored credential(s)")
     held = {}
     while True:
+        if MODE == "main":
+            discovered = main_port()
+            if discovered != PORT:
+                for task in held.values():
+                    task.cancel()
+                await asyncio.gather(*held.values(), return_exceptions=True)
+                held.clear()
+                PORT = discovered
+                log(f"main browser port={PORT}")
         for t in page_targets():
             tid = t["id"]
             if tid in held and not held[tid].done():
                 continue
             held[tid] = asyncio.create_task(equip(t, creds))
         for tid in [k for k, v in held.items() if v.done()]:
-            held.pop(tid, None)
+            task = held.pop(tid)
+            if not task.cancelled() and task.exception():
+                log(f"target={tid} error={type(task.exception()).__name__}")
         await asyncio.sleep(POLL)
 
 
