@@ -12,6 +12,7 @@
 #   twofa-gate acquire <service> --operator-retry  one explicitly requested retry, bypass local cooldown
 #   twofa-gate release <service> ok       cleared, it worked
 #   twofa-gate release <service> timeout  nobody answered → cooldown for everyone
+#   twofa-gate release <service> unused   no challenge sent → preserve existing cooldown
 #   twofa-gate status
 set -uo pipefail
 STATE="${INBOARD_STATE:-$HOME/Projects/inboard/state}/2fa"
@@ -52,8 +53,15 @@ case "$cmd" in
     ;;
   release)
     outcome="${3:-timeout}"
+    case "$outcome" in ok|timeout|unused) ;; *) echo "2fa-gate: unknown outcome: $outcome" >&2; exit 2 ;; esac
+    if [ "$outcome" = unused ] && { [ ! -f "$lock" ] || [ "$(sed -n '2p' "$lock")" != "$svc" ]; }; then
+      echo "2fa-gate: cannot release an unused reservation for a different or missing service." >&2
+      exit 1
+    fi
     rm -f "$lock"
-    if [ "$outcome" = ok ]; then
+    if [ "$outcome" = unused ]; then
+      echo "2fa-gate: released ($svc, no challenge sent); existing cooldown unchanged."
+    elif [ "$outcome" = ok ]; then
       rm -f "$cool"; echo "2fa-gate: released ($svc, answered)"
     else
       echo "$now" > "$cool"

@@ -14,6 +14,7 @@ twofa-gate acquire <service>     # exit 0 = you hold the only outstanding push; 
 … attempt the login …
 twofa-gate release <service> ok        # he answered
 twofa-gate release <service> timeout   # he did not — this blocks everyone for a cooldown
+twofa-gate release <service> unused    # verified that no challenge was sent; preserve any prior cooldown
 ```
 
 Release only a gate you successfully acquired, after its challenge completes, expires or is abandoned,
@@ -21,6 +22,10 @@ including when your attempt fails. A failed acquire does not authorize release. 
 turn while your challenge is pending does not release it; keep monitoring through human-gate.
 The outstanding timeout defaults to 10 minutes and can be configured. Do not infer that a displayed
 challenge remains valid from the gate's timer.
+If the browser completed silently or stopped before sending any challenge, use `unused`, not `timeout`.
+Record the evidence that nothing was sent; uncertainty about delivery is not evidence for `unused`.
+Acquiring the gate is coordination, not a request for new operator permission. Continue an authorized
+login through one permitted challenge, and ask for his action only when the actual challenge needs it.
 
 When the operator explicitly asks to retry this verification, log the authorizing comment or request
 and use `twofa-gate acquire <service> --operator-retry` for one new attempt now. Do not reuse that
@@ -35,5 +40,6 @@ Without a fresh operator request, a blocked gate means stop, not wait and retry.
 reason and the operator step needed; do not schedule a later push just because the cooldown will expire.
 If another verification is outstanding, identify it and keep this task pending without starting a
 competing push. Release honestly: `ok` only after confirmed completion, `timeout` after the challenge
-expires or is abandoned. A page still showing a number does not prove its old notification is valid.
+was sent and then expires or is abandoned. Use `unused` only when no challenge was sent.
+A page still showing a number does not prove its old notification is valid.
 After the operator confirms, continue the task now; do not postpone the result to the next daily review.

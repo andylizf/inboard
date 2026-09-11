@@ -42,6 +42,23 @@ class RetryAndHandoverTests(unittest.TestCase):
         self.assertIn('another card', result.stdout)
         self.assertEqual((self.state / 'outstanding').read_text(), before)
 
+    def test_unused_reservation_does_not_invent_or_erase_cooldown(self):
+        self.assertEqual(self.gate('acquire', 'google').returncode, 0)
+        self.assertEqual(self.gate('release', 'google', 'unused').returncode, 0)
+        self.assertFalse((self.state / 'cooldown').exists())
+        cooldown = str(int(time.time())) + '\n'
+        (self.state / 'cooldown').write_text(cooldown)
+        self.assertEqual(self.gate('acquire', 'google', '--operator-retry').returncode, 0)
+        self.assertEqual(self.gate('release', 'google', 'unused').returncode, 0)
+        self.assertEqual((self.state / 'cooldown').read_text(), cooldown)
+        self.assertEqual(self.gate('acquire', 'google').returncode, 1)
+
+    def test_unused_cannot_release_another_service(self):
+        self.assertEqual(self.gate('acquire', 'github').returncode, 0)
+        before = (self.state / 'outstanding').read_bytes()
+        self.assertEqual(self.gate('release', 'google', 'unused').returncode, 1)
+        self.assertEqual((self.state / 'outstanding').read_bytes(), before)
+
     def test_retry_timeout_keeps_future_automatic_attempts_blocked(self):
         self.assertEqual(self.gate('acquire', 'google', '--operator-retry').returncode, 0)
         self.assertEqual(self.gate('release', 'google', 'timeout').returncode, 0)

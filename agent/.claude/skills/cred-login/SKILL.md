@@ -12,6 +12,11 @@ Check the browser's existing session and available autofill, then the site's own
 then its established identity-provider route. Choose the account's route before submitting once;
 after a rejected login, do not try another route without an explicit operator retry request.
 A command-line 401 does not test the browser's cookies.
+Continue the authorized login through the actual browser flow; a provider button or a remembered Duo
+requirement does not show that this attempt needs his phone. Do not reduce the authorized login to
+inspection or prohibit its permitted challenge, whether doing it yourself or delegating it, unless the
+operator or an applicable instruction imposed that limit. The
+operator's possible future login is not a reason to stop your present task or ask him to finish it.
 Do not extract passwords from Chrome's store. For a login form, run `cred status` and `cred find <site>`,
 then use the matching item through `cred with`. `UNLOCKED` alone does not prove that an item can be fetched;
 record the fetch result and the browser outcome in the card log, without the secret. A login form or an
@@ -53,8 +58,12 @@ cred with <id> -- bash -c 'browser fill @e5 "$CRED"'
 
 **Getting a site past a login wall:** drive the browser to the login URL, snapshot for the field refs,
 fill username and password through `cred with` as above, then carry on in the same browser session.
-Follow `web-tasks` and the existing login-attempt limits. Before a login that may send a second factor,
-use `twofa-gate`; a gate refusal, rejected credential or pending human approval is an observed blocker.
+Follow `web-tasks` and the existing login-attempt limits. Acquire `twofa-gate` before the step that can
+send a second factor, including credential submission when it can auto-push. Under the existing task
+authorization, proceed with one allowed challenge without asking for separate permission to start it.
+Ask for his part when the service actually requests an action only he can perform, using the current
+challenge's evidence; then monitor it under `human-gate` and continue after confirmation. A real gate
+refusal or rejected credential remains a blocker under the attempt limits.
 Reuse a successful session on later tasks and check whether it is still accepted.
 
 **When the vault is locked** every fetch fails until a human unlocks it, and it stays locked until then —
