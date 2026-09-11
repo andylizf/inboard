@@ -193,15 +193,11 @@ prep_session() {
       if session_too_big "$dlive"; then dwhy="its context passed agent.session_handover_pct"
       fi
       if [ -n "$dwhy" ]; then
-        # Phase 1 — do NOT retire yet. Whatever this session knows that never reached the card is
-        # about to be destroyed, and it is the only thing that can still write it down. Retiring it
-        # first is the one order that guarantees the loss. Ask now, retire on the next touch: the
-        # ask is async, so blocking here to wait for it would stall an operator's tap instead.
-        if deliver_to_daemon "$CARD" "$INBOARD_HOME/agent" \
-            "HANDOVER — you are being retired after this turn ($dwhy) and a fresh session will take card $CARD over. Nothing you know survives except what is written on the card. Do NOT start new work. Do this and stop: bring the 📌 state note fully up to date, then append what a successor would otherwise have to rediscover — what you already tried that did not work, what you are part-way through, and any decision you made whose reason is not obvious from the result."; then
-          printf '%s' "$dlive" > "$dmark"
-          echo "[$(date)] warned daemon agent $dname session $dlive ($dwhy) — retires on next touch" >>"$INBOARD_LOGS/webhook.log"
-        fi
+        # Attach persistence advice to the actual request. A separate stop instruction made
+        # workers defer that request to a scheduled wakeup instead of handling it.
+        SESSION_NOTICE="Handle this request now in the current session. Your context passed the handover threshold; keep the card's state and unfinished steps current as you work so a later session can resume. This notice does not end your turn or schedule a successor. Do not postpone this request or ask the operator to wait for another agent because of the threshold."
+        printf '%s' "$dlive" > "$dmark"
+        echo "[$(date)] marked daemon agent $dname session $dlive for rotation on next touch; current request continues" >>"$INBOARD_LOGS/webhook.log"
       fi
     elif [ -f "$dmark" ]; then
       rm -f "$dmark"

@@ -87,9 +87,9 @@ and attempt limits; anticipated difficulty or possible human verification is not
 When a real blocker requires him, record the evidence and request only the step you cannot perform,
 keep the unfinished work on the card, and resume it when that step is resolved. Hand over the whole task
 only if he chooses to take it over. A reminder to do the work himself is not completion of your task.
-**Login attempt limits still apply.** Login attempts, credential prompts and second factors
-are never tried twice: not now, not on a timer, not by another route. A second attempt is not persistence
-there, it is what locks the account.
+**Login attempt limits still apply.** Do not retry login or second-factor failures autonomously,
+on a timer or by another route. An explicit operator request to retry authorizes one new attempt;
+follow `twofa-gate` for verification and report an actual service lockout rather than retrying through it.
 
 **`inboard.config.yaml` and `agent/.claude/settings.json` are not yours to edit** (the second is where
 the model you run on is set). It holds the operator's settings, not tuning knobs you
@@ -265,8 +265,9 @@ card notes, memory or wakeup instructions; do not turn it into a standing ban on
 
 ## Second factors ring a phone — gate before you push one
 **Anything that rings his phone — a Duo push, an SMS code, an authenticator prompt, a passkey tap — goes
-through `twofa-gate acquire <service>` first. Exit 1 means STOP, not wait and retry**: put one line on the
-card saying it needs him at his phone, and end. Release honestly (`ok` only if he answered). You see only
+through `twofa-gate acquire <service>` first. For an explicit request to retry this verification, use
+`--operator-retry` once as described in `twofa-gate`. Exit 1 still means do not push**: report the actual
+blocked condition on the card. Release honestly (`ok` only if he answered). You see only
 your own card, so six agents each "just trying once" ring him six times, and unanswered pushes count as
 failed attempts at the far end — enough of them and the account is locked, and with it every service
 behind it. **Load the `twofa-gate` skill** for the exact commands.
