@@ -182,16 +182,21 @@ def run_case(case, parent):
         server.shutdown()
     hooklog = run / 'card-hooks.log'
     events = [json.loads(line) for line in hooklog.read_text().splitlines()] if hooklog.exists() else []
+    snapshot = json.loads((run / 'state/card-hooks' / f'{sid}.json').read_text())
     if case == 'handoff':
         assert any(e.get('result', {}).get('decision') == 'block' for e in events), events
         card = json.loads((run / 'card.json').read_text())
         assert card['properties']['Status']['select']['name'] == C.status_name('awaiting'), card
         assert result.returncode == 0, result.returncode
+        assert snapshot['retirement_ready'] is True, snapshot
     elif case == 'background':
         assert any(e['event'] == 'background_running' for e in events), events
+        assert snapshot['retirement_ready'] is False, snapshot
+        assert any(t['status'] == 'running' for t in snapshot['background_tasks']), snapshot
     else:
         assert any(e['event'] == 'failure_reported' and e.get('error') == 'authentication_failed'
                    for e in events), events
+        assert snapshot['retirement_ready'] is False, snapshot
     print(json.dumps({'case': case, 'passed': True, 'requests': len(calls), 'cli_exit': result.returncode,
                       'logs': str(run)}), flush=True)
 

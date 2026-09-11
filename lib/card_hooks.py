@@ -21,7 +21,7 @@ def session_path(sid):
     return root() / f'{uuid.UUID(sid)}.json'
 
 
-def bind_session(name, sid):
+def bind_session(name, sid, *, pending=False):
     if not name.startswith('inboard-card-') or not sid:
         return
     card = str(uuid.UUID(name.removeprefix('inboard-card-')))
@@ -31,6 +31,8 @@ def bind_session(name, sid):
         fcntl.flock(lock, fcntl.LOCK_EX)
         state = json.loads(path.read_text()) if path.exists() else {}
         state['card'] = card
+        if pending:
+            state['retirement_ready'] = False
         W.save(path, state)
     W.save(root() / f'card-{card}.json', {'session': sid})
 
@@ -116,11 +118,21 @@ def handle(payload, board=None):
     with path.with_suffix('.lock').open('a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         state = json.loads(path.read_text())
+        # A previous empty snapshot cannot authorize retirement during a new turn.
+        state['retirement_ready'] = False
+        W.save(path, state)
         emit(sid, 'start', card=state['card'], input=payload)
         try:
             if board is None and payload['hook_event_name'] in ('Stop', 'StopFailure'):
                 board = W.load_board()
             result = decide(board, state, payload)
+            if payload['hook_event_name'] == 'Stop':
+                tasks = payload.get('background_tasks')
+                state['background_tasks'] = tasks
+                state['retirement_ready'] = (
+                    isinstance(tasks, list) and result.get('decision') != 'block'
+                    and all(task.get('status') in ('completed', 'failed', 'killed') for task in tasks))
+                state['snapshot_at'] = W.now().isoformat()
         except Exception as exc:
             # A failed Notion request cannot be fixed by repeatedly blocking the same Stop.
             emit(sid, 'fail', card=state['card'], error=str(exc))
@@ -129,6 +141,14 @@ def handle(payload, board=None):
             W.save(path, state)
         emit(sid, 'done', card=state['card'], result=result)
         return result
+
+
+def retirement_ready(sid):
+    """Only a completed Stop with no outstanding runtime tasks permits rotation."""
+    try:
+        return json.loads(session_path(sid).read_text()).get('retirement_ready') is True
+    except (OSError, ValueError):
+        return False
 
 
 if __name__ == '__main__':

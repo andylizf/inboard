@@ -95,7 +95,7 @@ def find_job(name: str, sock: str | None = None) -> dict | None:
     jobs = [j for j in list_jobs(sock) if j.get("name") == name]
     if not jobs:
         return None
-    live = [j for j in jobs if j.get("state") in ("running", "adopted", "idle", "blocked")]
+    live = [j for j in jobs if j.get("state") in ("working", "running", "adopted", "idle", "blocked")]
     pool = live or jobs
     return max(pool, key=lambda j: j.get("createdAt", 0))
 
@@ -245,9 +245,14 @@ def retire(name: str) -> bool:
         return False
     if j.get("state") == "working":
         return False        # mid-turn; rotating now would throw away work already done
+    from card_hooks import retirement_ready, emit
+    sid = j.get('sessionId', '')
+    if not retirement_ready(sid):
+        emit(sid, 'retirement_deferred', reason='no_completed_stop_without_background_tasks')
+        return False
     short = j["short"]
-    subprocess.run(["claude", "stop", short], capture_output=True)
-    subprocess.run(["claude", "rm", short], capture_output=True)
+    subprocess.run(["claude", "stop", short], capture_output=True, check=True)
+    subprocess.run(["claude", "rm", short], capture_output=True, check=True)
     return True
 
 
@@ -317,7 +322,7 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
             short = job["short"]
     # Bind before delivery: a short turn can reach Stop before the caller writes Session.
     from card_hooks import bind_session
-    bind_session(name, (job or {}).get("sessionId", ""))
+    bind_session(name, (job or {}).get("sessionId", ""), pending=True)
     if name.startswith('inboard-card-'):
         text = 'Read the current CLAUDE.md in your working directory before handling this card.\n\n' + text
     r = _reply_with_retry(short, text, sock)

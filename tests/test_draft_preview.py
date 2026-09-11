@@ -110,11 +110,27 @@ class DraftPreviewTests(unittest.TestCase):
         preview = 'From: sender@example.com\nTo: to@example.com\n\n---\n\n' + '正文' * 2000
         args = argparse.Namespace(card='card-1', draft=preview, status=None, needs=None,
                                   subject=None, sender=None, due=None)
-        with patch.object(board, 'api') as api:
+        with patch.object(board, 'api', return_value={
+                'properties': {'Draft': {'rich_text': wakeups.text(preview)}}}) as api:
             board.edit(args)
-        runs = api.call_args.args[2]['properties']['Draft']['rich_text']
+        runs = api.call_args_list[0].args[2]['properties']['Draft']['rich_text']
         self.assertEqual(''.join(r['text']['content'] for r in runs), preview)
         self.assertTrue(all(len(r['text']['content']) <= 2000 for r in runs))
+
+    def test_draft_truncation_or_same_length_replacement_fails_readback(self):
+        import wakeups
+        board = wakeups.load_board()
+        intended = '正文' * 4000
+        for stored in (intended[:1900], intended[:-1] + '改'):
+            with patch.object(board, 'api', return_value={
+                    'properties': {'Draft': {'rich_text': wakeups.text(stored)}}}):
+                with self.assertRaisesRegex(RuntimeError, 'Draft readback mismatch'):
+                    board.verify_draft('card-1', intended)
+
+    def test_over_limit_text_fails_instead_of_truncating(self):
+        import wakeups
+        with self.assertRaisesRegex(ValueError, 'nothing was truncated'):
+            wakeups.text('x' * 180001)
 
     def create(self, args, original=None):
         calls = []

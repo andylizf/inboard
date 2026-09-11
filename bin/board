@@ -192,11 +192,13 @@ def upsert(a):
     ex = find_card(a.msgid)
     if ex:
         api("PATCH", f"/pages/{ex['id']}", {"properties": props})
+        verify_draft(ex['id'], a.draft)
         print(json.dumps({"updated": ex["id"]}))
     else:
         if C.status_name(a.status) not in {C.status_name(k) for k in CLOSED_KEYS}:
             props["Action"] = {"select": {"name": ACTION_PLACEHOLDER}}
         r = api("POST", "/pages", {"parent": {"database_id": DB}, "properties": props})
+        verify_draft(r['id'], a.draft)
         print(json.dumps({"created": r["id"]}))
 
 
@@ -631,6 +633,16 @@ def status_for(a):
     print(C.ACTION_STATUS.get(a.action, ""))
 
 
+def verify_draft(card, expected):
+    if expected is None:
+        return
+    page = api('GET', f'/pages/{card}')
+    actual = AR.property_text(page, 'Draft')
+    if actual != expected:
+        raise RuntimeError(f'Draft readback mismatch: intended {len(expected)} characters, '
+                           f'read {len(actual)}. Draft is not verified; do not request approval.')
+
+
 def edit(a):
     # Generic property tweak on an EXISTING card BY CARD-ID (unlike `upsert`, which keys on msgid and can
     # create). Only the fields you pass change; everything else (incl. Subscription/Action) is left intact.
@@ -651,6 +663,7 @@ def edit(a):
     if a.status is not None:
         props.update(closing_props(C.status_name(a.status)))
     api("PATCH", f"/pages/{a.card}", {"properties": {**props, **touched()}})
+    verify_draft(a.card, a.draft)
     print(json.dumps({"edited": a.card}))
 
 

@@ -25,6 +25,8 @@ def instant(value):
 
 def text(value):
     # Each Notion text run has a size limit; never truncate a stored schedule.
+    if len(value) > 180000:
+        raise ValueError('Text exceeds 100 Notion text runs (180000 characters); nothing was truncated.')
     return [{"type": "text", "text": {"content": value[i:i + 1800]}}
             for i in range(0, len(value), 1800)]
 

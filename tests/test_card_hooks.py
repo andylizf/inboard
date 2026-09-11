@@ -129,6 +129,49 @@ class HookTests(unittest.TestCase):
         self.assertEqual(saved['blocks'], 1)
         self.assertEqual(saved['card'], CARD)
 
+    def test_retirement_keeps_waiting_worker_until_background_completion(self):
+        import agent_deliver as A
+        H.bind_session('inboard-card-' + CARD.replace('-', ''), SID)
+        self.board.page['properties']['Status']['select']['name'] = C.status_name('needs_you')
+        job = {'short': 'worker', 'sessionId': SID, 'state': 'idle'}
+        with patch.object(A, 'find_job', return_value=job), patch.object(A.subprocess, 'run') as run:
+            for tasks in (None, [{'id': 'watcher', 'status': 'running'}],
+                          [{'id': 'result', 'status': 'pending'}]):
+                H.handle(self.payload(background_tasks=tasks), self.board)
+                self.assertFalse(A.retire('inboard-card-' + CARD.replace('-', '')))
+                run.assert_not_called()
+            H.handle(self.payload(background_tasks=[{'id': 'watcher', 'status': 'completed'}]), self.board)
+            self.assertTrue(A.retire('inboard-card-' + CARD.replace('-', '')))
+            self.assertEqual([c.args[0][:2] for c in run.call_args_list],
+                             [['claude', 'stop'], ['claude', 'rm']])
+
+    def test_new_delivery_and_new_user_turn_invalidate_retirement_snapshot(self):
+        name = 'inboard-card-' + CARD.replace('-', '')
+        H.bind_session(name, SID)
+        self.board.page['properties']['Status']['select']['name'] = C.status_name('awaiting')
+        H.handle(self.payload(), self.board)
+        self.assertTrue(H.retirement_ready(SID))
+        H.bind_session(name, SID, pending=True)
+        self.assertFalse(H.retirement_ready(SID))
+        H.handle(self.payload(), self.board)
+        H.handle(self.payload('UserPromptSubmit'), self.board)
+        self.assertFalse(H.retirement_ready(SID))
+
+    def test_missing_snapshot_failed_or_blocked_stop_never_allows_retirement(self):
+        self.assertFalse(H.retirement_ready(SID))
+        H.bind_session('inboard-card-' + CARD.replace('-', ''), SID)
+        H.handle(self.payload(), self.board)
+        self.assertFalse(H.retirement_ready(SID))
+        H.handle(self.payload('StopFailure', error='offline'), self.board)
+        self.assertFalse(H.retirement_ready(SID))
+
+    def test_working_session_is_not_retired_even_with_previous_clear_snapshot(self):
+        import agent_deliver as A
+        with patch.object(A, 'find_job', return_value={'state': 'working'}), \
+                patch.object(A.subprocess, 'run') as run:
+            self.assertFalse(A.retire('worker'))
+            run.assert_not_called()
+
     def test_failed_notion_write_is_logged_and_not_falsely_acknowledged(self):
         H.bind_session('inboard-card-' + CARD.replace('-', ''), SID)
         with patch.object(self.board, 'log', side_effect=OSError('offline')):

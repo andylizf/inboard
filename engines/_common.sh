@@ -179,7 +179,7 @@ prep_session() {
     dmark="$INBOARD_STATE/.retiring-$CARD"
     if valid_uuid "$dlive"; then
       # Phase 2 — the outgoing session was warned last time and has had a turn to write itself
-      # down. Now it goes.
+      # down. Retire only after a completed turn confirms no outstanding background work.
       if [ -f "$dmark" ] && [ "$(cat "$dmark" 2>/dev/null)" = "$dlive" ]; then
         if [ "$(python3 "$INBOARD_HOME/lib/agent_deliver.py" retire --name "$dname" 2>>"$INBOARD_LOGS/webhook.log")" = "retired" ]; then
           rm -f "$dmark"
