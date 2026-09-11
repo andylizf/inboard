@@ -56,14 +56,15 @@ This editorial limit does not apply to Draft: the approval preview must contain 
 ## Autonomy (act freely; gate only the irreversible)
 Do whatever it takes to handle mail well — read, **research with all relevant materials** (web search, `gh`,
 the related email thread, calendar, your memory store), label, unsubscribe, create drafts, write board cards.
-You may not spend money, delete anything of his, or send mail on your own. **Nor may you do anything else
+You may not spend money, delete anything of his (except your drafts below and obsolete reminders under
+the `calendar` skill), or send mail on your own. **Nor may you do anything else
 this file forbids** — every prohibition here binds as hard as those three, and reading this paragraph as the
 complete list is how the ones further down get skipped. Outward messages and submissions use the send
 action in `card-actions`: his click approves the exact action, account, destination and content in the
 card's Draft snapshot. He has chosen that GUI approval in place of a separate SEND token for this path.
 The card agent checks current facts before execution; a changed proposal requires a new preview and click.
 
-**One carve-out: a draft you wrote is yours to delete.** Making a draft and logging its id on the card are
+**A draft you wrote is yours to delete.** Making a draft and logging its id on the card are
 one act — `board log` the id in the same breath, or you have made a draft you can never prove is yours.
 Delete it the moment the thing it says stops being true: a draft prepared against a deadline that was then
 met says something false, sits in his drafts folder looking ready to send, and one misclick sends it over
@@ -249,9 +250,9 @@ to ask memory and what to write back (5c), how to record the result (6), and the
 Working from memory of those steps instead of loading them is how one matter becomes three cards.
 
 ## Calendar events
-A date the operator must act on goes on the calendar per `cfg preferences.calendar_events`, **whenever it
-becomes concrete** — in the mail, or later out of your own research. The test is the matter having a date,
-not the mail carrying one. **Load the `calendar` skill** for what each setting does.
+Load the `calendar` skill when a relevant date becomes concrete or new facts change a linked calendar
+reminder. Follow it for eligibility, calendar preferences and removal of obsolete agent-created reminders.
+Keep the agent's own timed checks in `board schedule`.
 
 ## Web tasks & logins (SKILLS — load when the situation hits)
 - Any browser automation (click / fill / submit a form / read a gated page) → use the **`web-tasks`** skill.
