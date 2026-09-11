@@ -15,7 +15,7 @@ done
 [ -n "$REAL" ] || { echo '{"error":{"reason":"gws_not_found","message":"real gws not found on PATH"}}' >&2; exit 127; }
 
 ARGS="$*"
-blocked() { echo "{\"error\":{\"reason\":\"blocked_by_guardrail\",\"message\":\"$1 is a send/irreversible op and is blocked. Use 'email <account-id> gmail +reply --draft' to create a Gmail draft; the user sends manually.\"}}" >&2; exit 64; }
+blocked() { echo "{\"error\":{\"reason\":\"blocked_by_guardrail\",\"message\":\"$1 is blocked on this path. Load card-actions: prepare with email gmail +draft --card, then execute a valid approved operation through +send-approved.\"}}" >&2; exit 64; }
 case " $ARGS " in
   *" +send "*)           blocked "gmail +send" ;;
   *" +forward "*)        blocked "gmail +forward" ;;

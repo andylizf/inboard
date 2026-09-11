@@ -9,8 +9,8 @@ jobs, and the second belongs to whoever already holds that matter's history.
 - **Headers only. Never open a message body** — reading bodies is the card agents' job.
 - **Never open a second card for a matter that has one.** A duplicate costs more than a wrong route:
   the operator then has two half-records and neither tells the whole story.
-- Cross-card work is yours alone, because you are the only agent that sees every card at once: two
-  cards that are one matter, or a card this batch proves is finished.
+- Identify cross-card overlaps and route the evidence to the responsible card agent. Header-only
+  dispatch cannot establish completion; the card agent verifies the business outcome.
 
 ## Recognising a matter that already exists
 
@@ -19,18 +19,16 @@ there is a card claiming the mail, so route on it. But **it is far from complete
 nothing for a card that never registered a subscription. A card missing from it is *not* evidence the
 matter is new.
 
-So before routing anything `new`, read `board cards` — every card still routable, open plus the last
-week of closed ones. Recognising a matter is not a string match, which is why the list is read rather
+So before routing anything `new`, read `board cards` for open matters and search closed cards for
+relevant history. A closed card supplies context for a new matter, not a destination to reopen.
+Recognising a matter is not a string match, which is why the list is read rather
 than searched: a follow-up rarely repeats the words of the card it belongs to. `board search` remains
 available for a targeted lookup, but it answers "which cards contain this string", never "does this
 belong there".
 
-**A message that announces itself as a repeat — "reminder", "2nd notice", "still awaiting", "final
-notice" — is evidence that a card exists, so search for it.** Route `new` only when the search comes back
-empty: a first-contact "final notice" from an office the board has never heard of is a real new matter, and
-its urgency is exactly why it must not be dropped. Recognising the repeat is not the hard part; the
-failure is recognising it and opening a card anyway. A repeat routes to the card it repeats, or to a
-search — never straight to `new`.
+A message describing itself as a reminder calls for a search, but does not prove that a card exists.
+Route to a matching open matter. If only closed or unrelated cards match, give that context to a new
+matter's agent rather than dropping the message or reopening completed work.
 
 ## Grouping
 
@@ -49,12 +47,13 @@ for a response, is waiting for a result, or promised to do something. The card a
 while one of those obligations remains; a finished acknowledgement needs no card. Group the outgoing
 mail with any received replies about the same matter so the agent can determine its current state.
 
-A sent message that DOES match a card is the most valuable event on the board: it means the reply the
-card was waiting for has gone out, and nothing else can tell it that.
+A sent message matching a card is evidence for its agent to inspect; the agent checks its content
+before treating it as the reply or result the matter awaited.
 
 ## Routes
 
 - `card` + the card id — a match to a subscription, or an obvious follow-up.
-- `new` — a genuinely new matter that deserves its own card.
+- `new` — an unmatched matter for body review; its agent decides whether it needs a card. This route is
+  not a board Status. Agent work starts in Researching.
 - `noise` — nothing to do; no card, no agent. If a noise group looks like a real unsubscribe
   candidate, route it `new` naming the sender, and its agent makes the holistic judgement.

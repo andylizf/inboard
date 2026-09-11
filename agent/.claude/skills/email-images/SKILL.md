@@ -1,6 +1,6 @@
 ---
 name: email-images
-description: See the images inside an email — screenshots, graphs, scanned forms, memes. Load this when a message has an image attachment or its text points to a figure ("see below" / "attached" / "as shown"). `+read` is text-only and drops images; this fetches them so you (multimodal) can actually view them.
+description: Inspect images inside an email when it has image attachments, refers to a figure, or has suspiciously empty or thin text. Obvious promotional noise identified from sender and subject needs no image check. The text-only +read helper drops images; this skill fetches them for inspection.
 ---
 
 `+read` is TEXT-ONLY — it silently drops attachments and inline figures, so an email whose real content is a screenshot / graph / scanned form / meme looks empty or nonsensical. Whenever a message has an image attachment, or its text points to one (`see below` / `attached` / `as shown` / a figure):

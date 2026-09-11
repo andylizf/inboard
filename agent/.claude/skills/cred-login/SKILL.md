@@ -8,10 +8,19 @@ machine and hands a secret only into a command's environment — never onto your
 way you may touch a secret. Use credentials it authorizes for the card's task without asking for another
 approval. An explicit operator restriction on that account or action still applies.
 
-Reuse the browser session first. If it shows a login form, run `cred status` and `cred find <site>`, then
-use the matching item through `cred with`. `UNLOCKED` alone does not prove that an item can be fetched;
+Try the browser's existing session and autofilled login first, then the site's own vault credential,
+then its established identity-provider login. A command-line 401 does not test the browser's cookies.
+Do not extract passwords from Chrome's store. For a login form, run `cred status` and `cred find <site>`,
+then use the matching item through `cred with`. `UNLOCKED` alone does not prove that an item can be fetched;
 record the fetch result and the browser outcome in the card log, without the secret. A login form or an
 old note saying "needs login" is not a reason to ask the operator to enter a password you can use.
+
+A missing site credential may mean the account uses Google, Apple or another provider. Check the
+operator's instructions, prior verified login records, mail and the site's account-selection flow to
+establish which route belongs to this account. Search for the provider credential when that route
+is established. A welcome email, a password-reset email or a provider button alone does not prove
+which login methods the account supports. If the route could register a new account and you cannot
+establish that this is the existing account, obtain approval for registration before completing it.
 
 **Look it up first (free, no secrets):**
 
@@ -28,7 +37,7 @@ redirects when logged out.
 cred with <id> -- bash -c '<command that uses "$CRED">'
 ```
 
-**The $CRED-shell gotcha (it cost a whole session once):** `cred with … -- <cmd>` runs `<cmd>` DIRECTLY,
+**Shell expansion:** `cred with … -- <cmd>` runs `<cmd>` directly,
 with no shell, so `"$CRED"` expands only if `<cmd>` IS a shell. Writing
 `cred with <id> -- browser fill @e5 '$CRED'` types the literal 5 characters `$CRED` into the
 field — a wrong login that LOOKS right, dots in the box and all, then "password does not match". Always
@@ -48,10 +57,10 @@ Reuse a successful session on later tasks and check whether it is still accepted
 
 **When the vault is locked** every fetch fails until a human unlocks it, and it stays locked until then —
 there is no timer that will clear it. Do NOT retry in a loop. Say so on the card in one line and follow
-the HUMAN GATE procedure in CLAUDE.md; the cheap readiness probe there is `cred status`, never a login
-attempt. The operator unlocks with `ssh -t mac-mini "cred unlock '*'"`.
+`human-gate`; the safe readiness probe is `cred status`, never a login attempt.
+Use the broker's reported unlock procedure on the machine running it.
 
 **Read cred's full output, never grep it away** — it is progressive-disclosure and tells you the exact
 next step. One error deserves suspicion rather than belief: `item has no login.password field` can mean
-the broker's session has been invalidated rather than that the item is passwordless. If several items
-report it at once, the session is dead — relay the unlock, do not conclude anything about the vault.
+the broker's session has been invalidated rather than that the item is passwordless. Check `cred status`
+and the broker's diagnostics; multiple missing-field errors alone do not prove either explanation.

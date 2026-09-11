@@ -5,8 +5,8 @@
 
 The first arg selects a configured account (see `board accounts` / inboard.config.yaml); this
 sets that account's isolated gws config dir + keyring backend, then execs the real `gws`
-(google-workspace CLI). Every IRREVERSIBLE send op is BLOCKED — the agent may read, research,
-label, unsubscribe, and create DRAFTS, but physically cannot send. Sending stays a human action.
+(google-workspace CLI). Raw sends are blocked; the assigned agent sends through +send-approved
+after the operator approves the card's complete preview.
 """
 import json
 import os
@@ -101,7 +101,7 @@ def draft_for_card(acct_env, gws, rest, sender):
                f"Subject: {subject}\n\n---\n\n{a.body}")
     subprocess.run([sys.executable, board, "edit", "--card", a.card, "--draft", preview], check=True)
     subprocess.run([sys.executable, board, "log", "--card", a.card, "--text",
-                    "草稿已存入邮箱草稿箱并同步到本卡 Draft 字段：收件人 %s，主题「%s」（Gmail draft id %s）。点「📤 帮我发送」发出。"
+                    "完整草稿已同步到卡片：收件人 %s，主题“%s” (Gmail draft id %s)。审阅后使用卡片的发送按钮，由 agent 核查最新情况并执行。"
                     % (to, subject, draft_id)], check=True)
     print(json.dumps({"draft_id": draft_id, "to": to, "subject": subject, "card": a.card}, ensure_ascii=False))
     sys.exit(0)
@@ -156,7 +156,8 @@ def compose_draft(acct_env, gws, rest):
 def blocked(label):
     sys.stderr.write(
         '{"error":{"reason":"blocked_by_guardrail","message":"%s is a send/irreversible op and is '
-        'blocked. Use \'+reply --draft\' to create a Gmail draft instead; the user sends manually."}}\n'
+        'blocked on this path. Load card-actions: prepare with email gmail +draft --card, '
+        'then execute a valid approved operation through +send-approved."}}\n'
         % label)
     sys.exit(64)
 

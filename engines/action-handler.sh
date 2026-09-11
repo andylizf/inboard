@@ -61,7 +61,7 @@ PROMPT="The operator picked Action='$ACTION' on card $CARD (the inbox board) —
 $SESSION_NOTICE
 FIRST post a live plan so they can watch: \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 steps); \`board tick --card $CARD --n <0-based>\` the instant each step is done.
 Then read the card (subject, draft, needs, body) and handle Action='$ACTION' EXACTLY per the **card-actions** skill (load it) — that playbook, including its daily-log step when a daily log is configured, is the single source of truth; do not improvise a different flow.
-Finish: \`board clear-action --card $CARD\` (so it can be re-triggered), then \`board reply --card $CARD --text '<one line: what you did>'\` so they see it in the thread.
+Record the outcome and reply with \`board reply --card $CARD --text '<what happened and what remains>'\`, then clear-action as the final receipt. On failure or unknown outcome use action-fail per card-actions.
 Outward messages and submissions require the send action and the current-facts/approval checks in card-actions. Email uses +send-approved; other destinations use their native tools.
 $GOAL_TRAILER
 $MORTAL_TRAILER"

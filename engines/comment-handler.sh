@@ -101,23 +101,24 @@ FIRST, post a live to-do so they can watch progress in real time:
 \`board plan --card $CARD --steps 'step 1|step 2|step 3'\` (2–5 short concrete steps).
 Then the MOMENT you finish each step, run \`board tick --card $CARD --n <0-based index>\` before moving on.
 Now ACT:
- - instruction → do it (research/redraft → \`email <id> gmail +draft --card $CARD ...\`, which makes the Gmail
-   draft AND puts it on the card AND logs its id in one step — it is the only way to make a draft; move status); update the card.
-   If they say it's done/handled/not-important/drop → \`board done --card $CARD\` (keeps the card in the Done column, do NOT archive).
+ - instruction → do it. Load board-cli for drafting: email uses +draft; other platforms use board edit --draft.
+   Use card-actions for approval and execution; a comment is not a replacement for the send button's snapshot.
+   An explicit login/verification retry is authorization for one attempt under cred-login and twofa-gate.
+   Confirmed completion uses board done; dropping the matter uses board edit --status cancelled --needs ''.
  - preference → apply it now AND record it on the card via \`board log\` so you keep obeying it.
 FINISH by (1) refreshing the card's 📌 state note (\`board note --card $CARD --text '<current state, self-contained>'\`)
 and (2) replying IN THE COMMENT THREAD so they see it where they asked:
 \`board reply --card $CARD --text '<2-4 short sentences, SELF-CONTAINED per CLAUDE.md's writing rules: which
 matter this is in plain words, what you did/found, what they must do next — no tool jargon, no raw ids>'\`.
 Put longer detail in the body via \`board log\`.
-NEVER send email (drafts only)."
+This comment does not create a send approval. Preserve any separately delivered operation and follow card-actions."
 else
   TASK="A Notion comment fired but I couldn't resolve the card.
 Scan actionable cards (\`board pending\` + read comments on the awaiting/draft cards), find the one with a fresh
-comment from the operator, and handle it (instruction or preference). If they say drop/done → \`board done --card <ID>\`
-(keep the card, do NOT archive). Reply in-thread with \`board reply --card <ID> --text '<short + self-contained
+comment from the operator, and handle it (instruction or preference). Confirmed completion uses board done;
+dropping the matter uses board edit --status cancelled --needs ''. Reply in-thread with \`board reply --card <ID> --text '<short + self-contained
 per CLAUDE.md's writing rules>'\` so they see it, refresh the 📌 note (\`board note\`), and \`board log\` the detail.
-NEVER send email (drafts only)."
+This comment does not create a send approval. Follow card-actions for any separately delivered operation."
 fi
 
 # NOTE: the full Event JSON is deliberately NOT embedded — the prompt is already near the size

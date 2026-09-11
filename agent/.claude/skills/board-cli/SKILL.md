@@ -19,6 +19,12 @@ from the other's wording. Keep the preview self-contained so the operator can ap
 the log. Preview labels describe the operation; publish only its content, without those labels.
 Changes to any of these details require a new send click.
 
+Store the complete preview through these commands; they chunk long text and verify Draft by readback.
+The Summary length target does not apply to Draft. A size error requires a smaller explicitly scoped
+proposal or a reported storage limitation, never silent truncation or hiding the rest in the log.
+The operator reviews and approves on the card; do not send them to an email drafts folder or ask for
+a comment saying yes. A send failure describes the operation, not whether the matter is finished.
+
 `board approved-draft --card C --operation TOKEN` returns the approved current preview, or fails if the
 operation is stale, is not a send action, or the preview changed. It requires the token delivered for
 this click and does not send anything. Follow `card-actions` to check current facts before executing the
@@ -52,7 +58,7 @@ Review precedes operator approval; never silently rewrite an approved draft befo
   (`+reply`, `+compose-draft`, `users drafts create`) are refused. The Draft field holds the latest draft;
   earlier ones remain in the log for audit. Sending requires the current card preview to match the
   preview approved by the operator's latest send click.
-- **Send:** the email wrapper blocks every send except `+send-approved --card <CARD> --draft-id <ID>`, which requires the
+- **Send:** the email wrapper blocks every send except `+send-approved --card <CARD> --draft-id <ID> --operation <TOKEN>`, which requires the
   operator to have tapped the send chip on that card. Its full procedure, including what to do when it
   fails, is in `card-actions`. Everything else you write is a draft.
 
@@ -123,7 +129,7 @@ Review precedes operator approval; never silently rewrite an approved draft befo
 `board daily --type '🚫 Unsubscribe'|'✅ Done'|'✉️ Draft'|'ℹ️ FYI' --subject S --account <label> [--detail D]`
 — only where a daily-log database is configured; otherwise the FYI is simply marked processed.
 
-**Two surfaces.** The board holds what is live (`📥 New` = mail nobody has worked yet, `🔍 Researching`,
+**Two surfaces.** The board holds what is live (`🔍 Researching` = queued or active agent work,
 `⏳ Waiting` = waiting for mail, time or an external condition, `⏸ Needs you` = his required move,
 including approval of a necessary draft) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
 where they cost him nothing until he chooses to look.

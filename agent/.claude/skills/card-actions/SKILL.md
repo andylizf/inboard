@@ -7,7 +7,8 @@ description: Handle an operator Action chip or a legacy inbox cycle. Covers each
 The engine delivers scheduled checks to their card agents before mail triage. A per-card agent handles
 only its assigned card; the legacy whole-inbox runner uses `board pending` to find operator actions.
 
-For each assigned actioned card, act on the operator's request, then `board clear-action`.
+For each assigned actioned card, act on the operator's request, record the outcome and reply, then
+use `board clear-action` as the final receipt. Clearing first invalidates later operation-scoped writes.
 If execution failed or its outcome cannot be verified, record the evidence and use `board action-fail`.
 Pass the delivered `--operation` token on every card mutation; a superseded operation must stop.
 Legacy actions without a delivered token retain `board clear-action` as their receipt. For a legacy
@@ -15,10 +16,9 @@ send, stage the preview for approval with the current send button to obtain its 
 
 **The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped,
 because a status that waits on you is a status that never changes when you hit your deadline or die.
-So do not re-derive it, and do not set it back — what is left to you is the work and the record: the
-research, the draft, the daily-log line, the reply on the card. Move the Status yourself only when the
-work changes where the card genuinely belongs (Continue/redo lands back in Needs you once the draft is
-rewritten), or for the send action, which the handler deliberately leaves alone.
+Keep that initial state while handling the request, then set Status from who must act next.
+A rewritten necessary draft awaits approval in needs_you; a verified send may leave an external wait,
+more agent work or a completed matter. The handler leaves send status for you to determine.
 
 - **▶️ Continue / redo** → re-read the relevant source thread and the card's context, then research or
   revise per the feedback. Stage the full proposed action in Draft using `board-cli`: Gmail uses

@@ -1,9 +1,11 @@
 ---
 name: web-tasks
-description: Drive a real headed Chrome for ANY web task on a card — click a button, fill/submit a form, read a gated page, complete a portal action. Load this whenever handling a card requires browser automation. Covers the `browser` CLI (snapshot/click/fill/eval), staying on the right page, and the screenshot-at-every-checkpoint rule.
+description: Complete browser work for a card, including login and verification. Load whenever browser automation is needed. The installed browser skill owns setup and challenge handling; cred-login owns saved credentials, twofa-gate owns second-factor prompts, and card-actions owns outward submission approval.
 ---
 
-For ANY web task use the **`browser`** command. It drives a persistent REAL HEADED Chrome (its own dedicated profile, launched in the GUI session so it keeps GPU + Keychain, CDP on 127.0.0.1:9223). Do NOT spawn another claude and do NOT use headless Playwright (brittle: bot-detection / cookie / JS breakage). Snapshot FIRST, act on refs, re-snapshot after the page changes:
+Load the installed `browser` skill and use its managed browser and current commands. Keep its window
+hidden unless the operator needs a specific step. Reuse the authorized session; do not launch another
+profile or worker to evade login limits. Snapshot before acting and refresh references after navigation:
 
 - `browser open <url>` — navigate
 - `browser snapshot -i` — list interactive elements, each with a stable ref like `@e1` (primary way to see the page)
@@ -22,9 +24,21 @@ Before a login that may send a second factor, follow **`twofa-gate`**: acquire t
 allowed, tell the operator what to approve and any displayed matching code, then continue after approval.
 An actual credential or authentication blocker goes through **`human-gate`**; a login form by itself does not.
 
-**SCREENSHOT AT EVERY CHECKPOINT** — not just the final result. Your TEXT summaries are NOT trusted (they have been contradictory/wrong before, e.g. "login succeeded" and "authentication failed" for the same step). The screenshot is the ground truth the operator checks. Take + upload a screenshot at EACH of: after every login attempt (success OR the exact on-screen error), the instant you hit any gate (2FA, "Authentication failed", a hold/consent page), any error, the pre-submit confirm screen, and the final success/failure. NEVER claim a step succeeded or failed without the screenshot that proves it. Upload with:
-`board image --card <id> --file <screenshot.png> --caption '<one line>'` — NEVER paste a local file path in text (Notion can't render it). Then VERIFY before claiming success.
+Attempt verification challenges during an authorized login under the installed browser skill's
+procedure and applicable higher-priority rules. Do not decline merely because it is an image question
+or because you speculate about an account penalty. If a rule or tool blocks the attempt, name that
+rule or error and the specific step; request only the remaining human action. Distinguish a checkbox
+passing without a puzzle from actually solving an image challenge.
 
-An irreversible final submit (decline / pay / delete): autonomously ONLY if the operator approved THIS card; otherwise stop at the confirm screen, screenshot it, and ask.
+Capture and upload evidence at login outcomes, verification gates, errors, pre-submit confirmation
+and the final result with `board image --card C --file PATH --caption TEXT`. Inspect screenshots for
+secrets before uploading; use a redacted image or non-secret receipt when the screen exposes one.
+A screenshot must show the claimed state; a pending page or absence of an error proves no success.
 
-**A web-form action you cannot verify is a FLAG, not a retry.** If you attempt a sign-up / form submit (a webinar registration, a Google/Qualtrics form, a portal action) and cannot confirm success (the confirmation page text AND the confirmation email actually arriving), do NOT claim success and do NOT loop to max-turns — put the link on the card, set it `⏸ Needs you` with the exact ask in `--needs`, and say it's unverified / needs their click.
+For outward submissions, stage the complete proposal in Draft and execute the approved operation
+under `card-actions`. Approval of the general task does not approve an unspecified submission.
+
+Check the destination's confirmation or authoritative record after submission; check email when the
+service uses it as the receipt. Do not require email from a service that sends none. An ambiguous
+result requires investigation, not another click by the operator. Keep responsibility for checking
+it and report precisely which evidence remains unavailable before considering a retry.

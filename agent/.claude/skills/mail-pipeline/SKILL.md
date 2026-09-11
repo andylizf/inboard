@@ -42,8 +42,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
         `board done`). A hit here is a card saying *this mail is mine*, so it decides on its own.
       · `board search --query '<sender / key subject words>'` — a **substring match** on Subject and Sender
         over every card, closed ones included. It produces candidates, not evidence: a bank's name matches
-        every card that bank ever appeared on, and a hit whose Subscription is empty is a matter that
-        already declared itself finished.
+        unrelated matters. Read the candidate's Status and context; an empty Subscription does not mean done.
       So route straight off a watchlist hit. A search hit still has to earn it under the rules below.
     - **A closed card is context, never a destination — thread or no thread.** Read it, then open a new card
       that names it in the first line and carries the thread forward. Reopening a matter he finished, and had
@@ -116,13 +115,10 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
         operator has committed to a date inside it — record the deadline as a deadline.
       · **Never state as settled anything the operator has not confirmed.** If the card says you
         are waiting on him, the memory says you are waiting on him.
-    - **Also repair staleness, not just changes.** If the memory you just read disagrees with the
-      card you just read — the card knows a date, an outcome, a reply that the memory does not —
-      write the card's side back into the memory, EVEN IF this mail changed nothing — that disagreement
-      is common, not an anomaly. Only do this for the memory and card you already
-      opened for this message; never go scanning for others. The cost of skipping it is concrete: a
-      memory still reading "two items outstanding, ball in their court", while the card has held a
-      confirmed appointment for days, briefs every other session on a status that expired.
+    - **Repair conflicting records from evidence.** When a relevant memory and card disagree, compare
+      their dates and underlying sources, then correct the stale account. Neither location wins by
+      itself. If the conflict cannot be resolved, retain the uncertainty. Limit this reconciliation
+      to records needed for the assigned matter.
 
 6. **Handle & record.** ⚠️ Write EVERY action down or it didn't happen — in BOTH places, they answer
    different questions: the board records what you DID to this matter and what the operator must do
@@ -161,8 +157,9 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      to create does not establish a task. When actual work is complete, close the matter without waiting
      for optional thanks or asking another person to tidy their alert. An upstream alert remaining open
      matters only when it leaves a concrete risk, restriction or required task outcome unresolved.
-     **Optional, no deadline, "if you want", "feel free" = FYI, never a card**, however official the sender —
-     a card for something he may ignore is the card that teaches him to ignore cards.
+     An optional suggestion with no retained decision is FYI. An invitation or opportunity retained for
+     the operator to decide belongs in needs_you even without a deadline; optional wording alone does
+     not settle whether there is a decision to track.
    - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
      third party) → the card goes to `⏳ Waiting` with `board awaiting --desc '<what you are waiting
      for>'`.
@@ -175,7 +172,7 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).
    - **Pure noise, no action** → nothing recorded (the only exception).
    For received mail, then handle by type (outgoing mail follows the outgoing rules above):
-   - **IMPORTANT & substantive, with a necessary reply under the fork test above** → subagent:
+   - **IMPORTANT & substantive, with a necessary reply under the fork test above** → the assigned card agent:
      research with all materials, load `writing-for-people`, write a considered reply and complete its
      `writing-reviewer` review before saving it (follow the drafting and review-record rules in `board-cli`):
      `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` — it puts the draft on the

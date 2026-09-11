@@ -5,12 +5,8 @@ description: The shared gate every second factor goes through before it rings th
 
 ## Second factors ring a phone — take the gate before you push one
 
-Trying once is right. What is not survivable is several cards each trying once: you see only
-your own card, so six agents behaving perfectly still ring the operator six times, and a push
-nobody answers counts as a failed attempt at the far end — enough of those and the account is
-locked, and with it every service behind it.
-
-So anything that sends a push, a code, or an approval prompt to him — Duo, an authenticator,
+The shared gate prevents competing verification requests from different cards.
+Anything that sends a push, a code, or an approval prompt to him — Duo, an authenticator,
 an SMS code, a passkey tap — goes through the shared gate first:
 
 ```sh

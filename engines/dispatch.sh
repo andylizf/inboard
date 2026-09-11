@@ -97,7 +97,8 @@ DPROMPT="Dispatch this cycle. Do exactly this:
 {\"groups\":[{\"matter\":\"<short name>\",\"route\":\"card|new|noise\",\"card\":\"<id or null>\",
   \"reason\":\"<one line>\",\"messages\":[{\"id\":\"..\",\"account\":\"<account id>\",\"subject\":\"..\",
   \"from\":\"..\",\"kind\":\"inbox|sent\"}]}]}
-   Every field must be copied from the triage output. Do NOT invent a threadId — you never saw one.
+   Copy message ids, accounts, subjects and senders from triage output; derive kind by the rule above.
+   Write matter, route and reason from your grouping decision. Do not invent a threadId.
 Output one short line for the run log, nothing else."
 # A dry run must leave the board untouched, and cross-card work WRITES.
 [ "$DRY" = 0 ] && DPROMPT="$DPROMPT
@@ -162,14 +163,14 @@ run_group() {   # $1 = group index
     PROMPT="You own ONE matter on the inbox board: card $CARD ('$matter').
 $SESSION_NOTICE
 New mail on this matter, as <message-id>(<account>,<kind>): $ids
-Read ONLY these messages' bodies (\`email <account> gmail +read --message-id <ID>\`), then handle them per
+Read these messages' bodies (\`email <account> gmail +read --message-id <ID>\`) and relevant current context, then handle them per
 the **mail-pipeline** skill (load it), steps 5c and 6, for THIS card only: ask memory before changing anything, update the card and its
 📌 note, write back what memory now needs to know, and set Due and future wakeups if a deadline appeared.
 Messages marked sent already went out. Apply the mail-pipeline skill's outgoing-mail rules to the
 current conversation: keep a card while a reply, result, or operator commitment remains. A newer
 received reply can change whose turn it is. Never draft a reply to the operator's own sent message.
 Do not touch other cards — the dispatcher owns anything cross-card. Do not create a second card for this
-matter. NEVER send email (drafts only).
+matter. This mail delivery creates no send approval; follow card-actions for any separately approved operation.
 $MORTAL_TRAILER
 Output one short line."
   else
@@ -179,7 +180,7 @@ Output one short line."
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); SESS=(--session-id "$NEWSID")
     PROMPT="You own ONE new matter from the inbox: '$matter'.
 Its messages, as <message-id>(<account>,<kind>): $ids
-Read ONLY these messages' bodies, then handle them per the **mail-pipeline** skill (load it), steps 5b,
+Read these messages' bodies and relevant current context, then handle them per the **mail-pipeline** skill (load it), steps 5b,
 5c and 6: check it is really not an existing card first (\`board search\` too, not just \`board subscriptions\` — most cards have no
 subscription and are invisible to the latter), ask memory, then either create ONE card (with 📌 note,
 Due and future wakeups if a deadline appeared) or — if it turns out to be noise or a clean unsubscribe — do that and
@@ -195,7 +196,7 @@ approves them all in one trip and wants one card.
 If you DO create a card, attach this conversation to it as the last thing you do:
 \`board session --card <the new card id> --set $NEWSID\`. That is what makes the next mail on this matter
 resume YOU instead of starting cold — you are the only one who knows the card id.
-NEVER send email (drafts only).
+This mail delivery creates no send approval; follow card-actions for any separately approved operation.
 $MORTAL_TRAILER
 Output one short line."
   fi

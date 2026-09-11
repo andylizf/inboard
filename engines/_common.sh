@@ -58,17 +58,11 @@ except Exception:
   return $rc
 }
 
-GOAL_TRAILER="GOAL — keep working toward this; do NOT stop early. Your own WORD is NOT trusted: every attempt and its outcome
-must be backed by concrete EVIDENCE — a screenshot, an artifact, a saved draft, uploaded to the card — and a
-claim with no evidence ('I tried X and it failed') does NOT count as having actually done it. You have
-effectively unlimited reach: whenever you do not yet see a resolution, take the next action toward it (including
-REACHING OUT to whoever could help — email the responsible office/support/person, ask, escalate) and EVIDENCE
-each one. This is DONE only when EITHER (a) the matter is RESOLVED, PROVEN by concrete evidence, OR (b) the one
-remaining step is inherently the operator's OWN — their decision or authority (spending money, an
-irreversible/final submit, a value judgment) or something only they can supply (their 2FA approval, their
-signature, a secret only they hold) — with everything else prepared and teed up, AND you have EVIDENCE of every
-alternative you actually tried on the way there. Handing back on your unproven word, or claiming resolved
-without evidence, does NOT count as done."
+GOAL_TRAILER="Continue the assigned work within existing authorization and record evidence of its outcome.
+If contacting someone is needed, prepare the complete proposal and follow card-actions for approval.
+A verified result completes a matter. An observed blocker leaves it unfinished: record the failed step,
+what can continue, and the specific operator action or external condition needed. A delivered request,
+prepared draft, scheduled wakeup or ended turn does not establish completion."
 
 valid_uuid() { printf '%s' "${1:-}" | grep -qiE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; }
 
@@ -92,10 +86,10 @@ lock_or_exit() {
 # Appended to every per-card agent prompt. The card outlives the agent by design, but that only
 # works if the agent behaves accordingly — a send once died at max-turns with its findings held
 # only in conversation, and the operator learned nothing for three days.
-MORTAL_TRAILER="You are MORTAL: this session can die at any turn (turn cap, crash, rotation) and your successor starts
-with NONE of this conversation. The card is the only memory that survives you — write to it AS YOU GO
-(board log / note the moment you learn or decide something), never only at the end: anything not on the
-card when you die never happened."
+MORTAL_TRAILER="Save findings, authorization, attempted actions, receipts and next steps on the card as work
+progresses. Record outstanding background task ids and where to read their results. Context rotation is
+managed by the runtime; continue the current request and consume pending results rather than stopping
+early for a handover. A successor checks the saved evidence before repeating an external action."
 # Set by prep_session when a card's session is rotated; every prompt may interpolate it, so it must
 # exist even when prep_session was never called (engines run under set -u).
 SESSION_NOTICE=""
