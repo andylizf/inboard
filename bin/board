@@ -788,6 +788,13 @@ def approved_draft(a):
     print(AR.require_approved_draft(a.card, a.operation, page))
 
 
+def stage_script(a):
+    import shell_actions
+    from types import SimpleNamespace
+    data = shell_actions.stage(SimpleNamespace(api=api), a.card, a.file, a.cwd, a.description, a.input)
+    print(json.dumps({'card': data['card'], 'plan': data['plan'], 'staged': True}))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -798,6 +805,10 @@ def main():
     c = sub.add_parser("clear-action"); c.add_argument("--card", required=True)
     arq = sub.add_parser('action-request'); arq.add_argument('--card', required=True)
     ad = sub.add_parser('approved-draft'); ad.add_argument('--card', required=True)
+    script = sub.add_parser('stage-script')
+    for option in ('card', 'file', 'cwd', 'description'):
+        script.add_argument('--' + option, required=True)
+    script.add_argument('--input', action='append', default=[])
     for command in ('action-start', 'action-fail'):
         receipt = sub.add_parser(command); receipt.add_argument('--card', required=True); receipt.add_argument('--text', default='')
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
@@ -848,7 +859,7 @@ def main():
             sys.exit("board: Notion token not configured — put it in .env (run `inboard init`).")
         if not DB and a.cmd != "whoami":
             sys.exit("board: board.database_id not configured — run `inboard init`.")
-    {"approved-draft": approved_draft, "action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
+    {"stage-script": stage_script, "approved-draft": approved_draft, "action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
      "upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "guard-status": guard_status, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,

@@ -31,6 +31,20 @@ this click and does not send anything. Follow `card-actions` to check current fa
 approved action with the platform's own tools. Gmail keeps the helper below; other platforms need no Gmail
 draft. Pass `--operation TOKEN` on card updates during the operation.
 
+### Prepared scripts
+
+`board stage-script --card C --file ./scripts/action.sh --cwd "$PWD" --description TEXT [--input FILE]`
+saves a Bash script and publishes its complete preview in Script for the ❗执行脚本 button. Describe
+the action, account, destination and exact outward content. Repeat `--input` for payload and helper
+files that must retain their bytes until execution; use absolute paths in the script. Staging does
+not execute the script. Keep credentials in the project's secret store, outside the preview.
+
+The button executes the saved version once through Claude Code's native `!` mode. Inspect the saved
+result and destination before preparing another version after a failure or an unknown outcome.
+Follow `card-actions` for diagnosis and result reporting. Declared inputs are checked by hash;
+arbitrary dependencies and remote state are not frozen. Command output returns to the original
+session; automatic response follows Claude Code's `respondToBashCommands` setting.
+
 ### Gmail, per account
 
 Account ids come from `board accounts` (each row: `id`, `label`, `address`). Then `email <id> gmail ...`.

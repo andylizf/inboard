@@ -8,6 +8,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 import action_runs as A
 import wakeups as W
+import shell_actions as SH
 
 
 def main():
@@ -23,8 +24,12 @@ def main():
         A.REQUEST: {'select': {'options': [{key: opt[key] for key in ('name', 'color')} for opt in schema['properties']['Action']['select']['options']]}},
         A.WHEN: {'date': {}}, A.VERSION: {'number': {'format': 'number'}}, A.HANDLED: {'rich_text': {}}, A.PROGRESS: {'rich_text': {}},
         A.APPROVED_DRAFT: {'rich_text': {}}, 'Summary': {'rich_text': {}},
+        SH.SCRIPT: {'rich_text': {}}, SH.APPROVED: {'rich_text': {}},
         A.DISPLAY: {'formula': {'expression': A.FORMULA}}}
     missing = {name: value for name, value in properties.items() if name not in schema['properties']}
+    options = schema['properties'].get(A.REQUEST, properties[A.REQUEST])['select']['options']
+    if not any(opt['name'] == SH.ACTION for opt in options):
+        missing[A.REQUEST] = {'select': {'options': options + [{'name': SH.ACTION, 'color': 'orange'}]}}
     if schema['properties'].get(A.DISPLAY, {}).get('formula', {}).get('expression') != A.FORMULA:
         missing[A.DISPLAY] = properties[A.DISPLAY]
     if args.apply and missing:

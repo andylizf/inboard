@@ -229,6 +229,69 @@ def _reply_with_retry(short, text, sock, tries=8, gap=4.0):
     raise last
 
 
+def shell_input(job, command, log_path, started_path, timeout=45):
+    """Type ! into the actual attach terminal; never send it as a daemon user message."""
+    import fcntl
+    import pty
+    import select
+    import struct
+    import termios
+    from pathlib import Path
+    if any(ord(c) < 32 or ord(c) == 127 for c in command):
+        raise ValueError('Shell input must be one line without terminal control characters')
+    master, slave = pty.openpty()
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 160, 0, 0))
+    process = subprocess.Popen(['claude', 'attach', job['short']], stdin=slave,
+                               stdout=slave, stderr=slave, start_new_session=True,
+                               env=dict(os.environ, TERM='xterm-256color'))
+    os.close(slave)
+    try:
+        with Path(log_path).open('xb') as log:
+            rendered = bytearray()
+
+            def drain(seconds):
+                deadline = time.monotonic() + seconds
+                while time.monotonic() < deadline:
+                    if process.poll() is not None:
+                        raise DaemonError('Claude attach exited before execution acknowledgement')
+                    if select.select([master], [], [], min(.2, max(0, deadline - time.monotonic())))[0]:
+                        chunk = os.read(master, 65536)
+                        log.write(chunk)
+                        log.flush()
+                        rendered.extend(chunk)
+
+            deadline = time.monotonic() + timeout
+            while '❯'.encode() not in rendered:
+                drain(.5)
+                if time.monotonic() >= deadline:
+                    raise DaemonError('Claude attach did not show an input prompt; script was not typed')
+            # Attach can render before installing its input handler (also true for interrupt()).
+            drain(1)
+            os.write(master, b'!')
+            rendered.clear()
+            drain(1)
+            if b'! for shell mode' not in rendered:
+                raise DaemonError('Claude did not enter shell mode; command was not typed')
+            os.write(master, command.encode())
+            drain(.5)
+            os.write(master, b'\r')
+            deadline = time.monotonic() + timeout
+            while not Path(started_path).exists():
+                drain(.5)
+                if time.monotonic() >= deadline:
+                    raise DaemonError('Shell start not acknowledged; it may be queued. Check receipt before retrying.')
+            drain(1)
+    finally:
+        # Detach this client only; the daemon owns the shell and original conversation.
+        process.terminate()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+        os.close(master)
+
+
 def session_of(name: str) -> str:
     """The session the daemon currently holds for `name`, or empty."""
     j = find_job(name)

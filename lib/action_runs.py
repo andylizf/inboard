@@ -127,6 +127,7 @@ def receipt(board, card, token, phase, message):
 
 def dispatch(card, prompt):
     import agent_deliver as A
+    import shell_actions as SH
     board = W.load_board()
     # Webhook duplicates wait and re-read the latest intent; they never drop a replacement click.
     with lock(card, 'dispatch'):
@@ -153,6 +154,9 @@ def dispatch(card, prompt):
             name = 'inboard-card-' + card.replace('-', '')
             try:
                 job = A.find_job(name)
+                if request['action'] == SH.ACTION:
+                    SH.dispatch(board, page, record, job)
+                    return
                 if job and job.get('state') not in ('stopped', 'blocked'):
                     progress(board, card, record, '⏳ 正在切换 · ' + request['action'])
                     stopped = A.interrupt(job)

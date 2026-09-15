@@ -74,6 +74,14 @@ state or scheduled checks; an earlier agent's refusal is not itself an instructi
   Once verified sent, clear the consumed Draft, then use `board awaiting` for an external wait,
   `needs_you` for a concrete remaining operator action, and `board done` only when no work remains.
   When a daily log is configured, log what went out and to whom under `cfg board.schema.daily_types.sent`.
+- **❗ Execute script** → the runtime executes the Script snapshot through native Claude Code `!`
+  input in this card's session. The operator chose this button as approval to execute that saved
+  version. Prepare scripts with `board stage-script` as documented in `board-cli`; do not run them
+  while staging. After shell output arrives, verify the actual result and record it on the card.
+  The runtime closes the execution operation itself; use ordinary card updates for diagnosis after
+  that receipt, without reusing its completed operation token. On failure, inspect whether the action
+  partly succeeded, then prepare a corrected version for a new click. Never automatically repeat the
+  external action, including after a timeout with no result. Keep credentials out of Script.
 - **✅ Done** → the operator confirmed completion: log the outcome, then `board done --card <CARD>`.
 - **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled`.
 
