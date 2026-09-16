@@ -25,8 +25,12 @@ _LEGACY_FORMULA = ('if(empty(prop("ActionRequestedAt")), "", '
 _STATUS_FORMULA = ('if(empty(prop("ActionVersion")), ' + _LEGACY_FORMULA + ', '
            'if(format(prop("ActionVersion")) + "|" + format(prop("ActionRequested")) != prop("ActionHandled"), '
            '"⏳ 已收到 · " + format(prop("ActionRequested")), prop("ActionProgress")))')
-FORMULA = ('lets(state, ' + _STATUS_FORMULA + ', if(empty(trim(prop("Draft"))), '
-           'if(empty(state), "暂无可发送草稿", state + " · 暂无可发送草稿"), state))')
+FORMULA = ('lets(state, ' + _STATUS_FORMULA + ', '
+           'if(format(prop("ActionRequested")) == "❗ Execute script", '
+           'if(empty(trim(prop("Script"))), if(empty(state), "暂无可执行脚本", '
+           'state + " · 暂无可执行脚本"), state), '
+           'if(empty(trim(prop("Draft"))), '
+           'if(empty(state), "暂无可发送草稿", state + " · 暂无可发送草稿"), state)))')
 
 
 def property_text(page, name):
