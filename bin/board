@@ -795,6 +795,13 @@ def stage_script(a):
     print(json.dumps({'card': data['card'], 'plan': data['plan'], 'staged': True}))
 
 
+def stage_email(a):
+    import shell_actions
+    from types import SimpleNamespace
+    data = shell_actions.stage_email(SimpleNamespace(api=api), a.card, a.account, a.draft_id)
+    print(json.dumps({'card': data['card'], 'plan': data['plan'], 'staged': True}))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -809,6 +816,9 @@ def main():
     for option in ('card', 'file', 'cwd', 'description'):
         script.add_argument('--' + option, required=True)
     script.add_argument('--input', action='append', default=[])
+    email_script = sub.add_parser('stage-email')
+    for option in ('card', 'account', 'draft-id'):
+        email_script.add_argument('--' + option, required=True)
     for command in ('action-start', 'action-fail'):
         receipt = sub.add_parser(command); receipt.add_argument('--card', required=True); receipt.add_argument('--text', default='')
     ao = sub.add_parser("actionof"); ao.add_argument("--card", required=True)
@@ -859,7 +869,7 @@ def main():
             sys.exit("board: Notion token not configured — put it in .env (run `inboard init`).")
         if not DB and a.cmd != "whoami":
             sys.exit("board: board.database_id not configured — run `inboard init`.")
-    {"stage-script": stage_script, "approved-draft": approved_draft, "action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
+    {"stage-email": stage_email, "stage-script": stage_script, "approved-draft": approved_draft, "action-request": action_request, "action-start": action_receipt, "action-fail": action_receipt,
      "upsert": upsert, "pending": pending, "clear-action": clear_action, "actionof": actionof, "statusof": statusof, "guard-status": guard_status, "log": log, "note": note,
      "daily": daily, "archive": archive, "done": done, "awaiting": awaiting, "resolve": resolve, "session": session,
      "reply": reply, "plan": plan, "tick": tick, "image": image, "comments": comments, "subscribe": subscribe,

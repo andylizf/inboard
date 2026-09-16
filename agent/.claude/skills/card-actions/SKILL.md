@@ -12,7 +12,7 @@ triggers before the final receipt. Use `board clear-action` for a completed oper
 for failure or an unverified outcome, never both. Either receipt ends operation-scoped writes.
 Pass the delivered `--operation` token on every card mutation; a superseded operation must stop.
 Legacy actions without a delivered token retain `board clear-action` as their receipt. For a legacy
-send, stage the preview for approval with the current send button to obtain its snapshot and token.
+send, prepare the current preview and script for the 帮我执行 button.
 
 **The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped,
 because a status that waits on you is a status that never changes when you hit your deadline or die.
@@ -33,6 +33,20 @@ instructions still govern execution; cite the applicable instruction when it pre
 Reassess earlier refusals under the current instructions and evidence before carrying them into card
 state or scheduled checks; an earlier agent's refusal is not itself an instruction.
 
+## Prepare before asking for execution
+
+When the remaining work is a concrete outward action ready for approval, prepare its executable
+script and full operation preview before ending the turn or setting needs_you for approval.
+This applies during initial handling, Continue, comments, and scheduled checks; do not wait for
+the operator to ask for a script. `email ... +draft` prepares its send script automatically.
+For other operations use `board stage-script`; Draft alone does not make the button executable.
+Read the latest relevant sources and check whether the action already happened before staging.
+Put any checks that must hold at execution time in the script; fail before sending if they cannot
+be verified. Preview the exact action, account, destination and content. Keep credentials outside
+the preview and bind payload/helper files with --input. A comment and closing a PR remain separate
+actions. If script preparation is blocked, record the observed blocker and continue unaffected work;
+never label an unprepared action ready. Stop itself does not execute anything.
+
 - **▶️ Continue / redo** → the operator is asking you to carry the matter through its remaining work.
   Read the latest request and card, identify the intended result, then execute the steps you can perform
   under existing authorization. This includes producing the actual deliverable, not just researching
@@ -42,50 +56,28 @@ state or scheduled checks; an earlier agent's refusal is not itself an instructi
   For example, a request to complete an assignment includes working through the available problems and
   preparing the answers, rather than only checking the release date and reporting the deadline.
   Carry forward approvals already given. If the remaining step requires approval of new outward content,
-  prepare the complete deliverable and stage that action in Draft using `board-cli` for the send button.
-  The Continue click authorizes continued work; the send click approves the exact outward proposal.
+  prepare the complete deliverable, script and operation preview using `board-cli` for 帮我执行.
+  The Continue click authorizes continued work; 帮我执行 approves the saved operation and script.
   When blocked, state the observed obstacle and the smallest step only the operator can perform, retain
   ownership of the remaining work, and resume when it clears. A genuine future release can be scheduled;
   resume the substantive work when the material becomes available.
-- **Send-it-for-me (`cfg board.schema.send_action`)** → the tap approves the exact action, account,
-  destination and content displayed in this card's Draft snapshot for this operation. The operator chose
-  this GUI click as the send-gate approval for that preview; do not ask for an additional SEND token.
-  This covers email, GitHub comments and other outward submissions, using the same card mechanism.
-  Before sending, read the latest relevant thread and business state, including whether this action has
-  already happened. Log the sources checked and what they mean for this draft's applicability.
-  If it still applies, run `board approved-draft --card <CARD> --operation <TOKEN>` immediately before
-  execution and use exactly the returned preview. Check that it specifies the action, account, destination
-  and full content, and that the actual sending tool uses them. The command checks approval freshness;
-  native platform tools do not enforce that check for you. Email still uses
-  `email <account> gmail +send-approved --card <CARD> --draft-id <ID> --operation <TOKEN>`;
-  other actions use the available native tool, such as `gh` or the browser. Do not route a GitHub comment
-  through a Gmail draft unless email is the approved route. Approval to post a comment does not also
-  authorize closing a PR, even if the comment says it will be closed.
-  If facts require changing the action, account, destination or content, stage a complete new preview,
-  explain the change and set `needs_you` for a new click; never revise and reuse the old approval.
-  If the action is no longer needed, do not send: explain why and update the matter's status.
-  If current facts cannot be checked, report the unavailable check and fail this operation without sending.
-  Log the intended submission before invoking the native tool, then verify the result at the destination
-  and record its link or receipt on the card. Only the assigned card agent executes this operation;
-  do not delegate its send to another worker.
-  A timeout or error does not prove nothing happened: inspect the destination before any retry, including
-  after a new click, and do not resend while the outcome remains unknown. Report confirmed failure and
-  unknown outcome distinctly via `board reply` and `board action-fail`.
-  Once verified sent, clear the consumed Draft, then use `board awaiting` for an external wait,
-  `needs_you` for a concrete remaining operator action, and `board done` only when no work remains.
-  When a daily log is configured, log what went out and to whom under `cfg board.schema.daily_types.sent`.
-- **❗ Execute script** → the runtime executes the Script snapshot through native Claude Code `!`
-  input in this card's session. The operator chose this button as approval to execute that saved
-  version. Prepare scripts with `board stage-script` as documented in `board-cli`; do not run them
-  while staging. After shell output arrives, verify the actual result and record it on the card.
+- **帮我执行 (internal action `❗ Execute script`)** → the runtime executes the Script snapshot
+  through native Claude Code `!` input in this card's session. This one click approves the exact
+  operation preview and script; the operator chose it as the send-gate approval, with no additional
+  SEND token or send button. Do not run the staged script yourself or delegate its execution.
+  After shell output arrives, verify the actual result at the destination and record its receipt.
   The runtime closes the execution operation itself; use ordinary card updates for diagnosis after
   that receipt, without reusing its completed operation token. On failure, inspect whether the action
   partly succeeded, then prepare a corrected version for a new click. Never automatically repeat the
-  external action, including after a timeout with no result. Keep credentials out of Script.
+  external action, including after a timeout with no result. Changes to the action, account,
+  destination or content require a new staged version and another click. If the action is no longer
+  needed, clear its preview and explain why. Once verified sent, clear the consumed Draft, use
+  awaiting for an external wait, needs_you for remaining operator work, and done only when no work
+  remains. Log a verified send in the configured daily log when available.
 - **✅ Done** → the operator confirmed completion: log the outcome, then `board done --card <CARD>`.
 - **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled`.
 
 Action labels are deployment-specific. Use `cfg board.schema.action_status` to distinguish completion
-from cancellation; the send action has its separate guarded path above. An unknown chip is a
+from cancellation; 帮我执行 follows the prepared-script path above. An unknown chip is a
 misconfiguration: report it on the card rather than inventing a meaning. Reconcile mail and time
 subscriptions using `board-cli` before the final receipt so obsolete reminders do not survive the change.

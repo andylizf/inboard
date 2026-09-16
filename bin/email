@@ -24,7 +24,7 @@ BLOCK = [  # (needle-in-args, human label) — irreversible sends; refuse unless
 ]
 
 
-def draft_for_card(acct_env, gws, rest, sender):
+def draft_for_card(acct_env, gws, rest, sender, account_id):
     """`email <id> gmail +draft --card <CARD> ...` — the ONLY way a draft gets made.
 
     One command, three effects that used to be three separate steps an agent could skip: the
@@ -101,8 +101,10 @@ def draft_for_card(acct_env, gws, rest, sender):
                f"Subject: {subject}\n\n---\n\n{a.body}")
     subprocess.run([sys.executable, board, "edit", "--card", a.card, "--draft", preview], check=True)
     subprocess.run([sys.executable, board, "log", "--card", a.card, "--text",
-                    "完整草稿已同步到卡片：收件人 %s，主题“%s” (Gmail draft id %s)。审阅后使用卡片的发送按钮，由 agent 核查最新情况并执行。"
+                    "完整草稿已同步到卡片：收件人 %s，主题“%s” (Gmail draft id %s)。正在准备执行脚本。"
                     % (to, subject, draft_id)], check=True)
+    subprocess.run([sys.executable, board, 'stage-email', '--card', a.card,
+                    '--account', account_id, '--draft-id', draft_id], check=True)
     print(json.dumps({"draft_id": draft_id, "to": to, "subject": subject, "card": a.card}, ensure_ascii=False))
     sys.exit(0)
 
@@ -204,18 +206,15 @@ def send_approved(acct_env, gws, rest):
                      "Content-Type": "application/json"}, method=method)
         return _json.load(urllib.request.urlopen(req, timeout=60))
 
+    import shell_actions as SH
     want = C.get("board.schema.send_action", "") or ""
-    if not want:
-        blocked("+send-approved with no board.schema.send_action configured")
-
     page = notion("GET", "pages/" + a.card)
     props = page.get("properties", {})
     request = AR.intent(page)
     if request:
-        AR.require_current(a.card, a.operation, page)
-        approved = AR.approved_draft(page)
+        approved = AR.require_approved_draft(a.card, a.operation, page)
     have = request['action'] if request else ((props.get("Action") or {}).get("select") or {}).get("name") or ""
-    if _norm(have) != _norm(want):
+    if not (request and have == SH.ACTION) and (not want or _norm(have) != _norm(want)):
         blocked("+send-approved on a card whose Action is %r, not the approval action %r "
                 "(only the operator can set it, by tapping the chip)" % (have, want))
 
@@ -273,7 +272,7 @@ def send_approved(acct_env, gws, rest):
         with AR.lock(a.card):
             latest = notion('GET', 'pages/' + a.card)
             record = AR.require_current(a.card, a.operation, latest)
-            if AR.approved_draft(latest) != approved:
+            if AR.require_approved_draft(a.card, a.operation, latest) != approved:
                 blocked('the approved draft changed before submission; review and approve again')
             if record.get('sent'):
                 blocked('this operation already submitted a send; check Sent before approving another')
@@ -327,7 +326,7 @@ def main():
     if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+send-approved":
         send_approved(env, gws, rest[2:])
     if len(rest) >= 2 and rest[0] == "gmail" and rest[1] == "+draft":
-        draft_for_card(env, gws, rest[2:], acct["address"])
+        draft_for_card(env, gws, rest[2:], acct["address"], acct_id)
     os.execvpe(gws, [gws] + rest, env)
 
 

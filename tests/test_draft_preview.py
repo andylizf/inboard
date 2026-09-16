@@ -19,6 +19,54 @@ loader.exec_module(email_cli)
 
 
 class DraftPreviewTests(unittest.TestCase):
+    def test_unified_button_email_checks_preview_and_sends_only_once(self):
+        import copy
+        import tempfile
+        from unittest.mock import Mock
+        import action_runs as A
+        import shell_actions as S
+        card = '00000000-0000-4000-8000-000000000002'
+        preview = 'From: sender@example.com\nTo: to@example.com\nCc: 无\nBcc: 无\nSubject: Test\n\n---\n\nHello'
+        page = {'id': card, 'properties': {A.REQUEST: {'select': {'name': S.ACTION}},
+                                         A.VERSION: {'number': 1}}}
+        def api(method, path, body=None):
+            if method == 'PATCH':
+                page['properties'].update(body['properties'])
+            return copy.deepcopy(page)
+        draft = {'message': {'payload': {'mimeType': 'text/plain',
+                 'headers': [{'name': 'From', 'value': 'sender@example.com'},
+                             {'name': 'To', 'value': 'to@example.com'},
+                             {'name': 'Subject', 'value': 'Test'}],
+                 'body': {'data': base64.urlsafe_b64encode(b'Hello').decode()}}}}
+        def wire(cmd, **kwargs):
+            return CompletedProcess(cmd, 0, json.dumps(draft) if 'get' in cmd else '{}', '')
+        with tempfile.TemporaryDirectory() as state, patch.dict('os.environ', NOTION_TOKEN='test', INBOARD_STATE=state):
+            plan = S.stage(Mock(api=api), card, None, state, preview, [], source='echo test\n')
+            page['properties'][S.APPROVED] = copy.deepcopy(page['properties'][S.SCRIPT])
+            record = dict(A.intent(page), phase='running', sent=False, shell_plan=plan['plan'])
+            A.save(card, record)
+            folder = S.directory(card, plan['plan'])
+            (folder / 'dispatch.json').write_text(json.dumps({'record': record}))
+            (folder / 'started.json').write_text('{}')
+            with patch('urllib.request.urlopen', side_effect=lambda *a, **k: io.BytesIO(json.dumps(page).encode())), \
+                    patch('subprocess.run', side_effect=wire) as run:
+                args = ['--card', card, '--draft-id', 'draft-1', '--operation', record['token']]
+                with self.assertRaises(SystemExit) as stop:
+                    email_cli.send_approved({}, 'gws', args)
+                self.assertEqual(stop.exception.code, 0)
+                with self.assertRaisesRegex(RuntimeError, 'already attempted'):
+                    email_cli.send_approved({}, 'gws', args)
+                sends = [c.args[0] for c in run.call_args_list if 'send' in c.args[0]]
+                self.assertEqual(len(sends), 1)
+                self.assertEqual(json.loads(sends[0][-1]), {'id': 'draft-1'})
+            record['sent'] = False
+            A.save(card, record)
+            page['properties']['Draft'] = {'rich_text': A.W.text(preview + 'changed')}
+            with patch('urllib.request.urlopen', side_effect=lambda *a, **k: io.BytesIO(json.dumps(page).encode())), \
+                    patch('subprocess.run') as run, self.assertRaisesRegex(RuntimeError, '操作预览已修改'):
+                email_cli.send_approved({}, 'gws', args)
+            run.assert_not_called()
+
     def test_draft_edit_after_validation_blocks_submission(self):
         import action_runs as A
         import copy
@@ -143,7 +191,7 @@ class DraftPreviewTests(unittest.TestCase):
 
         with patch('subprocess.run', side_effect=run), self.assertRaises(SystemExit) as stop:
             email_cli.draft_for_card({}, 'gws', ['--card', 'card-1', '--body', 'Hello\n\nThanks', *args],
-                                     'sender@example.com')
+                                     'sender@example.com', 'personal')
         self.assertEqual(stop.exception.code, 0)
         create = next(c for c in calls if 'create' in c)
         wire = json.loads(create[create.index('--json') + 1])['message']
@@ -154,6 +202,9 @@ class DraftPreviewTests(unittest.TestCase):
         self.assertEqual(str(message['From']), 'sender@example.com')
         self.assertEqual(preview.split('\n\n---\n\n', 1)[1], 'Hello\n\nThanks')
         self.assertFalse(any('send' in c for c in calls))
+        staged = next(c for c in calls if 'stage-email' in c)
+        self.assertEqual(staged[staged.index('--account') + 1], 'personal')
+        self.assertEqual(staged[staged.index('--draft-id') + 1], 'draft-1')
         return message, preview, wire
 
     def test_all_recipients_visible_but_headers_not_in_body(self):

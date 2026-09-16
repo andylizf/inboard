@@ -25,12 +25,8 @@ _LEGACY_FORMULA = ('if(empty(prop("ActionRequestedAt")), "", '
 _STATUS_FORMULA = ('if(empty(prop("ActionVersion")), ' + _LEGACY_FORMULA + ', '
            'if(format(prop("ActionVersion")) + "|" + format(prop("ActionRequested")) != prop("ActionHandled"), '
            '"⏳ 已收到 · " + format(prop("ActionRequested")), prop("ActionProgress")))')
-FORMULA = ('lets(state, ' + _STATUS_FORMULA + ', '
-           'if(format(prop("ActionRequested")) == "❗ Execute script", '
-           'if(empty(trim(prop("Script"))), if(empty(state), "暂无可执行脚本", '
-           'state + " · 暂无可执行脚本"), state), '
-           'if(empty(trim(prop("Draft"))), '
-           'if(empty(state), "暂无可发送草稿", state + " · 暂无可发送草稿"), state)))')
+FORMULA = ('lets(state, ' + _STATUS_FORMULA + ', if(empty(state), '
+           'if(empty(trim(prop("Script"))), "待准备执行内容", "待确认 · 帮我执行"), state))')
 
 
 def property_text(page, name):
@@ -104,10 +100,13 @@ def require_current(card, token, page):
 
 def require_approved_draft(card, token, page):
     record = require_current(card, token, page)
-    if record['action'] != C.get('board.schema.send_action', ''):
-        raise RuntimeError('This operation is not a send approval.')
     if record.get('sent'):
         raise RuntimeError('Sending was already attempted. Verify the result before retrying.')
+    import shell_actions as SH
+    if record['action'] == SH.ACTION:
+        return SH.approved_email_draft(page, record)
+    if record['action'] != C.get('board.schema.send_action', ''):
+        raise RuntimeError('This operation is not a send approval.')
     return approved_draft(page)
 
 

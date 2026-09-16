@@ -27,10 +27,13 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def stage(board, card, file, cwd, description, inputs):
+def stage(board, card, file, cwd, description, inputs, *, source=None):
     card = str(uuid.UUID(card))
     plan = str(uuid.uuid4())
-    source = Path(file).resolve().read_text()
+    if source is None:
+        source = Path(file).resolve().read_text()
+    if not description.strip():
+        raise ValueError('An operation preview is required')
     cwd = str(Path(cwd).resolve(strict=True))
     if not Path(cwd).is_dir():
         raise ValueError('Working directory is not a directory')
@@ -44,20 +47,52 @@ def stage(board, card, file, cwd, description, inputs):
     folder.mkdir(parents=True)
     script = folder / 'script.sh'
     script.write_text(source)
-    data = dict(card=card, plan=plan, cwd=cwd, preview=preview, inputs=bound,
+    data = dict(card=card, plan=plan, cwd=cwd, preview=preview, draft=description, inputs=bound,
                 script_sha256=digest(script), staged_at=time.time())
     W.save(folder / 'plan.json', data)
-    board.api('PATCH', f'/pages/{card}', {'properties': {SCRIPT: {'rich_text': W.text(preview)}}})
+    board.api('PATCH', f'/pages/{card}', {'properties': {
+        SCRIPT: {'rich_text': W.text(preview)}, 'Draft': {'rich_text': W.text(description)}}})
     current = board.api('GET', f'/pages/{card}')
-    if AR.property_text(current, SCRIPT) != preview:
+    if AR.property_text(current, SCRIPT) != preview or AR.property_text(current, 'Draft') != description:
         raise RuntimeError('Script preview read-back failed')
     return data
+
+
+def stage_email(board, card, account, draft_id):
+    description = AR.property_text(board.api('GET', f'/pages/{card}'), 'Draft')
+    command = shlex.join([sys.executable, str(Path(AR.C.home()) / 'bin/email'), account,
+                          'gmail', '+send-approved', '--card', card, '--draft-id', draft_id])
+    source = 'set -euo pipefail\nexec ' + command + ' --operation "$INBOARD_OPERATION"\n'
+    return stage(board, card, None, str(Path(AR.C.home()) / 'agent'), description, [], source=source)
+
+
+def verify_preview(page, data):
+    if any(AR.property_text(page, prop) != data['preview'] for prop in (SCRIPT, APPROVED)):
+        raise RuntimeError('执行脚本已修改，请重新查看并点击帮我执行。')
+    if 'draft' in data and AR.property_text(page, 'Draft') != data['draft']:
+        raise RuntimeError('操作预览已修改，请重新准备脚本后点击帮我执行。')
+
+
+def approved_email_draft(page, record):
+    plan = record.get('shell_plan')
+    if not plan:
+        raise RuntimeError('Email execution must originate from the approved native shell script')
+    folder = directory(page['id'], plan)
+    data = json.loads((folder / 'plan.json').read_text())
+    dispatch = json.loads((folder / 'dispatch.json').read_text())
+    if dispatch['record']['token'] != record['token'] or not (folder / 'started.json').exists():
+        raise RuntimeError('The approved script is not executing for this operation')
+    verify_preview(page, data)
+    validate(folder, data)
+    if not data.get('draft'):
+        raise RuntimeError('The script has no bound email preview')
+    return data['draft']
 
 
 def approved(page):
     preview = AR.property_text(page, SCRIPT)
     if not preview or preview != AR.property_text(page, APPROVED):
-        raise RuntimeError('脚本尚未确认或已修改，请查看当前脚本后点击 ❗执行脚本。')
+        raise RuntimeError('脚本尚未确认或已修改，请查看当前预览后点击帮我执行。')
     try:
         plan = preview.splitlines()[0].removeprefix('Script version: ')
         folder = directory(page['id'], plan)
@@ -66,6 +101,7 @@ def approved(page):
         raise RuntimeError('找不到已准备的脚本版本，请重新准备。') from exc
     if data['preview'] != preview:
         raise RuntimeError('脚本预览与已保存版本不符，请重新准备。')
+    verify_preview(page, data)
     validate(folder, data)
     if (folder / 'dispatch.json').exists():
         raise RuntimeError('此版本已经触发过执行；请先核实结果，修复后准备新版本。')
@@ -118,9 +154,12 @@ def run(card, plan):
         try:
             page = board.api('GET', f'/pages/{card}')
             AR.require_current(card, record['token'], page)
-            if any(AR.property_text(page, prop) != data['preview'] for prop in (SCRIPT, APPROVED)):
-                raise RuntimeError('Script preview changed before execution; prepare and approve the current version')
+            verify_preview(page, data)
             validate(folder, data)
+            with AR.lock(card):
+                current = AR.require_current(card, record['token'], board.api('GET', f'/pages/{card}'))
+                current.update(shell_plan=plan, phase='running')
+                AR.save(card, current)
             env = dict(os.environ, INBOARD_OPERATION=record['token'], INBOARD_CARD=card)
             with subprocess.Popen(['bash', str(folder / 'script.sh')], cwd=data['cwd'],
                                   env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,

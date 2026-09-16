@@ -12,12 +12,12 @@ any value from the deployment's config (`cfg identity.name`, `cfg preferences.ca
 
 The card's Draft is a preview of a proposed outward action, including email, a GitHub comment or a form
 submission. Before staging text, apply `writing-for-people` and its review procedure; log review evidence
-on the card. For non-email actions use `board edit --card C --draft TEXT`: include the action and platform,
+on the card. For non-email actions use `board stage-script` below: include the action and platform,
 sending account, exact destination URL or recipient, and the full content or submitted fields. A comment
 and closing a PR are separate actions; show each proposed action explicitly rather than inferring one
 from the other's wording. Keep the preview self-contained so the operator can approve it without reading
 the log. Preview labels describe the operation; publish only its content, without those labels.
-Changes to any of these details require a new send click.
+Changes to any of these details require a new 帮我执行 click.
 
 Store the complete preview through these commands; they chunk long text and verify Draft by readback.
 The Summary length target does not apply to Draft. A size error requires a smaller explicitly scoped
@@ -26,15 +26,15 @@ The operator reviews and approves on the card; do not send them to an email draf
 a comment saying yes. A send failure describes the operation, not whether the matter is finished.
 
 `board approved-draft --card C --operation TOKEN` returns the approved current preview, or fails if the
-operation is stale, is not a send action, or the preview changed. It requires the token delivered for
-this click and does not send anything. Follow `card-actions` to check current facts before executing the
-approved action with the platform's own tools. Gmail keeps the helper below; other platforms need no Gmail
-draft. Pass `--operation TOKEN` on card updates during the operation.
+operation is stale, is not an approved execution, or the preview changed. For the unified button it
+requires a running native script with a bound preview. This check does not send anything. The runtime
+supplies INBOARD_OPERATION and INBOARD_CARD to the script; use them for guarded sending commands.
 
 ### Prepared scripts
 
 `board stage-script --card C --file ./scripts/action.sh --cwd "$PWD" --description TEXT [--input FILE]`
-saves a Bash script and publishes its complete preview in Script for the ❗执行脚本 button. Describe
+saves a Bash script and publishes its complete preview in Script for the 帮我执行 button. It also
+sets Draft to TEXT, the human-readable operation preview. Describe
 the action, account, destination and exact outward content. Repeat `--input` for payload and helper
 files that must retain their bytes until execution; use absolute paths in the script. Staging does
 not execute the script. Keep credentials in the project's secret store, outside the preview.
@@ -43,7 +43,12 @@ The button executes the saved version once through Claude Code's native `!` mode
 result and destination before preparing another version after a failure or an unknown outcome.
 Follow `card-actions` for diagnosis and result reporting. Declared inputs are checked by hash;
 arbitrary dependencies and remote state are not frozen. Command output returns to the original
-session; automatic response follows Claude Code's `respondToBashCommands` setting.
+session; automatic response follows Claude Code's `respondToBashCommands` setting. Prepare this
+before asking for approval; Stop never automatically clicks or executes it.
+
+`board stage-email --card C --account ACCOUNT --draft-id ID` binds the current email Draft to a
+guarded send script. `email ... +draft` calls this automatically. Use it for an existing Gmail draft
+after checking that its account, recipients, subject and body still match the current card preview.
 
 ### Gmail, per account
 
@@ -64,17 +69,17 @@ Review precedes operator approval; never silently rewrite an approved draft befo
   `--reply-to-message <msgid>` (To, subject, thread and In-Reply-To come from that message; use it when
   answering mail someone ELSE sent) or `--to <addr> --subject S [--thread-id T] [--in-reply-to <Message-ID>]`
   (a new mail, or a follow-up on a thread the OPERATOR started — replying there would address him). It
-  creates the Gmail draft, puts the text into the card's Draft field and logs the draft id, in one step.
+  creates the Gmail draft, puts the text into Draft, stages the guarded send script and logs the draft id.
   Both forms accept `--cc <addresses>` and `--bcc <addresses>`. The card preview starts with From, To,
   Cc, Bcc and Subject, then a `---` separator and the body. Pass only the email body to `--body`;
   the wrapper adds the preview headers using the selected account and actual recipients.
   A draft that is not on the card cannot be seen by him and cannot be sent, so the raw helpers
   (`+reply`, `+compose-draft`, `users drafts create`) are refused. The Draft field holds the latest draft;
   earlier ones remain in the log for audit. Sending requires the current card preview to match the
-  preview approved by the operator's latest send click.
+  preview bound to the script approved by the operator's latest 帮我执行 click.
 - **Send:** the email wrapper blocks every send except `+send-approved --card <CARD> --draft-id <ID> --operation <TOKEN>`, which requires the
-  operator to have tapped the send chip on that card. Its full procedure, including what to do when it
-  fails, is in `card-actions`. Everything else you write is a draft.
+  native script launched by 帮我执行. The generated script passes INBOARD_OPERATION as its token.
+  Do not invoke it yourself after preparing a draft. Failure handling is in `card-actions`.
 
 ### Board
 

@@ -90,6 +90,35 @@ class ShellActionsTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, '输入文件已变化'):
             S.approved(self.page)
 
+    def test_operation_preview_is_bound_to_script(self):
+        self.assertEqual(AR.property_text(self.page, 'Draft'), 'Print a test marker')
+        self.page['properties']['Draft'] = {'rich_text': AR.W.text('Different outward action')}
+        with self.assertRaisesRegex(RuntimeError, '操作预览已修改'):
+            self.dispatch()
+        self.assertFalse((self.plan / 'dispatch.json').exists())
+
+    def test_email_staging_creates_a_guarded_script_without_sending(self):
+        preview = 'From: sender@example.com\nTo: to@example.com\n\n---\n\nHello'
+        self.page['properties']['Draft'] = {'rich_text': AR.W.text(preview)}
+        with patch('subprocess.run') as execute:
+            data = S.stage_email(self.board, CARD, 'personal', 'draft-1')
+        execute.assert_not_called()
+        script = (S.directory(CARD, data['plan']) / 'script.sh').read_text()
+        self.assertIn('personal gmail +send-approved', script)
+        self.assertIn('--draft-id draft-1 --operation "$INBOARD_OPERATION"', script)
+        self.assertEqual(data['draft'], preview)
+        self.assertEqual(AR.property_text(self.page, 'Draft'), preview)
+
+    def test_email_approval_requires_script_to_have_started(self):
+        self.dispatch()
+        record = AR.read(CARD)
+        with self.assertRaisesRegex(RuntimeError, 'native shell script'):
+            AR.require_approved_draft(CARD, record['token'], self.page)
+        record['shell_plan'] = self.data['plan']
+        AR.save(CARD, record)
+        with self.assertRaisesRegex(RuntimeError, 'not executing'):
+            AR.require_approved_draft(CARD, record['token'], self.page)
+
     def test_failed_shell_saves_output_exit_and_never_runs_twice(self):
         self.dispatch()
         with patch.object(AR.W, 'load_board', return_value=self.board):
