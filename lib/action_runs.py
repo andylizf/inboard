@@ -103,9 +103,13 @@ def require_approved_draft(card, token, page):
     if record.get('sent'):
         raise RuntimeError('Sending was already attempted. Verify the result before retrying.')
     import shell_actions as SH
-    if record['action'] == SH.ACTION:
+    # Only a record that actually carries a staged plan is checked against it. The execution
+    # action used to go here unconditionally, and approved_email_draft raises unless a script
+    # is mid-execution — so once the click stopped staging scripts, every send approval would
+    # have failed with "must originate from the approved native shell script".
+    if record['action'] == SH.ACTION and record.get('shell_plan'):
         return SH.approved_email_draft(page, record)
-    if record['action'] != C.get('board.schema.send_action', ''):
+    if record['action'] not in (SH.ACTION, C.get('board.schema.send_action', '')):
         raise RuntimeError('This operation is not a send approval.')
     return approved_draft(page)
 
@@ -157,9 +161,12 @@ def dispatch(card, prompt):
             name = 'inboard-card-' + card.replace('-', '')
             try:
                 job = A.find_job(name)
-                if request['action'] == SH.ACTION:
-                    SH.dispatch(board, page, record, job)
-                    return
+                # Every button, the execution one included, wakes this card's agent and lets it
+                # do the work. Running a frozen script snapshot instead was tried and dropped:
+                # it needed a staged script AND a live session whose id still matched the card,
+                # so a daemon restart, an edited byte, or a card that never staged anything all
+                # turned the click into a silent no-op. shell_actions still stages and still
+                # executes anything already in flight; it is no longer what a click depends on.
                 if job and job.get('state') not in ('stopped', 'blocked'):
                     progress(board, card, record, '⏳ 正在切换 · ' + request['action'])
                     stopped = A.interrupt(job)

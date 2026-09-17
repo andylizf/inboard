@@ -11,8 +11,7 @@ For each assigned actioned card, act on the request, record the outcome, reply a
 triggers before the final receipt. Use `board clear-action` for a completed operation or `board action-fail`
 for failure or an unverified outcome, never both. Either receipt ends operation-scoped writes.
 Pass the delivered `--operation` token on every card mutation; a superseded operation must stop.
-Legacy actions without a delivered token retain `board clear-action` as their receipt. For a legacy
-send, prepare the current preview and script for the 帮我执行 button.
+Legacy actions without a delivered token retain `board clear-action` as their receipt.
 
 **The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped,
 because a status that waits on you is a status that never changes when you hit your deadline or die.
@@ -35,15 +34,14 @@ state or scheduled checks; an earlier agent's refusal is not itself an instructi
 
 ## Prepare before asking for execution
 
-When the remaining work is a concrete outward action ready for approval, prepare its executable
-script and full operation preview before ending the turn or setting needs_you for approval.
-This applies during initial handling, Continue, comments, and scheduled checks; do not wait for
-the operator to ask for a script. `email ... +draft` prepares its send script automatically.
-For other operations use `board stage-script`; Draft alone does not make the button executable.
-Read the latest relevant sources and check whether the action already happened before staging.
-Put any checks that must hold at execution time in the script; fail before sending if they cannot
-be verified. Preview the exact action, account, destination and content. Keep credentials outside
-the preview and bind payload/helper files with --input. A comment and closing a PR remain separate
+When the remaining work is a concrete outward action ready for approval, put the exact thing he is
+approving in `Draft` before ending the turn or setting needs_you: the precise action, the account,
+the destination and the full content. That text is what the click approves and what
+`board approved-draft` checks, so it is the whole of what he agreed to — a summary of the action is
+not it. This applies during initial handling, Continue, comments, and scheduled checks.
+Read the latest relevant sources and check whether the action already happened before asking.
+Checks that must hold at the moment of acting are performed then, by you, and a check that cannot
+be verified stops the action rather than proceeding on the older reading. A comment and closing a PR remain separate
 actions. If script preparation is blocked, record the observed blocker and continue unaffected work;
 never label an unprepared action ready. Stop itself does not execute anything.
 
@@ -56,16 +54,18 @@ never label an unprepared action ready. Stop itself does not execute anything.
   For example, a request to complete an assignment includes working through the available problems and
   preparing the answers, rather than only checking the release date and reporting the deadline.
   Carry forward approvals already given. If the remaining step requires approval of new outward content,
-  prepare the complete deliverable, script and operation preview using `board-cli` for 帮我执行.
-  The Continue click authorizes continued work; 帮我执行 approves the saved operation and script.
+  put the complete deliverable in `Draft` using `board-cli` and let 帮我执行 be his approval of it.
+  The Continue click authorizes continued work; 帮我执行 approves the drafted action and hands it to you.
   When blocked, state the observed obstacle and the smallest step only the operator can perform, retain
   ownership of the remaining work, and resume when it clears. A genuine future release can be scheduled;
   resume the substantive work when the material becomes available.
-- **帮我执行 (internal action `❗ Execute script`)** → the runtime executes the Script snapshot
-  through native Claude Code `!` input in this card's session. This one click approves the exact
-  operation preview and script; the operator chose it as the send-gate approval, with no additional
-  SEND token or send button. Do not run the staged script yourself or delegate its execution.
-  After shell output arrives, verify the actual result at the destination and record its receipt.
+- **帮我执行 (internal action `❗ Execute script`)** → the click wakes this card's agent with the
+  operation token and you carry the action out yourself. It approves the `Draft` as it stood when he
+  pressed it; the operator chose this one click as the send-gate approval, with no additional SEND
+  token and no separate send button. Run `board approved-draft` with this card and operation before
+  an outward send: it fails if `Draft` no longer matches what he approved, and that failure is the
+  gate working, not an obstacle to route around. Afterwards verify the actual result at the
+  destination and record its receipt.
   The runtime closes the execution operation itself; use ordinary card updates for diagnosis after
   that receipt, without reusing its completed operation token. On failure, inspect whether the action
   partly succeeded, then prepare a corrected version for a new click. Never automatically repeat the
@@ -78,6 +78,6 @@ never label an unprepared action ready. Stop itself does not execute anything.
 - **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled`.
 
 Action labels are deployment-specific. Use `cfg board.schema.action_status` to distinguish completion
-from cancellation; 帮我执行 follows the prepared-script path above. An unknown chip is a
+from cancellation; 帮我执行 follows the approved-draft path above. An unknown chip is a
 misconfiguration: report it on the card rather than inventing a meaning. Reconcile mail and time
 subscriptions using `board-cli` before the final receipt so obsolete reminders do not survive the change.

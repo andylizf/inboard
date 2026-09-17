@@ -41,19 +41,24 @@ class ShellActionsTests(unittest.TestCase):
         self.job = dict(short='12345678', sessionId='original-session', state='idle')
 
     def dispatch(self):
+        # shell_actions is invoked directly: a button click goes to the card's agent now,
+        # so going through AR.dispatch would exercise a route that no longer exists.
+        record = dict(AR.intent(self.page), phase='starting', sent=False)
+        AR.save(CARD, record)
         with patch.object(AR.W, 'load_board', return_value=self.board), \
                 patch('agent_deliver.find_job', return_value=self.job), \
                 patch('agent_deliver.shell_input') as shell, \
                 patch('agent_deliver.ensure_and_deliver') as model, \
                 patch('agent_deliver.interrupt') as interrupt:
-            AR.dispatch(CARD, 'Do __ACTION__')
+            S.dispatch(self.board, self.page, record, self.job)
             model.assert_not_called()
             interrupt.assert_not_called()
             return shell
 
-    def test_button_uses_native_input_and_duplicate_webhook_is_ignored(self):
+    def test_button_uses_native_input_and_a_replayed_plan_is_refused(self):
         self.dispatch().assert_called_once()
-        self.dispatch().assert_not_called()
+        with self.assertRaisesRegex(RuntimeError, '已经触发过执行'):
+            self.dispatch()
 
     def test_second_click_cannot_execute_same_plan(self):
         self.dispatch()
@@ -112,7 +117,9 @@ class ShellActionsTests(unittest.TestCase):
     def test_email_approval_requires_script_to_have_started(self):
         self.dispatch()
         record = AR.read(CARD)
-        with self.assertRaisesRegex(RuntimeError, 'native shell script'):
+        # No staged plan on the record: the ordinary approved-draft gate governs, because the
+        # execution action is now an ordinary operation the agent carries out.
+        with self.assertRaisesRegex(RuntimeError, '暂无已批准的当前草稿'):
             AR.require_approved_draft(CARD, record['token'], self.page)
         record['shell_plan'] = self.data['plan']
         AR.save(CARD, record)
