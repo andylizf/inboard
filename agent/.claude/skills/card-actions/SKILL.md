@@ -66,6 +66,18 @@ never label an unprepared action ready. Stop itself does not execute anything.
   an outward send: it fails if `Draft` no longer matches what he approved, and that failure is the
   gate working, not an obstacle to route around. Afterwards verify the actual result at the
   destination and record its receipt.
+- **An upload or a form the browser profile can already reach is offered as one click, not handed
+  back.** Where the remaining step is submitting a file or a form to a portal, check first whether
+  the profile is signed into it — `web-plane profiles` lists hosts, and a host it does not list is
+  undetected rather than absent, so open the page and look. A portal that opens without a login is
+  a portal you can submit through: make it the 帮我执行 action instead of telling him to do it by
+  hand, and say in `Draft` exactly what goes where — the file's full path and size, the destination
+  page, and anything optional he is choosing to include or leave out. The reason to be exact is
+  that the Draft as it stood at the click is the whole of what he approved.
+  **An upload is not a submission until the portal says so.** Read the state back from the page
+  afterwards — the assignment or request moving out of its unsubmitted state, with the timestamp and
+  filename it now shows — and record that receipt. A successful upload command is not it, and a
+  recorded receipt still does not mean the matter is finished.
   The runtime closes the execution operation itself; use ordinary card updates for diagnosis after
   that receipt, without reusing its completed operation token. On failure, inspect whether the action
   partly succeeded, then prepare a corrected version for a new click. Never automatically repeat the
