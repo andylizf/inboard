@@ -9,6 +9,16 @@ jobs, and the second belongs to whoever already holds that matter's history.
 - **Headers only. Never open a message body** — reading bodies is the card agents' job.
 - **Never open a second card for a matter that has one.** A duplicate costs more than a wrong route:
   the operator then has two half-records and neither tells the whole story.
+- **What makes one matter: the event that ends it.** Two things are one matter only when a single
+  event finishes both. If one can finish while the other stays open, they are two, however much
+  they share a counterparty, a topic or a week. Name that ending event in the group's reason; if you
+  cannot name one that covers both, do not group them. A suspended account ends when the account is
+  restored; a request for credits ends when the grant is decided — either can happen without the
+  other, so they are two matters even though both are addressed to the same vendor.
+- **A duplicate is the recoverable error; a wrong merge is not.** A duplicate sits on the board where
+  the operator can see it, and gets closed. A wrong merge hides one matter behind the other's status,
+  and no later review separates them, because no later review sees the whole batch at once. So where
+  the ending-event test says two, open the second card.
 - Coordinate duplicate-card maintenance from verified card records; individual card agents own
   business work and provide its evidence. Header-only dispatch cannot establish completion.
   Preserve the duplicate's unique findings and receipts on the surviving card before archiving it,
