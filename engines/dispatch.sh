@@ -40,9 +40,9 @@ if [ -s "$WM_FILE" ]; then
   SINCE="$(cat "$WM_FILE" 2>/dev/null)"
   FLOOR="$(python3 -c 'import datetime;print((datetime.date.today()-datetime.timedelta(days=30)).strftime("%Y/%m/%d"))')"
   [ "$SINCE" \< "$FLOOR" ] && SINCE="$FLOOR"
-  MAIL_WINDOW="{in:inbox in:sent} after:$SINCE"
+  MAIL_WINDOW="{in:inbox in:sent in:spam} after:$SINCE"
 else
-  MAIL_WINDOW="{in:inbox in:sent} newer_than:2d"
+  MAIL_WINDOW="{in:inbox in:sent in:spam} newer_than:2d"
 fi
 export INBOARD_MAIL_WINDOW="$MAIL_WINDOW"
 
