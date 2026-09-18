@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-# launchd must wait for an existing foreground supervisor instead of repeatedly
-# starting a second one that exits with "another daemon is already running".
+# Stand down when a foreground supervisor already owns the daemon, instead of starting a
+# second one that would exit with "another daemon is already running".
+#
+# Standing down means exiting, not waiting. KeepAlive plus ThrottleInterval brings this back
+# within seconds, so takeover after a supervisor dies is just as prompt — while waiting inside
+# the launcher held a process that outlived the throttle window, so launchd killed it and
+# respawned it every few seconds. That churn is not free: everything below this point ran
+# again each time, including a credential preflight that calls out to the network.
 set -uo pipefail
 export PATH="/etc/profiles/per-user/$(id -un)/bin:$HOME/.local/bin:$PATH"
-while true; do
-  supervisor=$(jq -r '.supervisorPid // empty' "$HOME/.claude/daemon.status.json" 2>/dev/null)
-  [[ "$supervisor" =~ ^[0-9]+$ ]] || break
-  kill -0 "$supervisor" 2>/dev/null || break
+supervisor=$(jq -r '.supervisorPid // empty' "$HOME/.claude/daemon.status.json" 2>/dev/null)
+if [[ "$supervisor" =~ ^[0-9]+$ ]] && kill -0 "$supervisor" 2>/dev/null; then
   case "$(ps -p "$supervisor" -o comm=)" in
-    */claude|claude) sleep 30 ;;
-    *) break ;;
+    */claude|claude) exit 0 ;;
   esac
-done
-# Read credentials after waiting: the operator may rotate them while this launcher waits.
+fi
+# Read credentials here rather than at the top: the operator may rotate them between the
+# launcher standing down and the run that actually starts the daemon.
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_common.sh"
 # Preserve the daemon environment used on this host: routing is provided by TUN.
 unset HTTPS_PROXY HTTP_PROXY ALL_PROXY NO_PROXY
