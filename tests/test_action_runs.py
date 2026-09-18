@@ -143,6 +143,43 @@ class ActionRunsTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'no longer active'):
             A.require_approved_draft(source['id'], record['token'], source)
 
+    def clicked_page(self, draft='From: me\nTo: you\n\n---\n\nThanks for checking.'):
+        # What a real click leaves behind: Notion copies Script into ActionScript and never
+        # touches ActionDraft, so the approved draft has to be read back out of the preview.
+        source = page('Send')
+        preview = ('Script version: 34e0e850-2085-4d09-9249-5e8914bb3867\n' + draft
+                   + '\nWorking directory: /home/agent\n\nset -euo pipefail\nexec send\n')
+        source['properties']['Draft'] = {'rich_text': A.W.text(draft)}
+        source['properties']['ActionScript'] = {'rich_text': A.W.text(preview)}
+        return source, draft
+
+    def test_click_snapshot_approves_the_draft_it_carries(self):
+        source, draft = self.clicked_page()
+        record = self.record(source)
+        with patch.object(A.C, 'get', return_value='Send'):
+            self.assertEqual(A.require_approved_draft(source['id'], record['token'], source), draft)
+
+    def test_click_snapshot_refuses_a_draft_edited_after_the_click(self):
+        source, draft = self.clicked_page()
+        record = self.record(source)
+        for changed in (draft.replace('Thanks', 'Sorry'), draft.replace('To: you', 'To: someone'),
+                        draft + ' PS', ''):
+            edited = copy.deepcopy(source)
+            edited['properties']['Draft'] = {'rich_text': A.W.text(changed)}
+            with self.subTest(changed=changed), patch.object(A.C, 'get', return_value='Send'), \
+                    self.assertRaises(RuntimeError):
+                A.require_approved_draft(source['id'], record['token'], edited)
+
+    def test_a_snapshot_that_is_not_a_staged_preview_approves_nothing(self):
+        source, draft = self.clicked_page()
+        record = self.record(source)
+        for junk in ('', draft, 'Working directory: /home/agent\n' + draft):
+            broken = copy.deepcopy(source)
+            broken['properties']['ActionScript'] = {'rich_text': A.W.text(junk)}
+            with self.subTest(junk=junk[:20]), patch.object(A.C, 'get', return_value='Send'), \
+                    self.assertRaises(RuntimeError):
+                A.require_approved_draft(source['id'], record['token'], broken)
+
     def test_attempted_email_requires_result_verification(self):
         source, _ = self.approved_page()
         record = self.record(source)

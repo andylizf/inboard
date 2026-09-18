@@ -35,10 +35,22 @@ def property_text(page, name):
 
 
 def approved_draft(page):
+    import shell_actions as SH
     draft = property_text(page, 'Draft')
     approved = property_text(page, APPROVED_DRAFT)
-    if not draft.strip() or not approved.strip():
+    snapshot = property_text(page, SH.APPROVED)
+    if not draft.strip() or not (approved.strip() or snapshot.strip()):
         raise RuntimeError('暂无已批准的当前草稿，请查看草稿后重新点击发送。')
+    if not approved.strip():
+        # The click snapshots Script into ActionScript and nothing ever fills ActionDraft, so for
+        # a click the approved draft survives only inside that preview, which stage() lays out as
+        # 'Script version: <plan>\n<draft>\nWorking directory: <cwd>\n...'. Reading the draft back
+        # out of the snapshot keeps the comparison against text Notion wrote when he pressed.
+        head, separator, rest = snapshot.partition('\n')
+        if not separator or not head.startswith('Script version: ') \
+                or not rest.startswith(draft + '\nWorking directory: '):
+            raise RuntimeError('草稿已修改，请查看当前版本后重新点击发送。')
+        return draft
     if draft != approved:
         raise RuntimeError('草稿已修改，请查看当前版本后重新点击发送。')
     return approved
