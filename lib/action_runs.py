@@ -180,6 +180,12 @@ def dispatch(card, prompt):
                 if not latest or latest['token'] != record['token']:
                     continue
                 status = C.ACTION_STATUS.get(request['action'])
+                if not status:
+                    # A send press carries the internal action value, which no configured mapping
+                    # names; while the agent works the card is being worked, so it reads
+                    # Researching like Continue does, and the agent sets what follows.
+                    import shell_actions as SH
+                    status = 'researching' if request['action'] == SH.ACTION else None
                 if status:
                     board.api('PATCH', f'/pages/{card}', {'properties': {'Status': {'select': {'name': C.status_name(status)}}}})
                 progress(board, card, record, '⏳ 正在启动 · ' + request['action'])

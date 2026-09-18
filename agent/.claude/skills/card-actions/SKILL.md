@@ -15,9 +15,10 @@ Legacy actions without a delivered token retain `board clear-action` as their re
 
 **The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped,
 because a status that waits on you is a status that never changes when you hit your deadline or die.
-Keep that initial state while handling the request, then set Status from who must act next.
-A rewritten necessary draft awaits approval in needs_you; a verified send may leave an external wait,
-more agent work or a completed matter. The handler leaves send status for you to determine.
+Continue and 📤 帮我发送 both land in `🔍 Researching`: while you carry the request out the card is
+being worked, and it does not sit in `⏸ Needs you` under his name. Keep that state while handling
+the request, then set Status from who must act next. A rewritten necessary draft awaits approval
+in needs_you; a verified send may leave an external wait, more agent work or a completed matter.
 
 Once the operator has approved an action, execute it through verification. Pause only for an observed
 execution blocker or new information that materially changes the approved proposal; name the evidence,
