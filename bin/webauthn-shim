@@ -117,7 +117,10 @@ async def watch_targets(held, creds):
                                   "params": {"discover": True}}))
         async for raw in ws:
             message = json.loads(raw)
-            if message.get("method") not in ("Target.targetCreated", "Target.targetInfoChanged"):
+            # targetCreated only. targetInfoChanged also fires as a tab is going away, and
+            # connecting to a target that has gone logs a websocket failure that reads like
+            # the equip failing. A target that turns into a page later is the poll's job.
+            if message.get("method") != "Target.targetCreated":
                 continue
             info = message.get("params", {}).get("targetInfo", {})
             tid = info.get("targetId")
