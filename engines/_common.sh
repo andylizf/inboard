@@ -26,37 +26,6 @@ fi
 
 # ---------- shared engine helpers (single source of truth — do NOT re-implement in engines) ----------
 
-# ---------- which credential a claude run uses -------------------------------------------------
-# claude-switchboard owns the choice of account, so a run goes through it. Two things make that
-# conditional rather than unconditional. A static CLAUDE_CODE_OAUTH_TOKEN in the environment
-# outranks every keychain store, so it is cleared for the switchboard's own child or its pick is
-# ignored. And this machine may hold no logged-in store at all, which the switchboard reports by
-# printing `no usable credential` and exiting 1 — that is the one case where the static token is
-# still the only way to work, so the run is repeated with it.
-claude_run() {
-  local err rc
-  if command -v claude-switchboard >/dev/null 2>&1; then
-    err="$(mktemp)"
-    ( unset CLAUDE_CODE_OAUTH_TOKEN; claude-switchboard run -- "$@" ) 2>"$err"; rc=$?
-    cat "$err" >&2
-    if [ "$rc" = 1 ] && grep -q "no usable credential" "$err"; then
-      rm -f "$err"
-      echo "[$(date)] switchboard has no credential on this machine → static token" >> "$INBOARD_LOGS/webhook.log"
-    else
-      rm -f "$err"; return $rc
-    fi
-  fi
-  claude "$@"
-}
-
-# A run that died on a usage limit is not a stale session: retrying it with a fresh session id
-# spends a second run on the same exhausted account. The wording is the CLI's own, printed as the
-# turn's last message, so the caller's log is where it shows up.
-usage_limit_in() {
-  [ -n "${1:-}" ] && [ -f "$1" ] || return 1
-  tail -40 "$1" 2>/dev/null | grep -qE "hit your (weekly|monthly|five-hour|session) (limit|spend limit)|usage limit"
-}
-
 # Persistence trailer appended to every event-driven prompt (comment- and action-handler).
 # ---- daemon delivery (opt-in via agent.delivery: daemon) ----------------------------------------
 # card_agent_name <card-id> — the deterministic name of a card's persistent daemon-hosted agent.
@@ -279,18 +248,10 @@ deadline_run() {
 }
 
 run_with_selfheal() {
-  local runlog="${1:-}"
   deadline_run runh ${SESS[@]+"${SESS[@]}"}; RC=$?
   # 124 = deadline kill, not resume staleness — a fresh-session retry would just
   # burn a second budget under the same conditions.
   if [ "$RC" = 124 ]; then return; fi
-  # A usage limit: run it again and let the switchboard move to another account. Once every
-  # account is out the second run fails the same way, and the caller reports that failure.
-  if [ "$RC" != 0 ] && usage_limit_in "$runlog"; then
-    echo "[$(date)] usage limit (card ${CARD:-?}) -> retry on another account" >> "$INBOARD_LOGS/webhook.log"
-    deadline_run runh ${SESS[@]+"${SESS[@]}"}; RC=$?
-    if [ "$RC" = 0 ] || usage_limit_in "$runlog"; then return; fi
-  fi
   if [ -z "$NEWSID" ] && [ "$RC" != 0 ]; then
     NEWSID=$(python3 -c 'import uuid;print(uuid.uuid4())')
     echo "[$(date)] resume failed (rc=$RC) card ${CARD:-?} -> fresh session, retry once" >> "$INBOARD_LOGS/webhook.log"

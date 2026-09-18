@@ -109,19 +109,13 @@ Then also do the cross-card work your role describes."
 # The dispatcher may run on its own model: it only groups and routes, so it can be cheaper than the
 # card agents. The flag outranks agent/.claude/settings.json; empty means "same as the agents".
 DMODEL="$(cfg preferences.dispatcher_model 2>/dev/null)"
-run_dispatch() { claude_run -p "$DPROMPT" "$@" ${DMODEL:+--model "$DMODEL"} \
+run_dispatch() { claude -p "$DPROMPT" "$@" ${DMODEL:+--model "$DMODEL"} \
   --append-system-prompt-file "$DROLE_FILE" \
   --allowedTools "Bash,Read,Write,WebSearch,WebFetch,Skill" \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }
 
 deadline_run run_dispatch "${DFLAG[@]}"; RC=$?
-# A usage limit is not a stale session: run it again so the switchboard can move to another
-# account, and skip the fresh-session retry, which would spend a second run on the account
-# that just refused this one.
-if [ "$RC" != 0 ] && [ "$RC" != 124 ] && usage_limit_in "$LOG"; then
-  echo "[$(date)] dispatcher hit a usage limit -> retry on another account" >>"$LOG"
-  deadline_run run_dispatch "${DFLAG[@]}"; RC=$?
-elif [ "$DRESUME" = 1 ] && [ "$RC" != 0 ] && [ "$RC" != 124 ]; then
+if [ "$DRESUME" = 1 ] && [ "$RC" != 0 ] && [ "$RC" != 124 ]; then
   echo "[$(date)] dispatcher resume failed (rc=$RC) → fresh session, retry once" >>"$LOG"
   DSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); echo "$DSID" >"$SESS_FILE"
   deadline_run run_dispatch --session-id "$DSID"; RC=$?
@@ -227,10 +221,10 @@ Output one short line."
     NEWSID=""
     echo "[$(date)] g$idx dispatch delivered to daemon agent $(card_agent_name "$CARD") rc=$RC" >>"$LOG"
   else
-    runh() { claude_run -p "$PROMPT" "$@" \
+    runh() { claude -p "$PROMPT" "$@" \
       --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill" \
       --max-turns "$CARD_TURNS" --output-format text < /dev/null >> "$glog" 2>&1; }
-    run_with_selfheal "$glog"
+    run_with_selfheal
   fi
   echo "[$(date)] g$idx route=$route card=${CARD:-new} rc=$RC matter='$matter'" >>"$LOG"
 

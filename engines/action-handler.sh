@@ -83,8 +83,8 @@ if [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   NEWSID=""  # the daemon owns the session id; the line above is what puts it on the card
   echo "[$(date)] action delivered to daemon agent $(card_agent_name "$CARD") rc=$RC (queued, async)" >> "$INBOARD_LOGS/webhook.log"
 else
-  runh() { claude_run -p "$PROMPT" "$@" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/action-$TS.out" 2>> "$INBOARD_LOGS/action-$TS.log"; }
-  run_with_selfheal "$INBOARD_LOGS/action-$TS.out"
+  runh() { claude -p "$PROMPT" "$@" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/action-$TS.out" 2>> "$INBOARD_LOGS/action-$TS.log"; }
+  run_with_selfheal
   if [ -n "$NEWSID" ] && [ "$RC" = 0 ]; then board session --card "$CARD" --set "$NEWSID" >>"$INBOARD_LOGS/webhook.log" 2>&1; fi
 fi
 # A silent failure strands the tap: the operator approved an action, nothing happened, and nothing
