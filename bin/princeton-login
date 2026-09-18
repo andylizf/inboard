@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""princeton-login <service-url> — sign the agent browser's profile in through CAS + Duo.
+
+Drives one tab of the shared web-plane profile over raw CDP, with no web-plane lane attached:
+Duo's security-key request is then answered by the enrolled virtual key (local.inboard-webauthn),
+so no phone rings. A lane-driven tab cannot do this: with agent-browser attached, the same request
+falls through to the macOS passkey sheet and the tab's WebAuthn stays "pending" for good.
+
+When it exits 0 the profile holds the CAS/Duo session and the service URL loaded; a lane opened
+on the same profile is signed in. The password comes from $CRED (run under `cred with <Princeton
+item> --`). Takes the twofa gate for the run and releases it as `unused` (the key sends no push)
+or `ok` (the key answered), never pushes Duo itself, and stops on any prompt it does not expect.
+Log: logs/princeton-login-<ts>.log, screenshots beside it on a stop.
+"""
+import asyncio, base64, json, os, re, subprocess, sys, time, urllib.request
+from pathlib import Path
+
+NETID = os.environ.get("PRINCETON_NETID", "al9080")
+HOME = Path(os.environ.get("INBOARD_HOME", str(Path(__file__).resolve().parents[1])))
+LOGS = Path(os.environ.get("INBOARD_LOGS", str(HOME / "logs")))
+TS = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+LOG = LOGS / f"princeton-login-{TS}.log"
+
+
+def log(m):
+    line = f"{time.strftime('%H:%M:%S')} {m}"
+    print(line, flush=True)
+    with LOG.open("a") as f:
+        print(line, file=f)
+
+
+def main_port():
+    """The CDP port of the profile's Chrome, from web-plane's own record."""
+    r = subprocess.run(["web-plane", "-s=main", "cdp"], capture_output=True, text=True)
+    m = re.search(r"CDP port:\s+(\d+)", r.stdout + r.stderr)
+    if m:
+        return int(m.group(1))
+    port = os.environ.get("WEB_PLANE_CDP_PORT")
+    if port:
+        return int(port)
+    sys.exit("princeton-login: cannot find the profile's CDP port (web-plane -s=main cdp)")
+
+
+async def run(service):
+    import websockets
+    pw = os.environ.get("CRED")
+    if not pw:
+        sys.exit("princeton-login: no CRED in env — run under `cred with <Princeton item> --`")
+    port = main_port()
+    browser = json.load(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version"))["webSocketDebuggerUrl"]
+    async with websockets.connect(browser, max_size=None) as ws:
+        n = 0; pending = {}; inbox = asyncio.Queue()
+        async def reader():
+            async for raw in ws:
+                m = json.loads(raw)
+                if "id" in m and m["id"] in pending:
+                    pending.pop(m["id"]).set_result(m)
+                else:
+                    await inbox.put(m)
+        asyncio.create_task(reader())
+        async def cmd(method, params=None, sid=None, timeout=20):
+            nonlocal n; n += 1
+            fut = asyncio.get_event_loop().create_future(); pending[n] = fut
+            msg = {"id": n, "method": method, "params": params or {}}
+            if sid: msg["sessionId"] = sid
+            await ws.send(json.dumps(msg))
+            r = await asyncio.wait_for(fut, timeout)
+            if "error" in r:
+                raise RuntimeError(f"{method}: {r['error']}")
+            return r["result"]
+        tid = (await cmd("Target.createTarget", {"url": "about:blank"}))["targetId"]
+        sid = (await cmd("Target.attachToTarget", {"targetId": tid, "flatten": True}))["sessionId"]
+        outcome = "unused"
+        try:
+            await cmd("Page.enable", sid=sid); await cmd("Runtime.enable", sid=sid)
+            await asyncio.sleep(3)   # the shim equips a new tab within moments of targetCreated
+            await cmd("Page.bringToFront", sid=sid)
+            async def ev(expr, timeout=20):
+                r = await cmd("Runtime.evaluate", {"expression": expr, "awaitPromise": True, "returnByValue": True}, sid=sid, timeout=timeout)
+                return (r.get("result") or {}).get("value")
+            async def url():
+                return await ev("location.href")
+            async def shot(name):
+                data = (await cmd("Page.captureScreenshot", {"format": "png"}, sid=sid))["data"]
+                p = LOGS / f"princeton-login-{TS}-{name}.png"; p.write_bytes(base64.b64decode(data)); log(f"screenshot {p}")
+            async def settle(seconds, until=None):
+                end = time.time() + seconds
+                while time.time() < end:
+                    await asyncio.sleep(1)
+                    u = await url()
+                    if until and until(u):
+                        return u
+                return await url()
+            log(f"tab {tid} → {service}")
+            await cmd("Page.navigate", {"url": service}, sid=sid)
+            u = await settle(15, lambda u: "fed.princeton.edu/cas/login" in u or not any(h in u for h in ("fed.princeton.edu", "duosecurity.com")) and u != service)
+            if "fed.princeton.edu/cas/login" not in u:
+                if service.split("/")[2] in u:
+                    log(f"already signed in: {u}")
+                    return 0
+                await shot("unexpected"); log(f"STOP: unexpected page {u}"); return 2
+            ok = await ev("!!(document.querySelector('#username') && document.querySelector('#password'))")
+            if not ok:
+                await shot("cas-form"); log("STOP: CAS fields #username/#password not found"); return 2
+            await ev("document.querySelector('#username').focus()")
+            await cmd("Input.insertText", {"text": NETID}, sid=sid)
+            await ev("document.querySelector('#password').focus()")
+            await cmd("Input.insertText", {"text": pw}, sid=sid)
+            got = await ev("[document.querySelector('#username').value, document.querySelector('#password').value.length]")
+            if got[0] != NETID or got[1] != len(pw):
+                await shot("cas-fill"); log("STOP: the CAS form did not take the values"); return 2
+            log("CAS form filled; submitting")
+            await ev("(document.querySelector('#submitBtn')||document.querySelector('button[type=submit],input[type=submit]')).click()")
+            u = await settle(20, lambda u: "duosecurity.com" in u or ("fed.princeton.edu" not in u))
+            if "fed.princeton.edu/cas/login" in u:
+                await shot("cas-rejected")
+                msg = await ev("(document.querySelector('#msg, .alert, .errors')||{}).innerText||''")
+                log(f"STOP: CAS did not accept the login: {msg[:200]!r} — a password rejection counts against the netID; do not retry blind")
+                return 3
+            if "duosecurity.com" in u:
+                log("Duo prompt; waiting for the key to answer")
+                deadline = time.time() + 25; text = ""
+                while time.time() < deadline:
+                    await asyncio.sleep(1)
+                    u = await url()
+                    if "duosecurity.com" not in u:
+                        break
+                    text = await ev("document.body.innerText.slice(0,400)") or ""
+                    if "Is this your device" in text:
+                        break
+                if "Is this your device" in text:
+                    outcome = "ok"
+                    log("key answered Duo; confirming this device")
+                    await ev("[...document.querySelectorAll('button')].find(b=>/Yes, this is my device/i.test(b.innerText)).click()")
+                    u = await settle(25, lambda u: "duosecurity.com" not in u)
+                elif "duosecurity.com" in u:
+                    await shot("duo"); log(f"STOP: Duo did not clear on the key: {text[:200]!r} — no push was sent"); return 4
+                else:
+                    outcome = "ok"
+            u = await settle(15, lambda u: service.split("/")[2] in u)
+            if service.split("/")[2] not in u:
+                await shot("after-duo"); log(f"STOP: did not reach the service; at {u}"); return 5
+            log(f"signed in: {u}")
+            return 0
+        finally:
+            subprocess.run(["twofa-gate", "release", "princeton", outcome], capture_output=True)
+            try:
+                await cmd("Target.closeTarget", {"targetId": tid})
+            except Exception as e:
+                log(f"tab close failed: {e}")
+
+
+def main():
+    if len(sys.argv) != 2 or not sys.argv[1].startswith("https://"):
+        sys.exit(__doc__.strip())
+    gate = subprocess.run(["twofa-gate", "acquire", "princeton"], capture_output=True, text=True)
+    if gate.returncode != 0:
+        sys.exit("princeton-login: " + gate.stdout.strip() + gate.stderr.strip())
+    log(f"gate: {gate.stdout.strip().splitlines()[0]}")
+    return asyncio.run(run(sys.argv[1]))
+
+
+if __name__ == "__main__":
+    sys.exit(main())

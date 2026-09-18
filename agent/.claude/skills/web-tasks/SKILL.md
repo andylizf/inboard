@@ -7,9 +7,17 @@ Load the installed `browser` skill and use its managed browser and current comma
 hidden unless the operator needs a specific step. Inboard uses web-plane's `main` identity; `browser`
 routes each agent to its own tab in that profile. For direct web-plane commands, use `-s=main` and a
 distinct lane for the card. The `local.inboard-webauthn` service attaches existing local security-key
-credentials to this browser. Check that service and `$INBOARD_HOME/logs/webauthn-main.log`
-(errors: `$INBOARD_HOME/logs/webauthn-main.err`) before treating a
-security-key prompt as requiring the operator. Enrollment of a new key is a separate account change.
+credentials to this browser. **A Princeton sign-in (CAS at fed.princeton.edu, then Duo) is done
+with `cred with <the Princeton item> -- princeton-login <service-url>` before the lane touches the
+service**: it signs the profile in through its own tab, where the enrolled key answers Duo and no
+phone rings, and exits 0 with the session in the profile — the lane then opens the service already
+signed in. Do not fill CAS through the lane itself: with agent-browser attached, Duo's security-key
+request falls to the macOS passkey sheet, which blocks the tab, and the key never answers. Only when
+`princeton-login` exits non-zero and its log names Duo as the stop, continue in the lane: reach
+"Other options" with a page-script click (`eval`, since the sheet swallows lane clicks), take
+`twofa-gate`, and send one Duo Push. Check the service and `$INBOARD_HOME/logs/webauthn-main.log`
+(errors: `$INBOARD_HOME/logs/webauthn-main.err`) before treating a security-key prompt as requiring
+the operator. Enrollment of a new key is a separate account change.
 Reuse the authorized session; do not launch another
 profile or worker to evade login limits. Snapshot before acting and refresh references after navigation:
 
