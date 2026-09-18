@@ -76,7 +76,16 @@ while True:
     if not d.get("has_more"):
         break
     cur = d.get("next_cursor")
-active = [p for p in pages if status_of(p) not in SKIP_STATUS]
+# A closed card still takes his comments — 「给我个配置 怎么用的」 landed on a card finished
+# that morning and sat two hours unanswered — so recently touched closed cards are polled too;
+# older ones are left alone, since every card polled here costs one comments call per run.
+recent = (time.time() - 7 * 86400)
+def recently_edited(p):
+    try:
+        return time.mktime(time.strptime(p.get("last_edited_time", "")[:19], "%Y-%m-%dT%H:%M:%S")) >= recent
+    except ValueError:
+        return False
+active = [p for p in pages if status_of(p) not in SKIP_STATUS or recently_edited(p)]
 
 # 2. for each active card whose newest comment is the operator's, run the handler.
 # Dispatch ALL concurrently, then WAIT (bounded) before exiting: launchd reaps a
