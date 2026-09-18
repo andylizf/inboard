@@ -1,0 +1,54 @@
+[    4625ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[    5027ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.optimantra.com/js/webflow.js:0
+[    5037ms] [WARNING] Missing required query parameters: nonce, state, or redirect_uri @ https://www.optimantra.com/optimus/om/patient/login:1024
+[   68162ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   68676ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.optimantra.com/js/webflow.js:0
+[   68678ms] [WARNING] Missing required query parameters: nonce, state, or redirect_uri @ https://www.optimantra.com/optimus/om/patient/login?login_error=3&login_error_msg=Login%20Error%20-%20Please%20check%20the%20Login%20and%20Password.%20Login%20will%20be%20disabled%20after%209%20more%20failed%20attempts.:1028
+[   93527ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   96274ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  137524ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.google.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  137524ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  137524ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://m.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  149153ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.google.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  149153ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  149153ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://m.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  154452ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.google.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  154452ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  154452ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://m.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  208699ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.google.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  208699ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://www.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  208699ms] [WARNING] Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://m.youtube.com') does not match the recipient window's origin ('https://www.optimantra.com'). @ https://www.googletagmanager.com/gtag/js?id=G-E90G8JEG9N:895
+[  237736ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  272326ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  305439ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  347992ms] ReferenceError: jQuery is not defined
+    at https://www.optimantra.com/optimus/resources/js/maxatwork/jquery.toObject.js:66:4
+[  349637ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  357587ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.optimantra.com/optimus/om/patient/favicon.ico:0
+[  368243ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  378453ms] ReferenceError: jQuery is not defined
+    at https://www.optimantra.com/optimus/resources/js/maxatwork/jquery.toObject.js:66:4
+[  378398ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  379391ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.optimantra.com/optimus/om/customquestionnaires/common/favicon.ico:0
+[  445767ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  465031ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  465143ms] Identifier 'isProd' has already been declared
+[  503400ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  579045ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  579553ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  580775ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  590405ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  600559ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  617031ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  617136ms] Identifier 'isProd' has already been declared
+[  653576ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  662576ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  692332ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ https://s3.amazonaws.com/favicon.ico:0
+[  731493ms] SecurityError: Failed to read a named property 'document' from 'Window': Blocked a frame with origin "https://www.optimantra.com" from accessing a cross-origin frame.
+    at HTMLIFrameElement.onload (https://www.optimantra.com/optimus/om/patient/viewdocs?bucket=optimantra.com_consults_live&key=consult%2F7193835%2F09_17_2026%2FBill%2F1789621279977-passport-photo-page.pdf&pid=&conid=:47:375)
+[  732058ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ https://s3.amazonaws.com/favicon.ico:0
+[  769735ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  771722ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[  780651ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[ 1018620ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ https://s3.amazonaws.com/favicon.ico:0
+[ 1099656ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0

@@ -1,0 +1,52 @@
+diff --git a/.github/scripts/ci-pool-health.py b/.github/scripts/ci-pool-health.py
+index e5b2199..bee6dee 100755
+--- a/.github/scripts/ci-pool-health.py
++++ b/.github/scripts/ci-pool-health.py
+@@ -93,9 +93,17 @@ def main(argv: list[str] | None = None) -> int:
+         runners = fetch_runners(args.repo, args.token)
+     except urllib.error.HTTPError as error:
+         # Not knowing is not the same as everything being fine, and it is also
+-        # not a machine being down — say which it is.
+-        print(f"::warning::could not read the runner list: HTTP {error.code}")
+-        return 0
++        # not a machine being down — say which it is, and still go red. A
++        # monitor that cannot see must not report health; returning 0 here is
++        # the exact shape of the outage this check exists to end.
++        #
++        # 403 is the expected answer while GH_TOKEN is `github.token`: this
++        # endpoint requires admin access to the repository, and `administration`
++        # is not a permission the workflow token can be granted (box-heartbeat.yml
++        # records the same finding from the check this one replaces). Reading the
++        # pool needs a token that actually has that access.
++        print(f"::error::could not read the runner list: HTTP {error.code}")
++        return 1
+ 
+     healthy, problems = assess(runners)
+     for line in healthy:
+diff --git a/.github/workflows/box-uptime.yml b/.github/workflows/box-uptime.yml
+index 4dca846..018b9cb 100644
+--- a/.github/workflows/box-uptime.yml
++++ b/.github/workflows/box-uptime.yml
+@@ -11,9 +11,6 @@ on:
+ permissions:
+   actions: read
+   contents: read
+-  # Reading the self-hosted runner list is an administration read, which is not
+-  # covered by `actions: read`.
+-  administration: read
+ 
+ jobs:
+   check:
+@@ -52,7 +49,11 @@ jobs:
+         run: python3 .github/scripts/ci-pool-health.py
+ 
+       - name: Tell the team a CI machine is missing
+-        if: ${{ failure() && env.WEBHOOK != '' }}
++        # Only when the check actually named a machine. A step that could not
++        # read the pool at all has nothing to tell the team, and saying "a CI
++        # machine is missing" on every run it could not see is the false alarm
++        # that teaches people to ignore the channel.
++        if: ${{ failure() && env.WEBHOOK != '' && steps.pool.outputs.problems != '' }}
+         env:
+           PROBLEMS: ${{ steps.pool.outputs.problems }}
+           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

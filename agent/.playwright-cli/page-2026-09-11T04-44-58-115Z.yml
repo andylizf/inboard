@@ -1,0 +1,8 @@
+- generic [ref=e6]:
+  - heading "Confirm Form Resubmission" [level=1] [ref=e7]
+  - paragraph [ref=e8]: This webpage requires data that you entered earlier in order to be properly displayed. You can send this data again, but by doing so you will repeat any action this page previously performed.
+  - generic [ref=e9]:
+    - paragraph
+    - list [ref=e10]:
+      - listitem [ref=e11]: Press the reload button to resubmit the data needed to load the page.
+  - generic [ref=e12]: ERR_CACHE_MISS

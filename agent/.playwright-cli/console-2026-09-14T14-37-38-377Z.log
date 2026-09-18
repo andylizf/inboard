@@ -1,0 +1,19 @@
+[    2972ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2972ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2972ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2972ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2972ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2972ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   34428ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://idp.princeton.edu/favicon.ico:0
+[   38649ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://autologon.microsoftazuread-sso.com/2ff60116-7431-425d-b5af-077d7791bda4/winauth/ssoprobe?client-request-id=e843d42a-f869-4cac-873c-0b223d1827c3&_=1789396695070:0
+[  189767ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  189767ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  189767ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  189767ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  189767ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  189767ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  238947ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ https://www.cs.princeton.edu/courses/archive/fall26/cos433/:0
+[  266720ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://www.cs.princeton.edu/courses/archive/fall2026/cos433/:0
+[  282375ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://external-content.duckduckgo.com/ip3/m.princeton.edu.ico:0
+[  283197ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://external-content.duckduckgo.com/ip3/cos333reg1.cs.princeton.edu.ico:0
+[  299666ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://princeton-cos-433.github.io/favicon.ico:0

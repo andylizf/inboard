@@ -26,7 +26,7 @@ _STATUS_FORMULA = ('if(empty(prop("ActionVersion")), ' + _LEGACY_FORMULA + ', '
            'if(format(prop("ActionVersion")) + "|" + format(prop("ActionRequested")) != prop("ActionHandled"), '
            '"⏳ 已收到 · " + format(prop("ActionRequested")), prop("ActionProgress")))')
 FORMULA = ('lets(state, ' + _STATUS_FORMULA + ', if(empty(state), '
-           'if(empty(trim(prop("Script"))), "待准备执行内容", "待确认 · 帮我执行"), state))')
+           'if(empty(trim(prop("Script"))), "待准备执行内容", "待确认 · 📤 帮我发送"), state))')
 
 
 def property_text(page, name):
@@ -103,12 +103,6 @@ def require_approved_draft(card, token, page):
     if record.get('sent'):
         raise RuntimeError('Sending was already attempted. Verify the result before retrying.')
     import shell_actions as SH
-    # Only a record that actually carries a staged plan is checked against it. The execution
-    # action used to go here unconditionally, and approved_email_draft raises unless a script
-    # is mid-execution — so once the click stopped staging scripts, every send approval would
-    # have failed with "must originate from the approved native shell script".
-    if record['action'] == SH.ACTION and record.get('shell_plan'):
-        return SH.approved_email_draft(page, record)
     if record['action'] not in (SH.ACTION, C.get('board.schema.send_action', '')):
         raise RuntimeError('This operation is not a send approval.')
     return approved_draft(page)

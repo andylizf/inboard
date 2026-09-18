@@ -19,7 +19,7 @@ loader.exec_module(email_cli)
 
 
 class DraftPreviewTests(unittest.TestCase):
-    def test_unified_button_email_checks_preview_and_sends_only_once(self):
+    def test_unified_button_email_checks_the_approved_draft_and_sends_only_once(self):
         import copy
         import tempfile
         from unittest.mock import Mock
@@ -41,13 +41,11 @@ class DraftPreviewTests(unittest.TestCase):
         def wire(cmd, **kwargs):
             return CompletedProcess(cmd, 0, json.dumps(draft) if 'get' in cmd else '{}', '')
         with tempfile.TemporaryDirectory() as state, patch.dict('os.environ', NOTION_TOKEN='test', INBOARD_STATE=state):
-            plan = S.stage(Mock(api=api), card, None, state, preview, [], source='echo test\n')
-            page['properties'][S.APPROVED] = copy.deepcopy(page['properties'][S.SCRIPT])
-            record = dict(A.intent(page), phase='running', sent=False, shell_plan=plan['plan'])
+            # His click approves the Draft as it stood: that match is the whole gate.
+            page['properties']['Draft'] = {'rich_text': A.W.text(preview)}
+            page['properties'][A.APPROVED_DRAFT] = {'rich_text': A.W.text(preview)}
+            record = dict(A.intent(page), phase='running', sent=False)
             A.save(card, record)
-            folder = S.directory(card, plan['plan'])
-            (folder / 'dispatch.json').write_text(json.dumps({'record': record}))
-            (folder / 'started.json').write_text('{}')
             with patch('urllib.request.urlopen', side_effect=lambda *a, **k: io.BytesIO(json.dumps(page).encode())), \
                     patch('subprocess.run', side_effect=wire) as run:
                 args = ['--card', card, '--draft-id', 'draft-1', '--operation', record['token']]
@@ -63,7 +61,7 @@ class DraftPreviewTests(unittest.TestCase):
             A.save(card, record)
             page['properties']['Draft'] = {'rich_text': A.W.text(preview + 'changed')}
             with patch('urllib.request.urlopen', side_effect=lambda *a, **k: io.BytesIO(json.dumps(page).encode())), \
-                    patch('subprocess.run') as run, self.assertRaisesRegex(RuntimeError, '操作预览已修改'):
+                    patch('subprocess.run') as run, self.assertRaisesRegex(RuntimeError, '草稿已修改'):
                 email_cli.send_approved({}, 'gws', args)
             run.assert_not_called()
 

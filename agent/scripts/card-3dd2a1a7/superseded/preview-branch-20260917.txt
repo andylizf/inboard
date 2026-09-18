@@ -1,0 +1,65 @@
+操作预览：往你自己开的 PR #1083 推一个修复提交（对着你今天中午那次合并重做了一版）
+
+为什么重做：你今天 12:18（北京）往这条分支推了一次「Merge main: keep both halves of
+the CI pool section」，把 main 合了进来。那一推没有碰 administration: read 这一行，
+所以工作流仍然是废的，这次合并又产生了一次 0 秒、0 个 job 的失败运行。原先备好的那一键
+写死了「分支头必须还是你 09-16 05:37 那一推」，现在对不上，点了只会中止。这一版是照你
+合并后的内容重新做的，也重新在本机验过。
+
+做什么：以你的 GitHub 账号 andylizf，往 SageSeekerSociety/cheese 的分支
+feat/the-pool-says-which-machine-is-missing 推一个提交。只做这一件事：不评论、
+不发审查意见、不合并，也不碰 main。
+
+改动是两处，和上一版完全一样：
+
+一、.github/workflows/box-uptime.yml，删掉 permissions 底下的 administration: read
+这一行，连同它上面那两行注释。删完这一段剩：
+
+  permissions:
+    actions: read
+    contents: read
+
+二、.github/scripts/ci-pool-health.py，读不到机器名单时的那一段，从「打一句提醒
+然后当成功返回」改成「报错返回失败」，并把为什么一定会读不到写进注释：
+
+  -        # not a machine being down — say which it is.
+  -        print(f"::warning::could not read the runner list: HTTP {error.code}")
+  -        return 0
+  +        # not a machine being down — say which it is, and still go red. A
+  +        # monitor that cannot see must not report health; returning 0 here is
+  +        # the exact shape of the outage this check exists to end.
+  +        #
+  +        # 403 is the expected answer while GH_TOKEN is `github.token`: this
+  +        # endpoint requires admin access to the repository, and `administration`
+  +        # is not a permission the workflow token can be granted (box-heartbeat.yml
+  +        # records the same finding from the check this one replaces). Reading the
+  +        # pool needs a token that actually has that access.
+  +        print(f"::error::could not read the runner list: HTTP {error.code}")
+  +        return 1
+
+提交信息，原样如下（只改了一个词：你已经推了三次，原来写的是「两次推送」）：
+
+  fix(ci): drop the permission scope that voids box-uptime.yml
+
+  `administration` is not a workflow permission scope. GitHub does not ignore
+  the unknown key, it refuses to parse the file. That is why every push on this
+  branch produced a box-uptime run with zero jobs and no log while the PR's own
+  checks stayed green, and why merging as it stands would have stopped the hourly
+  heartbeat check that lives in this same file, without a red mark anywhere.
+
+  Removing the line does not buy the runner list back. That endpoint requires
+  admin access to the repository, which the workflow token cannot be granted.
+  box-heartbeat.yml already records the same finding about the check this one
+  replaces. So `ci-pool` gets a 403 until it is handed a token that has that
+  access, and the 403 branch now exits red instead of returning 0: a check that
+  cannot see the pool must not report the pool healthy.
+
+执行时的闸门也改了。上一版是「分支头不是那一个就中止」，结果你正常往分支上推东西，
+它就作废了一次。这一版改成看内容：PR 必须还开着；补丁必须能原样打上（打不上说明这段
+代码被人动过，中止）；改动只许落在上面那两个文件上，多一个就中止；打完在本机跑
+actionlint 和那套单元测试（现在是 20 个），都过了才推。分支头和预览时不一样只提示一句，
+不再拦。推完等 45 秒，把这次推送触发的运行列出来给你看。
+
+推完是什么状态：那个文件恢复有效，把它合进 main 不会再把每小时的心跳巡检静默关掉。
+新加的 ci-pool 那一项每小时会报红，说 HTTP 403，因为它现在确实读不到机器名单，
+红是实话。要它真能查出东西，还得给它一把有管理员权限的令牌，那一条在卡片说明里。

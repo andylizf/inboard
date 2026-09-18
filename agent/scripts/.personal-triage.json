@@ -1,0 +1,1032 @@
+{
+  "messages": [
+    {
+      "date": "Thu, 17 Sep 2026 17:48:01 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1fc2f776d2d9",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (e151d1c)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:44:59 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1f973f7a0c9d",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Remote execution acceptance - main (da5431f)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:30:57 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1eca07b3474c",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (760cabf)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:36:49 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1f1eab25bbc3",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (da5431f)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:31:23 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1ecf80fb9a86",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - feat/room-hears-its-session-state (ed8f7cd)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:14:31 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1dd8aab5974e",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Deploy (dev/test box) - main (b22649b)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:10:41 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1d9fe0e85932",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - feat/room-hears-its-session-state (6abcc31)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:10:55 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b1da366799f69",
+      "subject": "Re: [SageSeekerSociety/cheese] feat(rc): the room hears its session state instead of asking every two seconds (PR #1176)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:59:30 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1cfc95b412f9",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/owner-recreate-connect-retry (b4ebd2f)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:57:50 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1ce3a3668663",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Build and Push Docker Image - main (b22649b)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:48:06 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b1c55d422b4da",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(device): a call waits out an owner that is being recreated (PR #1175)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:28:59 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1b3e8df43965",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (b22649b)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:47:51 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1c525b5998e5",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/owner-recreate-connect-retry (d9f628b)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:28:51 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1b3ade04b08a",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (56acebd)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:46:27 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1c3d8486036f",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance, Attempt #2 - fix(chat): the room stops saying 芝士 has your message before it does (f8d4f24)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:33:23 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1b7f2f357849",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - fix(chat): the room stops saying 芝士 has your message before it does (f8d4f24)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:28:54 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1b3cb9ec982c",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (8369b11)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 23:41:07 +0000 (UTC)",
+      "from": "TypeSafe <login@typesafe.ai>",
+      "id": "1a0b1bed1c0ea391",
+      "subject": "Your TypeSafe verification code"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:28:01 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1b3093641a19",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/summon-receipt-timing (f8d4f24)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:58:11 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b197a9af4dd58",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(chat): the room stops saying 芝士 has your message before it does (PR #1173)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:58:07 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b197928dbb477",
+      "subject": "Re: [SageSeekerSociety/cheese] feat(rail): drag the project tiles into the order you want (PR #1172)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:44:38 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b18b386fd6cf7",
+      "subject": "Re: [SageSeekerSociety/cheese] feat(chat): a Word file or a deck shows its first page in the composer too (PR #1170)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:57:47 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1974352084cc",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - feat/rail-project-order (8d7c97a)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:58:05 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b197828c61b04",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(ui): a field label no longer lands on the field above it (PR #1171)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:35:10 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b18290187d860",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: CLAUDE.md Review Gate - docs(claude): dev 和生产是两个 deployment，而 dev 合了就上线 (b1bba7f)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:44:11 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b18ad08c14e4e",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - feat/a-word-file-shows-its-first-page (e1fb72d)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:57:44 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b1973c6f13e7c",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/field-label-clearance (9bad099)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:52:58 -0700",
+      "from": "Shirakawa Rion <notifications@github.com>",
+      "id": "1a0b192d818ef56b",
+      "subject": "Re: [SageSeekerSociety/cheese] 在已有的 Word / Excel / PowerPoint 上修改，而不破坏其格式 (Issue #1086)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:39:39 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b186aaa29559b",
+      "subject": "[yichuan-w/torchtitan] PR run failed: Lint - tmax: count what each admission rule keeps, from the V8 rows (1734bd2)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:57:49 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b197511ca4690",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/summon-receipt-timing (d6bd9d6)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:08:42 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b16a59f5c148c",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/the-drop-target-is-definite (48110ab)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:08:53 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b16a78674b5f6",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(chat): the whole filename comes up on hover, and the drop target is definite (PR #1168)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:33:26 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b1810235e91a2",
+      "subject": "Re: [SageSeekerSociety/cheese] docs(claude): dev 和生产是两个 deployment，而 dev 合了就上线 (PR #1169)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 14:27:15 -0700",
+      "from": "Yichuan Wang <yichuan_wang@berkeley.edu>",
+      "id": "1a0b14475cff96c9",
+      "subject": "Re: the google-via-serpapi baseline in pixelrag"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:14:09 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b16f4d1b6b471",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (18d4abc)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:33:03 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b180ab7b48207",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - docs/dev-is-a-deployment (b1bba7f)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 13:00:16 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0f4c46aca27a",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Release device connection owner - main (f262c9d)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:17:37 -0400",
+      "from": "mmurphy@janestreet.com",
+      "id": "1a0b1048dc8f1fff",
+      "subject": "Join Us! Jane Street PhD Guts++ at CMU — Tues, Sept 22 at 6:00 PM"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 21:08:51 +0000",
+      "from": "TypeSafe AI <team@updates.typesafe.ai>",
+      "id": "1a0b13368edb781b",
+      "subject": "TypeSafe AI: Your account is ready"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 19:49:47 +0000",
+      "from": "\"Brown, Jamie\" <jamiejcb@amazon.com>",
+      "id": "1a0b0eb0501351f4",
+      "subject": "Amazon x COLM 2026: Opportunity to Connect"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 12:15:29 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0cbbeaae71b7",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (289b0ce)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 12:34:40 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0dd4c2fb5675",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/alerts-that-say-when-and-what (c36f435)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 12:26:03 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0d583a57f387",
+      "subject": "[andylizf/omem-data] Run failed: omem consolidate (auto-dream) - main (676e678)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 12:49:57 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0eb58e466da1",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (f262c9d)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:27:15 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0a0249cd991b",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (f2a4678)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 12:06:59 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b0c3f71b6dda1",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(chat): every pending attachment is the same block, and it always says which file (PR #1164)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 12:06:28 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0c381abe671f",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/one-attachment-block-shape (d9fae3c)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:28:49 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0a110cce8654",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Backend Test - fix(obs): 告警说清什么时候、出了什么事，一个故障只报一条 (3383e36)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 18:20:06 +0000",
+      "from": "Team Headway <noreply@e.headway.co>",
+      "id": "1a0b098f011b90da",
+      "subject": "Reminder: Your session with Ling Chen is tomorrow at"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:17:32 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b096adbacbb16",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(chat): an uploading attachment has a frame to wait in, and a PDF shows its first page (PR #1161)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 18:15:48 +0000",
+      "from": "Team Headway <noreply@e.headway.co>",
+      "id": "1a0b094ff6eaef0f",
+      "subject": "Confirmed: Appointment with Ling Chen on 9/18"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:11:44 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0917670645f0",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - fix(obs): 告警说清什么时候、出了什么事，一个故障只报一条 (3383e36)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:17:07 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0964fdf6d805",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/an-uploading-attachment-has-a-frame-to-wait-in (165ded2)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:04:21 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b08a98966ec33",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/alerts-that-say-when-and-what (3383e36)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:02:15 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b088b3d50b385",
+      "subject": "[yichuan-w/torchtitan] Run failed: TODO Debt Tracker - main (59d4568)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:07:51 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b08dd087e7bba",
+      "subject": "[andylizf/omem-data] Run failed: omem consolidate (auto-dream), Attempt #2 - main (91cf82f)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:04:54 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b08b1c73b13de",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(obs): 告警说清什么时候、出了什么事，一个故障只报一条 (PR #1159)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:00:35 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b08730b4ea0d2",
+      "subject": "[yichuan-w/torchtitan] Run failed: TODO Debt Tracker - main (0de80b7)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:29:50 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b06b05ee7afb1",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/a-self-test-cheap-enough-to-run (7f6be81)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:33:19 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b06e313740ee4",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (8c73ba8)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:56:27 -0600",
+      "from": "Robert Guest at The Economist <newsletters@e.economist.com>",
+      "id": "1a0b08377ccaa27f",
+      "subject": "Can the AI arms race be stopped?"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:30:01 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b06b37f249411",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(deploy): a self-test cheap enough that someone runs it (PR #1157)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:26:57 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b068661a85c91",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Remote execution acceptance - main (99519ea)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:19:19 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b0616a3b24a0e",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (99519ea)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:07:09 +0000",
+      "from": "Garrett from Modal <garrett@modal.com>",
+      "id": "1a0b05621a28ee52",
+      "subject": "New from Modal: Sandbox Sidecars, new models, a refreshed dashboard, and more"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:49:40 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b18fd25073a46",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (0bc4d14)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:03:14 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0b052b045d7db0",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(obs): a closed device link says who hung up, and `code` is a credential only in OAuth (PR #1155)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 17:00:57 +0000",
+      "from": "Duolingo <hello@duolingo.com>",
+      "id": "1a0b050a1921a5c6",
+      "subject": "🔑 Password Reset "
+    },
+    {
+      "date": "Thu, 17 Sep 2026 16:17:09 +0000",
+      "from": "TypeSafe AI <team@updates.typesafe.ai>",
+      "id": "1a0b0285af3ef253",
+      "subject": "TypeSafe AI: You’re on the waitlist for Jev!"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 15:51:29 +0000 (GMT)",
+      "from": "Apple <no_reply@email.apple.com>",
+      "id": "1a0b010faae6fe12",
+      "subject": "Your Subscription is Expiring"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 07:08:28 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0afb2a9a36fe4a",
+      "subject": "[andylizf/omem-data] Run failed: omem consolidate (auto-dream) - main (38b6372)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:03:02 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0b052760c3f441",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - fix/a-closed-device-link-says-who-hung-up (bc44903)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 07:03:07 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0afadcc92f1c2c",
+      "subject": "[andylizf/omem-data] Run failed: omem consolidate (auto-dream) - main (80e20cb)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 06:49:55 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0afa1a8895d671",
+      "subject": "[andylizf/omem] Run failed: tests - main (29aac7d)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 06:34:57 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0af93f8aa68e82",
+      "subject": "[andylizf/omem-data] Run failed: omem consolidate (auto-dream) - main (91cf82f)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 08:09:40 -0400 (EDT)",
+      "from": "Nicki Mahler <ngotsis@cs.princeton.edu>",
+      "id": "1a0af45c2a85a3d0",
+      "subject": "Re: permission to enroll in COS 598B"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 05:13:09 -0600",
+      "from": "The Economist <noreply@e.economist.com>",
+      "id": "1a0af1246c3190c9",
+      "subject": "Get 60% off full access, instantly"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 03:52:27 -0700",
+      "from": "\"秦滋淇\" <qinziqi747@gmail.com>",
+      "id": "1a0aeff1a26c4054",
+      "subject": "项目交流｜鼎值资本"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:19:15 +0000",
+      "from": "notifier@feeder.co",
+      "id": "1a0aee0b04948f56",
+      "subject": "[Feeder] What's new"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 10:25:43 +0000",
+      "from": "Microsoft Developer Blogs <dblgsnews@microsoft.com>",
+      "id": "1a0aee6d165bb301",
+      "subject": "C++ Blog September 17, 2026"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 08:23:09 +0000",
+      "from": "Alfalfa Feedback <support@gettattle.com>",
+      "id": "1a0ae766265221d1",
+      "subject": "Alfalfa - We want to hear from you!"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 22:06:28 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0adc272a401d24",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (680336c)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 22:03:18 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0adbf938c167f9",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - main (c3a05ce)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 21:50:50 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0adb42413b32ed",
+      "subject": "Re: [SageSeekerSociety/cheese] feat(deploy): the cloud control release can interrupt active calls too (PR #1137)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 22:03:05 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0adbf55ef95651",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(deploy): the cleanup could not see the two biggest things it deletes (PR #1138)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 04:29:07 +0000",
+      "from": "Yichuan Wang <yichuan_wang@berkeley.edu>",
+      "id": "1a0ada02335568da",
+      "subject": "Invitation: Sync TB training @ Thu Sep 17, 2026 7pm - 7:45pm (EDT) (andylizf@gmail.com)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 21:22:53 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad9a8c8d18e95",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(device): the control channel stops borrowing the proxy a release reloads (PR #1136)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 21:18:27 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad968300bbcb2",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - feat/the-pool-says-which-machine-is-missing (012a32e)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 21:02:27 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad87dc3ec9c85",
+      "subject": "Re: [SageSeekerSociety/cheese] ci: the cache the venv is built from has to outlive the job (PR #1134)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 21:11:43 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad905b7728c09",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(ci): the guard reclaims what actually fills a pool machine (PR #1135)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:56:01 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad81f9b9f56f8",
+      "subject": "Re: [SageSeekerSociety/cheese] deploy: the cache reclaim runs on a clock, not when someone remembers (PR #1133)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:40:24 -0700",
+      "from": "Google Cloud <CloudPlatform-noreply@google.com>",
+      "id": "1a0ad7388a639de9",
+      "subject": "[Reminder] [Action Required] Transition your scripts and workflows from gsutil to gcloud storage before Mar 2027"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:30:15 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad6a64e21b6fd",
+      "subject": "Re: [SageSeekerSociety/cheese] ci(ops): okcheese.com says when it is down (PR #1132)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:27:55 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad6838defb5a4",
+      "subject": "Re: [SageSeekerSociety/cheese] docs(infra): the CI pool labels exist, and slot fan-out does not cover it (PR #1131)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:12:40 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad5a3ddc07cbc",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(edge): a plain http visit reaches the same site as https (PR #1129)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:12:37 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad5a36445728e",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(obs): a device that is offline is not a read failure (PR #1128)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:10:04 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad57e7e1f0612",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Backend Test, Attempt #5 - fix(obs): a failure that stops something for good leaves a log line (31f6b84)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 19:51:06 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad468b95602f1",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Repo Guards - main (93322ad)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:16:43 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad5df3eab2288",
+      "subject": "Re: [SageSeekerSociety/cheese] ci: a timeout catches a hang, not a slow run (PR #1130)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 11:44:30 +0000 (UTC)",
+      "from": "Uber One <uberone@uber.com>",
+      "id": "1a0af2eba670c501",
+      "subject": "Earn Uber One credits thanks to Uber One✨"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 19:48:33 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad442639e2ca9",
+      "subject": "Re: [SageSeekerSociety/cheese] ci(swap): address each box by its own label instead of hoping jobs spread (PR #1127)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 20:09:57 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad57cc4a44738",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Backend Test, Attempt #5 - fix(storage): a bucket that did not answer is not an empty bucket (253a4d9)"
+    },
+    {
+      "date": "Thu, 17 Sep 2026 02:29:52 +0000 (UTC)",
+      "from": "OptiMantra Patient Portal <support@optimantra.com>",
+      "id": "1a0ad32f5dfb48c6",
+      "subject": "Reset Password"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 19:43:47 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad3fceb68d110",
+      "subject": "Re: [SageSeekerSociety/cheese] feat(deploy): an owner release can be told to interrupt active calls (PR #1126)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 19:11:03 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad21e2b11bfcc",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Release device connection owner - main (aa825ae)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 19:27:22 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0ad30c5dcdecbb",
+      "subject": "Re: [SageSeekerSociety/cheese] diag(ci): the pool probe can see the memory that is killing jobs (PR #1125)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 19:08:45 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad1fc81d03e3b",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Release device connection owner - main (e990313)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 19:06:36 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad1dc163c66f8",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests, Attempt #3 - fix(search): a search that quietly fell back to PG says so (fbd29f1)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 18:11:36 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0aceb75f41ac69",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests - fix(device): an owner timeout says it timed out instead of 500 (3d202ff)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 18:46:35 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad0b776872f9b",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests - fix(obs): a failure that stops something for good leaves a log line (31f6b84)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 18:37:57 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad038df64d41f",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance, Attempt #2 - fix(search): a search that quietly fell back to PG says so (fbd29f1)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 18:47:31 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ad0c4af426dc9",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests - fix(obs): an alert says what the server answered, not just that it refused (ce49bd0)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 18:06:53 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ace7171ca91a6",
+      "subject": "[andylizf/web-plane] Run failed: CI - docs/login-handoff (6c05c99)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 18:02:34 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ace32527d17a5",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests - fix(memory): an unreachable memory service is not an empty memory (507f090)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 18:00:06 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ace0f7432e8ff",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Remote execution acceptance - main (5f48cdf)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 17:58:57 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0acdfd58101b82",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests - fix(storage): a bucket that did not answer is not an empty bucket (253a4d9)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 17:45:09 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0acd33bc85aa36",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - fix(obs): background work the caller holds reports its own crash (011a61d)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 23:41:52 +0000 (UTC)",
+      "from": "Spotify <no-reply@spotify.com>",
+      "id": "1a0ac994505c47c6",
+      "subject": "Last chance to share 3 free months with a friend."
+    },
+    {
+      "date": "Wed, 16 Sep 2026 22:15:59 +0000",
+      "from": "Corina Hernandez via csgrad <csgrad@lists.cs.princeton.edu>",
+      "id": "1a0ac4a80e9de0e2",
+      "subject": "Graduate Student & Faculty Mixer 9/23"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 15:13:43 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ac4896f7f0a38",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Deploy (dev/test box) - main (5bafb9c)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 15:13:24 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ac4863a84f52a",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Build and Push Docker Image - main (5bafb9c)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 17:42:24 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0acd0b3da1de0e",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - fix(search): a search that quietly fell back to PG says so (fbd29f1)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 14:56:24 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ac38ad4551075",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Backend Test - fix(device): an unexpected 409 says what it was instead of raising KeyError (4fe69d6)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 14:37:54 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ac27d1910bbce",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - fix(chat): keep reminding a turn that has gone quiet, and say so in the log (217ea9c)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 14:38:55 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ac28b2d8db07b",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests - fix(chat): keep reminding a turn that has gone quiet, and say so in the log (217ea9c)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 21:00:52 +0000",
+      "from": "\"Disn󠄂󠄂󠄂󠄂ey+\" <giogio_r_fedipe@ursitoaretimis.ro>",
+      "id": "1a0ac05d8a22b458",
+      "subject": "Action Needed - Please update your billing Information. ⁫"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 13:36:01 -0700",
+      "from": "Giogio R Fedipe <giogio_r_fedipe@ursitoaretimis.ro>",
+      "id": "1a0abf15e3df962e",
+      "subject": "Random burst of energy over here"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 13:24:16 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0abe4585dd1bc6",
+      "subject": "[andylizf/omem] Run failed: tests - main (ef2d951)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 13:26:01 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0abe5f2d0c23ac",
+      "subject": "[andylizf/omem-data] Run failed: omem consolidate (auto-dream) - main (41e17ee)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 15:55:59 -0400",
+      "from": "andylizf@gmail.com",
+      "id": "1a0abca794cc439f",
+      "subject": "Accepted: Appointment Reminder"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 14:47:33 -0400",
+      "from": "andylizf@gmail.com",
+      "id": "1a0ab8bd4ae23f33",
+      "subject": "Accepted: Appointment Reminder"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 14:45:24 -0400",
+      "from": "Karthik Narasimhan <karthikn@princeton.edu>",
+      "id": "1a0ab89b5ceccc8c",
+      "subject": "Re: permission to enroll in COS 598B"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 11:34:17 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab7fa894613c5",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - feat(obs): a backend error reaches a person, wherever it was raised (00ee4ce)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 14:34:09 -0400 (EDT)",
+      "from": "Gradinfo <gradinfo@cs.princeton.edu>",
+      "id": "1a0ab7f69a9f8d2a",
+      "subject": "permission to enroll in COS 598B"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 11:07:50 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab67830c719fd",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Backend Test - main (3056068)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 10:52:07 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab5948338c30f",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Remote execution acceptance - main (3056068)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 11:00:56 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab6120ac78520",
+      "subject": "[SageSeekerSociety/cheese] Run failed: E2E Tests - main (3056068)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 10:49:14 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab566d339842d",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Backend Test - fix(db): size the pool so a release cannot exhaust the database server (d669b57)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 10:26:29 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab419b78e578c",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - feat(obs): an error a person saw reaches a person who can fix it (58dacf6)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 10:21:00 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab3c8eff7c436",
+      "subject": "[SageSeekerSociety/cheese] Run failed: E2E Tests - main (55ad4c9)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 10:43:07 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab50cd27972f4",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - fix(db): size the pool so a release cannot exhaust the database server (d669b57)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 17:17:56 +0000 (UTC)",
+      "from": "Alfalfa <no-reply@toasttab.com>",
+      "id": "1a0ab39a77fa22ff",
+      "subject": "Alfalfa - Order Received"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 12:35:02 -0400",
+      "from": "lriehl--- via building <building@lists.cs.princeton.edu>",
+      "id": "1a0ab125b618b12a",
+      "subject": "[building] Leftover Moe’s outside CS 302"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 15:08:05 +0000",
+      "from": "\"ICC Chessclub.com\" <iccnews@news.chessclub.com>",
+      "id": "1a0aac2ec0eda9c5",
+      "subject": "Kasparov played 24.Rxd4!! What happened next?"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 09:33:30 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0ab111ce7858c4",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: CLAUDE.md Review Gate - docs(claude): scope the no-adaptation rule to repository contents (db28c1a)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 06:40:34 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0aa72ca1ac7960",
+      "subject": "[andylizf/omem-data] Run failed: omem consolidate (auto-dream) - main (18a25be)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 15:12:34 +0000",
+      "from": "attorneys@chenassociates.com",
+      "id": "1a0aac6e143fe7d0",
+      "subject": "NIW Approval or Refile Retainer | North America Immigration Law Group"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 09:00:00 -0400 (EDT)",
+      "from": "CS Grad Department via talks <talks@lists.cs.princeton.edu>",
+      "id": "1a0aa4d7c62cc8a6",
+      "subject": "[talks] Boya Zeng will present his General Exam \"Towards Strong, Open, and Efficient Visual Generative Models\" on Monday, September 21, 2026 at 9:00 AM in Friend 202 and via zoom."
+    },
+    {
+      "date": "Wed, 16 Sep 2026 11:28:38 +0000",
+      "from": "attorneys@chenassociates.com",
+      "id": "1a0a9f9d89576823",
+      "subject": "Re: NIW/EB-1A Evaluation"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 11:28:37 +0000",
+      "from": "attorneys@chenassociates.com",
+      "id": "1a0a9f9d71099abd",
+      "subject": "Re: NIW/EB-1A Evaluation"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 09:20:55 -0400",
+      "from": "gradinfo--- via csgrad <csgrad@lists.cs.princeton.edu>",
+      "id": "1a0aa60a3796e4b0",
+      "subject": "Google Internships in Programming Languages, Compilers, Performance/Optimization, and Software Engineering (2027)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 10:19:31 +0000",
+      "from": "notifier@feeder.co",
+      "id": "1a0a9ba918e9685a",
+      "subject": "[Feeder] What's new"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 09:41:57 +0000 (GMT)",
+      "from": "Chase <no.reply.alerts@chase.com>",
+      "id": "1a0a99833d045ec8",
+      "subject": "Paperless confirmation: Statements"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:47:41 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8c1d7e7032e0",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - feat(obs): an error a person saw reaches a person who can fix it (798a4cb)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 03:12:54 -0600",
+      "from": "The Economist <noreply@e.economist.com>",
+      "id": "1a0a97dc60144657",
+      "subject": "Act now: Save 30% on The Economist"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:44:11 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8be9bb969dda",
+      "subject": "[SageSeekerSociety/cheese] Run failed: Remote execution acceptance - main (a8541a3)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:53:31 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8c72a22e6345",
+      "subject": "[andylizf/web-plane] Run failed: CI - main (80c3bf0)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:34:34 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0a8b5cff03baed",
+      "subject": "Re: [SageSeekerSociety/cheese] feat(ci): the pool says which machine is missing, not how many answered (PR #1083)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:34:10 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8b581435818e",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - feat/the-pool-says-which-machine-is-missing (8db94ef)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:37:49 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8b8cdabd6c9a",
+      "subject": "[SageSeekerSociety/cheese] Run failed: .github/workflows/box-uptime.yml - feat/the-pool-says-which-machine-is-missing (46d5461)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:26:28 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8ae686557598",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Harness request contracts, Attempt #2 - feat(obs): an error a person saw reaches a person who can fix it (8cfc784)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:29:03 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0a8b0ca5d92da7",
+      "subject": "Re: [SageSeekerSociety/cheese] fix(ci): one runaway log cannot take the repository's CI with it (PR #1082)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:18:22 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8a6f92e04d68",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Remote execution acceptance - feat(obs): an error a person saw reaches a person who can fix it (8cfc784)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:17:19 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8a60bdaae9ab",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: E2E Tests - feat(obs): an error a person saw reaches a person who can fix it (8cfc784)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:14:41 -0700",
+      "from": "Zhifei Li <notifications@github.com>",
+      "id": "1a0a8a398fe1e18f",
+      "subject": "[SageSeekerSociety/cheese] PR run failed: Harness request contracts - feat(obs): an error a person saw reaches a person who can fix it (8cfc784)"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 22:10:47 -0700",
+      "from": "\"coderabbitai[bot]\" <notifications@github.com>",
+      "id": "1a0a8a006b1c969b",
+      "subject": "Re: [SageSeekerSociety/cheese] feat(obs): an error a person saw reaches a person who can fix it (PR #1081)"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 03:42:48 +0000",
+      "from": "Cloudflare <em@em1.cloudflare.com>",
+      "id": "1a0a84f76ed3dc81",
+      "subject": "Updates to managing AI crawlers on your account"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 03:23:18 GMT",
+      "from": "Google <no-reply@accounts.google.com>",
+      "id": "1a0a83d87cde8b3f",
+      "subject": "Security alert"
+    },
+    {
+      "date": "Tue, 15 Sep 2026 21:25:15 -0400",
+      "from": "\"no-reply@x.com\" <info@x.com>",
+      "id": "1a0a7d1e22b8b10a",
+      "subject": "Your ads have stopped running – start a new campaign"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 01:00:23 +0000",
+      "from": "alphaXiv <contact@alphaxiv.org>",
+      "id": "1a0a7baac8ea4c6f",
+      "subject": "Follow Gustavo Alonso and Torsten Hoefler on alphaXiv"
+    },
+    {
+      "date": "Wed, 16 Sep 2026 03:23:18 GMT",
+      "from": "Google <no-reply@accounts.google.com>",
+      "id": "1a0a83db9532b460",
+      "subject": "Security alert for andylizf@gmail.com"
+    }
+  ],
+  "query": "{in:inbox in:sent in:spam} after:2026/09/16",
+  "resultSizeEstimate": 171
+}

@@ -1,6 +1,6 @@
 # Execute a prepared action
 
-The 帮我执行 button approves the operation preview and runs its saved Bash script through Claude Code's
+The 📤 帮我发送 button approves the operation preview and runs its saved Bash script through Claude Code's
 native `!` mode in the card's existing session. Output returns to that session for verification and
 diagnosis. Claude responds automatically unless `respondToBashCommands` is disabled. Stop hooks do
 not execute scripts.
@@ -24,7 +24,7 @@ Draft holds the human-readable operation preview; Script includes that preview, 
 working directory and input hashes. Repeat `--input` for each payload or helper file. Keep credentials
 outside the preview. Arbitrary dependencies and remote state are not frozen.
 
-Run `python setup/action_ui.py --apply`. In Notion, keep one execution button named 帮我执行. Its
+Run `python setup/action_ui.py --apply`. In Notion, keep one execution button named 📤 帮我发送. Its
 Edit This page action copies Script to ActionScript, increments ActionVersion and sets ActionRequested
 to `❗ Execute script`. Empty Script preserves all three values. Back up the old automation settings
 and remove the separate send button. Show Draft and Script; hide ActionScript.

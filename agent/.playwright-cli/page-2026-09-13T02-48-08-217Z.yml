@@ -1,0 +1,25 @@
+- generic [ref=e4]:
+  - region "Notifications alt+T":
+    - list
+  - banner [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e8]: 知是社区
+      - button [ref=e10] [cursor=pointer]
+  - banner [ref=e14]:
+    - generic [ref=e15]:
+      - link "Spaces" [ref=e16] [cursor=pointer]:
+        - /url: /spaces
+        - generic [ref=e17]:
+          - generic [ref=e18]: 󰕮
+          - generic [ref=e19]: Spaces
+      - link "Workspace" [ref=e20] [cursor=pointer]:
+        - /url: /projects/a0471bb5-f9c8-43d1-9710-39d619cd2816
+        - generic [ref=e21]:
+          - generic [ref=e22]: 󰉕
+          - generic [ref=e23]: Workspace
+      - link "Inbox" [ref=e24] [cursor=pointer]:
+        - /url: /inbox
+        - generic [ref=e25]:
+          - generic [ref=e26]: 󱉴
+          - generic [ref=e27]: Inbox
+  - main [ref=e28]

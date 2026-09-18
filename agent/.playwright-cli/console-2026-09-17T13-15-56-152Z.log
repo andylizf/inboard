@@ -1,0 +1,70 @@
+[    3708ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   12741ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   18042ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   72279ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[ 3675350ms] [WARNING] Allow attribute will take precedence over 'allowfullscreen'. @ https://www.optimantra.com/:97
+[ 3677383ms] [ERROR] eapps.Platform throws: "Widget "bb608665-1819-4807-9eb3-7f30647b32e1" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677840ms] [ERROR] eapps.Platform throws: "Widget "77d49475-9240-4893-84ca-eef4b1062a27" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "bb608665-1819-4807-9eb3-7f30647b32e1" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "77d49475-9240-4893-84ca-eef4b1062a27" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "bb608665-1819-4807-9eb3-7f30647b32e1" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "8080bd7d-1c48-48e4-b488-87df99dfe132" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "77d49475-9240-4893-84ca-eef4b1062a27" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "bb608665-1819-4807-9eb3-7f30647b32e1" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677841ms] [ERROR] eapps.Platform throws: "Widget "8080bd7d-1c48-48e4-b488-87df99dfe132" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677881ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677881ms] [ERROR] eapps.Platform throws: "Widget "77d49475-9240-4893-84ca-eef4b1062a27" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677881ms] [ERROR] eapps.Platform throws: "Widget "bb608665-1819-4807-9eb3-7f30647b32e1" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677881ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677881ms] [ERROR] eapps.Platform throws: "Widget "8080bd7d-1c48-48e4-b488-87df99dfe132" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "80ab0c90-2bae-4e63-a32e-549581610136" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "77d49475-9240-4893-84ca-eef4b1062a27" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "bb608665-1819-4807-9eb3-7f30647b32e1" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "8080bd7d-1c48-48e4-b488-87df99dfe132" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "80ab0c90-2bae-4e63-a32e-549581610136" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "77d49475-9240-4893-84ca-eef4b1062a27" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "bb608665-1819-4807-9eb3-7f30647b32e1" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "e3d0c985-0d3a-464d-955b-2da6a8c989ee" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3677882ms] [ERROR] eapps.Platform throws: "Widget "8080bd7d-1c48-48e4-b488-87df99dfe132" can`t be initialized because WIDGET_NOT_FOUND" with 
+	 -> JSHandle@node @ https://static.elfsight.com/platform/platform.js:15
+[ 3679026ms] [WARNING] Ignoring Event: missing data-key @ https://analytics.ahrefs.com/analytics.js:0
+[ 3680146ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://sidebar.bugherd.com/sidebar/resources?apikey=ioozzyumnsuh77vp3oyuvq:0
+[ 3680148ms] TypeError: Cannot read properties of undefined (reading 'is_active')
+    at https://sidebar.bugherd.com/embed.js?apikey=ioozzyumnsuh77vp3oyuvq:1:12211
+    at async https://sidebar.bugherd.com/embed.js?apikey=ioozzyumnsuh77vp3oyuvq:1:12005
+[ 3683579ms] [WARNING] Ignoring Event: missing data-key @ https://analytics.ahrefs.com/analytics.js:0
+[ 3683595ms] [ERROR] There was an error setting cookie `_pk_ref.49.0098`. Please check domain and path. @ https://matomo.yaelconsulting.com/matomo.js:11
+[ 3683595ms] [ERROR] There was an error setting cookie `_pk_id.49.0098`. Please check domain and path. @ https://matomo.yaelconsulting.com/matomo.js:11
+[ 3683595ms] [ERROR] There was an error setting cookie `_pk_ses.49.0098`. Please check domain and path. @ https://matomo.yaelconsulting.com/matomo.js:11

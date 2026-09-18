@@ -1,0 +1,5 @@
+[    6521ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   48732ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   49132ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   64365ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0
+[   65243ms] [ERROR] Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR @ https://www.datadoghq-browser-agent.com/us1/v6/datadog-rum.js:0

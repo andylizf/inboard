@@ -1,0 +1,9 @@
+[    2223ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2224ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2224ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2224ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2224ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    2224ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   33921ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://idp.princeton.edu/favicon.ico:0
+[   39515ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://autologon.microsoftazuread-sso.com/2ff60116-7431-425d-b5af-077d7791bda4/winauth/ssoprobe?client-request-id=7ef1ba75-9c8f-4755-a82d-f2f02ffad44b&_=1789397031839:0
+[   40627ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://autologon.microsoftazuread-sso.com/2ff60116-7431-425d-b5af-077d7791bda4/winauth/ssoprobe?client-request-id=7ef1ba75-9c8f-4755-a82d-f2f02ffad44b&_=1789397032532:0

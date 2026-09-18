@@ -17,7 +17,7 @@ sending account, exact destination URL or recipient, and the full content or sub
 and closing a PR are separate actions; show each proposed action explicitly rather than inferring one
 from the other's wording. Keep the preview self-contained so the operator can approve it without reading
 the log. Preview labels describe the operation; publish only its content, without those labels.
-Changes to any of these details require a new 帮我执行 click.
+Changes to any of these details require a new 📤 帮我发送 click.
 
 Store the complete preview through these commands; they chunk long text and verify Draft by readback.
 The Summary length target does not apply to Draft. A size error requires a smaller explicitly scoped
@@ -33,7 +33,7 @@ supplies INBOARD_OPERATION and INBOARD_CARD to the script; use them for guarded 
 ### Prepared scripts
 
 `board stage-script --card C --file ./scripts/action.sh --cwd "$PWD" --description TEXT [--input FILE]`
-saves a Bash script and publishes its complete preview in Script for the 帮我执行 button. It also
+saves a Bash script and publishes its complete preview in Script for the 📤 帮我发送 button. It also
 sets Draft to TEXT, the human-readable operation preview. Describe
 the action, account, destination and exact outward content. Repeat `--input` for payload and helper
 files that must retain their bytes until execution; use absolute paths in the script. Staging does
@@ -76,9 +76,9 @@ Review precedes operator approval; never silently rewrite an approved draft befo
   A draft that is not on the card cannot be seen by him and cannot be sent, so the raw helpers
   (`+reply`, `+compose-draft`, `users drafts create`) are refused. The Draft field holds the latest draft;
   earlier ones remain in the log for audit. Sending requires the current card preview to match the
-  preview bound to the script approved by the operator's latest 帮我执行 click.
+  preview bound to the script approved by the operator's latest 📤 帮我发送 click.
 - **Send:** the email wrapper blocks every send except `+send-approved --card <CARD> --draft-id <ID> --operation <TOKEN>`, which requires the
-  native script launched by 帮我执行. The generated script passes INBOARD_OPERATION as its token.
+  native script launched by 📤 帮我发送. The generated script passes INBOARD_OPERATION as its token.
   Do not invoke it yourself after preparing a draft. Failure handling is in `card-actions`.
 
 ### Board

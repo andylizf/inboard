@@ -1,0 +1,44 @@
+[    1220ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    1220ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    1220ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    1220ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    1220ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[    1220ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   60879ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ https://login.microsoftonline.com/common/federation/externalauthproviderredirect:0
+[   68432ms] [ERROR] Amplitude Logger [Error]: Failed to fetch @ https://api-dc8397fa.duosecurity.com/prompt/static/js/entrypoints/auth.js?v=0dcf2:3
+[   68432ms] [WARNING] Amplitude Logger [Warn]: {code: 0, error: "Status 'failed' provided for 2 events"} @ https://api-dc8397fa.duosecurity.com/prompt/static/js/entrypoints/auth.js?v=0dcf2:3
+[   71932ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   71932ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   71932ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   71932ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   71932ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[   71932ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  116547ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  116547ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  116547ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  116547ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  116547ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  116547ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  117582ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://us.edstem.org/api/threads/8232501?view=1:0
+[  127322ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  127322ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  127322ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  127322ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  127322ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  127322ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  147879ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  147879ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  147879ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  147879ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  147879ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  147879ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  284796ms] [ERROR] Framing 'https://contacts.google.com/' violates the following report-only Content Security Policy directive: "frame-ancestors 'self'". The violation has been logged, but no further action has been taken.
+ @ :0
+[  344528ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  344528ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  344528ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  344528ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  344528ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[  344528ms] [WARNING] Manifest: property 'src' ignored, type string expected. @ https://edstem.org/manifest.d3e46ded.webmanifest:0
+[83436649ms] [ERROR] WebSocket connection to 'wss://us.edstem.org/api/stream?_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoidG9rZW4iLCJ1c2VyX2lkIjoyMTYzOTcxLCJzZXNzaW9uX2lkIjoxNjQwNTMxMzYsInJlZ2lvbiI6IiIsImlhdCI6MTc4OTQwMzA1MiwiZXhwIjoxNzkwNjEyNjUyfQ.DnuA4ER4cL42gXBuMElXstDMUM6Yn2TmXZ2RgpirsqQ' failed: Error during WebSocket handshake: Unexpected response code: 503 @ https://edcdn.net/js/5ef002d8.js:11
+[83443806ms] [ERROR] WebSocket connection to 'wss://us.edstem.org/api/stream?_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0eXBlIjoidG9rZW4iLCJ1c2VyX2lkIjoyMTYzOTcxLCJzZXNzaW9uX2lkIjoxNjQwNTMxMzYsInJlZ2lvbiI6IiIsImlhdCI6MTc4OTQwMzA1MiwiZXhwIjoxNzkwNjEyNjUyfQ.DnuA4ER4cL42gXBuMElXstDMUM6Yn2TmXZ2RgpirsqQ' failed: Error during WebSocket handshake: Unexpected response code: 503 @ https://edcdn.net/js/5ef002d8.js:11

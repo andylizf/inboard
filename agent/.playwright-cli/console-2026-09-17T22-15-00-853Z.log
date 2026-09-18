@@ -1,0 +1,78 @@
+[    1215ms] [WARNING]   WARN  [Statsig] Creating multiple Statsig clients with the same SDK key can lead to unexpected behavior. Multi-instance support requires different SDK keys. @ https://app.notion.com/_assets/49459-7ae169a8581f2b47.js:0
+[    1315ms] [WARNING] Ignoring inability to install OPFS sqlite3_vfs: Cannot install OPFS: Missing SharedArrayBuffer and/or Atomics. The server must emit the COOP/COEP response headers to enable those. See https://sqlite.org/wasm/doc/trunk/persistence.md#coop-coep @ https://app.notion.com/_assets/wasm-sqlite-worker-b3cdcfff3285667b.js:0
+[    1339ms] [WARNING] %cairgap.js%c Report-only mode enabled font-size:larger;font-weight:bold;border-radius:0.25em;padding:0.08em 0.25em;;color:amber;background-color:#6e3e00  @ https://transcend-cdn.com/cm/4d6a6beb-faf4-4a4e-9e1c-c7692d5f9c2f/airgap.js:5
+[    1755ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://app.notion.com/api/v3/getSubscriptionBanner:0
+[    1760ms] [WARNING] Amplitude Logger [Warn]: Event not tracked, no destination plugins on the instance @ https://app.notion.com/_assets/transport-support-c8dbde906ae5699d.js:0
+[    1825ms] [ERROR] HttpRequestError: Received HTTP 401
+    at d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:126916)
+    at async m (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:128807)
+    at async r (https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:1:142)
+    at async l (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:7725)
+    at async r (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:10610)
+    at async https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:190:580761
+    at async l.fetchFn (https://app.notion.com/_assets/37051-1bba7bfbf413ad4f.js:1:22386)
+    at async l.fetch (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:178796) @ https://app.notion.com/_assets/handleHttpFailure-147f9d62b1a93aa0.js:0
+[    3193ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://app.notion.com/api/v3/saveTransactionsFanout:0
+[    3196ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://app.notion.com/api/v3/getAIUsageEligibilityV2:0
+[    3197ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://app.notion.com/api/v3/getCreditRateLimitStatus:0
+[    3221ms] [ERROR] HttpRequestError: Received HTTP 401
+    at d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:126916)
+    at async m (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:128807)
+    at async r (https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:1:142)
+    at async l (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:7725)
+    at async r (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:10610)
+    at async I (https://app.notion.com/_assets/80868-168c4e62ee9d1255.js:7:3009)
+    at async u.handleSaveTransactions (https://app.notion.com/_assets/mainApp-7b2f2c32e1adcf67.js:60:210018)
+    at async g.useSaveTransactionsApi (https://app.notion.com/_assets/25231-da4752bbacf050ae.js:22:13559)
+    at async g.txLoopIteration (https://app.notion.com/_assets/25231-da4752bbacf050ae.js:22:13306)
+    at async g.txLoop (https://app.notion.com/_assets/25231-da4752bbacf050ae.js:22:12191) @ https://app.notion.com/_assets/handleHttpFailure-147f9d62b1a93aa0.js:0
+[    3227ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://app.notion.com/api/v3/getCustomerOffersReceived:0
+[    3229ms] [ERROR] HttpRequestError: Received HTTP 401
+    at d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:126916)
+    at async m (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:128807)
+    at async r (https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:1:142)
+    at async l (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:7725)
+    at async r (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:10610)
+    at async o (https://app.notion.com/_assets/24680-858618139016e371.js:1:193899)
+    at async d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:180614)
+    at async a.n.dontCacheUndefined (https://app.notion.com/_assets/24680-858618139016e371.js:1:194568)
+    at async l.fetchFn (https://app.notion.com/_assets/37051-1bba7bfbf413ad4f.js:1:22386)
+    at async l.fetch (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:178796) @ https://app.notion.com/_assets/handleHttpFailure-147f9d62b1a93aa0.js:0
+[    3232ms] [ERROR] HttpRequestError: Received HTTP 401
+    at d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:126916)
+    at async m (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:128807)
+    at async r (https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:1:142)
+    at async l (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:7725)
+    at async r (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:10610)
+    at async r (https://app.notion.com/_assets/24680-858618139016e371.js:1:75067)
+    at async l.fetchFn (https://app.notion.com/_assets/37051-1bba7bfbf413ad4f.js:1:22386)
+    at async l.fetch (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:178796) @ https://app.notion.com/_assets/handleHttpFailure-147f9d62b1a93aa0.js:0
+[    3288ms] [ERROR] HttpRequestError: Received HTTP 401
+    at d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:126916)
+    at async m (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:128807)
+    at async r (https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:1:142)
+    at async l (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:7725)
+    at async r (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:10610)
+    at async n.U6.dontCacheUndefined [as fetchFn] (https://app.notion.com/_assets/24680-858618139016e371.js:1:74696)
+    at async l.fetch (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:178796) @ https://app.notion.com/_assets/handleHttpFailure-147f9d62b1a93aa0.js:0
+[    3310ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://cdn.metadata.io/pixel/config/1127.json:0
+[    3331ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://app.notion.com/api/v3/getCustomAgents:0
+[    3344ms] [ERROR] HttpRequestError: Received HTTP 401
+    at d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:126916)
+    at async m (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:128807)
+    at async r (https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:1:142)
+    at async l (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:7725)
+    at async d (https://app.notion.com/_assets/DeferredNotionListeners-b1b7675084f9be3c.js:1:5711)
+    at async u (https://app.notion.com/_assets/DeferredNotionListeners-b1b7675084f9be3c.js:1:5928)
+    at async p.fetchAndStore (https://app.notion.com/_assets/DeferredNotionListeners-b1b7675084f9be3c.js:1:6571) @ https://app.notion.com/_assets/90305-597ffd983e8fca93.js:472
+[    3430ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://app.notion.com/api/v3/listAIConnectors:0
+[    3430ms] [ERROR] HttpRequestError: Received HTTP 401
+    at d (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:126916)
+    at async m (https://app.notion.com/_assets/ClientFramework-95b1f546076a5245.js:1:128807)
+    at async r (https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:1:142)
+    at async l (https://app.notion.com/_assets/UISpacePermissionGroupToken-5a31903464d02265.js:1:7725)
+    at async i (https://app.notion.com/_assets/70370-046beb7fe47a25e0.js:1:2786)
+    at async h.updateConnectorStatus (https://app.notion.com/_assets/70370-046beb7fe47a25e0.js:1:65030)
+    at async F (https://app.notion.com/_assets/70370-046beb7fe47a25e0.js:1:12705)
+    at async https://app.notion.com/_assets/UniversalQnaModals-6f67aa7d6f584969.js:1:386982
+    at async https://app.notion.com/_assets/app-3170ce5caccbfcb2.js:7:216411 @ https://app.notion.com/_assets/90305-597ffd983e8fca93.js:472

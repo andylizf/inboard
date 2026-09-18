@@ -1,0 +1,2 @@
+[    4882ms] [ERROR] Failed to load resource: the server responded with a status of 403 () @ https://gzjvzlpbzaqdiaqgtyvu.supabase.co/auth/v1/verify:0
+[   36145ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.laude.org/api/auth/session:0

@@ -54,19 +54,19 @@ never label an unprepared action ready. Stop itself does not execute anything.
   For example, a request to complete an assignment includes working through the available problems and
   preparing the answers, rather than only checking the release date and reporting the deadline.
   Carry forward approvals already given. If the remaining step requires approval of new outward content,
-  put the complete deliverable in `Draft` using `board-cli` and let 帮我执行 be his approval of it.
-  **Continue and 帮我执行 now do the same mechanical thing — each wakes you with the operation token —
+  put the complete deliverable in `Draft` using `board-cli` and let 📤 帮我发送 be his approval of it.
+  **Continue and 📤 帮我发送 now do the same mechanical thing — each wakes you with the operation token —
   and differ only in what his press approved.** Continue authorizes continued work and approves no
-  outward content, so nothing may go out on it. 帮我执行 approves the `Draft` exactly as it stood
-  when he pressed it, and is the send-gate approval for that one action. Reading a Continue as a
-  send approval is the error the unification made easy.
+  outward content, so nothing may go out on it. 📤 帮我发送 approves the `Draft` exactly as it stood
+  when he pressed it, and that press is his approval for that one outward action. Reading a
+  Continue as an approval to send is the error the unification made easy.
   When blocked, state the observed obstacle and the smallest step only the operator can perform, retain
   ownership of the remaining work, and resume when it clears. A genuine future release can be scheduled;
   resume the substantive work when the material becomes available.
-- **帮我执行 (internal action `❗ Execute script`)** → the click wakes this card's agent with the
+- **📤 帮我发送 (internal action `❗ Execute script`)** → the click wakes this card's agent with the
   operation token and you carry the action out yourself. It approves the `Draft` as it stood when he
-  pressed it; the operator chose this one click as the send-gate approval, with no additional SEND
-  token and no separate send button. Run `board approved-draft` with this card and operation before
+  pressed it, and it is the whole of his approval for that action: nothing else is required of him
+  and there is no separate send button. Run `board approved-draft` with this card and operation before
   an outward send: it fails if `Draft` no longer matches what he approved, and that failure is the
   gate working, not an obstacle to route around. Afterwards verify the actual result at the
   destination and record its receipt.
@@ -74,7 +74,7 @@ never label an unprepared action ready. Stop itself does not execute anything.
   back.** Where the remaining step is submitting a file or a form to a portal, check first whether
   the profile is signed into it — `web-plane profiles` lists hosts, and a host it does not list is
   undetected rather than absent, so open the page and look. A portal that opens without a login is
-  a portal you can submit through: make it the 帮我执行 action instead of telling him to do it by
+  a portal you can submit through: make it the 📤 帮我发送 action instead of telling him to do it by
   hand, and say in `Draft` exactly what goes where — the file's full path and size, the destination
   page, and anything optional he is choosing to include or leave out. The reason to be exact is
   that the Draft as it stood at the click is the whole of what he approved.
@@ -100,10 +100,14 @@ never label an unprepared action ready. Stop itself does not execute anything.
   delivery, a reply he would rather send after something else lands. Take the reading that loses
   nothing — keep the matter, move its next check to the date the card already names for the thing
   he is deferring to, and write one line saying which reading you took and how he gets the other
-  («你点了取消，我读成暂时不办而不是不办了，因为 X 还在；要真销掉在卡上说一句»). Close the matter
-  outright only where nothing on the card survives his press.
+  («你点了取消，我读成暂时不办而不是不办了，因为 X 还在；要真销掉在卡上说一句»).
+  **Whichever reading you take, the card does not stay in `needs_you`** — his press says it is not
+  waiting on him right now, and leaving it there leaves the column he was clearing. Where it goes
+  instead follows from what the card holds, not from a default: `awaiting` for the date or the
+  external thing it now waits on, `done` where the check shows nothing is left to do, `cancelled`
+  where the matter really is dropped. Name which one you chose.
 
 Action labels are deployment-specific. Use `cfg board.schema.action_status` to distinguish completion
-from cancellation; 帮我执行 follows the approved-draft path above. An unknown chip is a
+from cancellation; 📤 帮我发送 follows the approved-draft path above. An unknown chip is a
 misconfiguration: report it on the card rather than inventing a meaning. Reconcile mail and time
 subscriptions using `board-cli` before the final receipt so obsolete reminders do not survive the change.

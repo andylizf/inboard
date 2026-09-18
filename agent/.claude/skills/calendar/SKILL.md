@@ -18,15 +18,18 @@ then follow `cfg preferences.calendar_events` for an eligible entry:
   (📌 note or log). An eligible entry with no such line is an unfinished step.
 - `off` → don't touch the calendar unless the operator requests a specific correction.
 
-**Every invitation is on his calendar by default. You neither add a copy of one nor wait for a
-reply.** An invitation lands there the moment it arrives, so there is nothing for you to create,
-and answering it is a separate outward act that stays behind his approval while the entry does not
-wait on that answer. One account setting can break the default: `hideInvitations` with
-`hideInvitationsSetting: UNRESPONDED` hides anything awaiting a reply, so an unanswered invitation
-becomes invisible to him and raises no reminder — that is how a meeting he was required at passed
-with nothing on his calendar. Read it with `gws calendar settings list`; if you find it on, say so
-on the card as the reason he cannot see the event, and do not paper over it with an entry of your
-own, which leaves him two of everything the moment the invitation appears.
+**Every invitation belongs on his calendar without him replying first — and you check that it is
+there rather than assume it.** Each of his accounts is set to add invitations from everyone, so one
+normally lands the moment it arrives and there is nothing for you to create; answering it is a
+separate outward act that stays behind his approval, and the entry never waits on that answer.
+The part that is yours is the check: look the event up on the calendar of the account the
+invitation arrived on and confirm it is there, at the right time. Where it is not, find out why
+before anything else — `gws calendar settings list` reads that account's
+`hideInvitationsSetting`, which should be `NONE`; `UNRESPONDED` hides anything awaiting a reply and
+`UNKNOWN_SENDERS` silently drops invitations from anyone he has no contact for. The invitation may
+also have been cancelled, or have arrived on a mailbox nothing watches. Put what you found on the
+card, and add your own entry so the meeting is visible to him at all: a duplicate he can see beats
+a meeting he cannot, and the second is how he came to miss one he was required at.
 
 ## Reconcile existing reminders
 When the matter changes, read its linked event and check whether the operator still needs that reminder.

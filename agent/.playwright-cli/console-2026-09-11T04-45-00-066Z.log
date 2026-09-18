@@ -1,0 +1,2 @@
+[    8131ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,100..900;1,100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap:0
+[   31791ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ https://autologon.microsoftazuread-sso.com/2ff60116-7431-425d-b5af-077d7791bda4/winauth/ssoprobe?client-request-id=7b48b76b-896b-41ea-93dc-fdfb204e0804&_=1789101930818:0
