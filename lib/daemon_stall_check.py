@@ -52,6 +52,22 @@ def _agent_alive(card):
         return None           # unavailable is not evidence that the worker stopped
 
 
+def verification_prompt(card, action, token, stall_min):
+    """The recovery for a run with no completion receipt: verify, never resend."""
+    return (f"Investigate missing completion for card {card}, action {action}, "
+            f"operation {token}. The watchdog has no completion receipt after {stall_min} minutes. "
+            "This does not establish whether an external action occurred. Read the current card, "
+            "execution transcript, receipts, and actual destination. This is a verification-only "
+            "recovery: do not send or repeat an external action. If already completed, record its "
+            "verified receipt. If confirmed not completed, finish "
+            "available preparation, retain the complete draft, and report the precise failure. "
+            "If the outcome is unknown, report what cannot be verified; do not recommend resending. "
+            "After all card updates and trigger reconciliation, use board clear-action for verified "
+            "completion or board action-fail --text with the precise failure or unknown outcome. "
+            "Use exactly one final receipt and do not mutate this operation afterward. "
+            "Use the current operation token on card mutations and stop if superseded.")
+
+
 def main():
     stall_min = int(_cfg("agent.daemon_stall_min", "45"))
     stalled = P.sweep(_actionof, stall_min * 60, busy=_agent_alive)
@@ -64,18 +80,7 @@ def main():
                 continue
             record = A.read(s['card'])
             token = (record or {}).get('token', '')
-            prompt = (f"Investigate missing completion for card {s['card']}, action {s['action']}, "
-                      f"operation {token}. The watchdog has no completion receipt after {stall_min} minutes. "
-                      "This does not establish whether an external action occurred. Read the current card, "
-                      "execution transcript, receipts, and actual destination. This is a verification-only "
-                      "recovery: do not send or repeat an external action. If already completed, record its "
-                      "verified receipt. If confirmed not completed, finish "
-                      "available preparation, retain the complete draft, and report the precise failure. "
-                      "If the outcome is unknown, report what cannot be verified; do not recommend resending. "
-                      "After all card updates and trigger reconciliation, use board clear-action for verified "
-                      "completion or board action-fail --text with the precise failure or unknown outcome. "
-                      "Use exactly one final receipt and do not mutate this operation afterward. "
-                      "Use the current operation token on card mutations and stop if superseded.")
+            prompt = verification_prompt(s['card'], s['action'], token, stall_min)
             try:
                 D.ensure_and_deliver('inboard-card-' + s['card'].replace('-', ''),
                                      str(INBOARD / 'agent'), prompt)
