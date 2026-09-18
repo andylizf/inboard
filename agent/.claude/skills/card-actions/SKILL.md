@@ -55,7 +55,11 @@ never label an unprepared action ready. Stop itself does not execute anything.
   preparing the answers, rather than only checking the release date and reporting the deadline.
   Carry forward approvals already given. If the remaining step requires approval of new outward content,
   put the complete deliverable in `Draft` using `board-cli` and let 帮我执行 be his approval of it.
-  The Continue click authorizes continued work; 帮我执行 approves the drafted action and hands it to you.
+  **Continue and 帮我执行 now do the same mechanical thing — each wakes you with the operation token —
+  and differ only in what his press approved.** Continue authorizes continued work and approves no
+  outward content, so nothing may go out on it. 帮我执行 approves the `Draft` exactly as it stood
+  when he pressed it, and is the send-gate approval for that one action. Reading a Continue as a
+  send approval is the error the unification made easy.
   When blocked, state the observed obstacle and the smallest step only the operator can perform, retain
   ownership of the remaining work, and resume when it clears. A genuine future release can be scheduled;
   resume the substantive work when the material becomes available.
@@ -86,8 +90,18 @@ never label an unprepared action ready. Stop itself does not execute anything.
   needed, clear its preview and explain why. Once verified sent, clear the consumed Draft, use
   awaiting for an external wait, needs_you for remaining operator work, and done only when no work
   remains. Log a verified send in the configured daily log when available.
-- **✅ Done** → the operator confirmed completion: log the outcome, then `board done --card <CARD>`.
-- **✖ Cancel** → the operator dropped the matter: `board edit --card <CARD> --status cancelled`.
+- **✅ Done and ✖ Cancel say what he wants, not what is true of the matter.** The handler writes the
+  terminal status from the label before you arrive, so your first job is to check it against what
+  the card itself still carries, and to put it back where the card contradicts it.
+  **Done** on a card that still holds an unfulfilled obligation most often means the step you were
+  chasing is finished, or that he did it himself — find out which, and close only what the evidence
+  closes. **Cancel** on a card with a live deadline or something not yet delivered most often means
+  not now, or not this way, rather than drop it: a pickup he would rather fold into a later
+  delivery, a reply he would rather send after something else lands. Take the reading that loses
+  nothing — keep the matter, move its next check to the date the card already names for the thing
+  he is deferring to, and write one line saying which reading you took and how he gets the other
+  («你点了取消，我读成暂时不办而不是不办了，因为 X 还在；要真销掉在卡上说一句»). Close the matter
+  outright only where nothing on the card survives his press.
 
 Action labels are deployment-specific. Use `cfg board.schema.action_status` to distinguish completion
 from cancellation; 帮我执行 follows the approved-draft path above. An unknown chip is a
