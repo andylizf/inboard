@@ -35,7 +35,10 @@ def _agent_alive(card):
         job = A.find_job("inboard-card-" + card.replace("-", ""))
         if not job:
             return False
-        if job.get('state') in ('working', 'running', 'adopted'):
+        # 'adopted' is what every session reads as after the daemon restarts, mid-turn or
+        # idle alike, and its turn does not resume on its own: four button runs sat at
+        # 执行中 for an hour behind it while this check reported nothing stalled.
+        if job.get('state') in ('working', 'running'):
             return True
         import card_hooks as H
         import json

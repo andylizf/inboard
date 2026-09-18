@@ -61,6 +61,17 @@ class RetryTests(unittest.TestCase):
                     send=lambda card, prompt: 'new-sid', board=self.board)
         self.assertEqual(waited, [4242, None])
 
+    def test_busy_daemon_is_waited_for_then_handed_to_the_sweep(self):
+        answers = iter(['busy', 'busy', 'restarted'])
+        with patch.object(R, 'BUSY_WAIT', 60), patch.object(R.time, 'sleep', lambda s: None):
+            rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: next(answers),
+                         wait=lambda not_pid=None: True, send=lambda card, prompt: 'new-sid', board=self.board)
+        self.assertEqual((rc, self.board.sessions), (0, ['new-sid']))
+        with patch.object(R, 'BUSY_WAIT', 0), patch.object(R.time, 'sleep', lambda s: None):
+            rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: 'busy',
+                         wait=lambda not_pid=None: True, send=lambda card, prompt: 'x', board=self.board)
+        self.assertEqual(rc, 1)
+
     def test_no_other_account_leaves_the_delivery_failed_for_the_sweep(self):
         rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: False, wait=lambda not_pid=None: True,
                      send=lambda card, prompt: self.sent.append(prompt) or 'x', board=self.board)

@@ -118,17 +118,31 @@ class WakeTests(unittest.TestCase):
             W.sweep(B, self.emit, send=self.send, busy=lambda c: False, clock=lambda: self.time,
                     recover=lambda emit, clock: W.recover_daemon(
                         emit, clock, refuse=lambda a, w: calls.append(('refuse', a)) or True,
-                        pick=lambda: 'princeton-static', restart=lambda: calls.append('restart') or True))
+                        pick=lambda: 'princeton-static', restart=lambda: calls.append('restart') or True, working=lambda: []))
             self.assertEqual(self.sent, [])
             self.assertIn((None, 'skip', {'reason': 'daemon_refused'}), self.events)
             self.assertNotIn('restart', calls)
             W.sweep(B, self.emit, send=self.send, busy=lambda c: False, clock=lambda: self.time,
                     recover=lambda emit, clock: W.recover_daemon(
                         emit, clock, refuse=lambda a, w: True,
-                        pick=lambda: 'andy-static', restart=lambda: calls.append('restart') or True))
+                        pick=lambda: 'andy-static', restart=lambda: calls.append('restart') or True, working=lambda: []))
         self.assertIn('restart', calls)
         self.assertFalse(W.refusal_path().exists())
         self.assertEqual(len(self.sent), 1)
+
+    def test_restart_waits_while_a_session_is_mid_turn(self):
+        self.page(rules=W.add([], self.past, 'Check'))
+        (Path(self.temp.name) / 'daemon-account').write_text('princeton-static\n')
+        W.record_refusal('card', 'sid', 'weekly limit', clock=lambda: self.time)
+        calls = []
+        with patch.object(W.C, 'get', side_effect=lambda k, d=None: 'daemon' if k == 'agent.delivery' else d):
+            W.sweep(B, self.emit, send=self.send, busy=lambda c: False, clock=lambda: self.time,
+                    recover=lambda emit, clock: W.recover_daemon(
+                        emit, clock, refuse=lambda a, w: True, pick=lambda: 'andy-static',
+                        restart=lambda: calls.append('restart') or True, working=lambda: ['inboard-card-x']))
+        self.assertEqual((calls, self.sent), ([], []))
+        self.assertIn((None, 'skip', {'reason': 'daemon_busy'}), self.events)
+        self.assertTrue(W.refusal_path().exists())
 
     def test_refusal_expires_and_the_account_is_tried_again(self):
         self.page(rules=W.add([], self.past, 'Check'))
@@ -137,7 +151,7 @@ class WakeTests(unittest.TestCase):
         with patch.object(W.C, 'get', side_effect=lambda k, d=None: 'daemon' if k == 'agent.delivery' else d):
             W.sweep(B, self.emit, send=self.send, busy=lambda c: False, clock=lambda: self.time,
                     recover=lambda emit, clock: W.recover_daemon(
-                        emit, clock, refuse=lambda a, w: True, pick=lambda: None, restart=lambda: False))
+                        emit, clock, refuse=lambda a, w: True, pick=lambda: None, restart=lambda: False, working=lambda: []))
         self.assertFalse(W.refusal_path().exists())
         self.assertEqual(len(self.sent), 1)
 

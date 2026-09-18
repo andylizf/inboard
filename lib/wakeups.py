@@ -144,7 +144,9 @@ def active(card):
         return False
     import agent_deliver as A
     job = A.find_job("inboard-card-" + card.replace("-", ""))
-    return bool(job and job.get("state") in ("working", "running", "adopted"))
+    # Not 'adopted': that is every session after a daemon restart, and its turn does not resume
+    # on its own, so a wakeup held back for it would wait forever.
+    return bool(job and job.get("state") in ("working", "running"))
 
 
 # ---- the daemon's account, and what happens when it is refused ---------------------------------
@@ -209,9 +211,23 @@ def daemon_restart():
     return r.returncode == 0
 
 
-def recover_daemon(emit, clock=now, refuse=switchboard_refuse, pick=switchboard_pick, restart=daemon_restart):
+def daemon_working():
+    """Names of sessions in the middle of a turn — work a restart would cut off."""
+    if C.get("agent.delivery", "inprocess") != "daemon":
+        return []
+    import agent_deliver as A
+    try:
+        return [j.get("name") for j in A.list_jobs() if j.get("state") in ("working", "running")]
+    except Exception:
+        return []
+
+
+def recover_daemon(emit, clock=now, refuse=switchboard_refuse, pick=switchboard_pick, restart=daemon_restart,
+                   working=daemon_working):
     """Truthy when the daemon can take deliveries — "restarted" when this call restarted it, so the
-    caller knows to wait for the new one — and False while its account stands refused."""
+    caller knows to wait for the new one. False while its account stands refused, and "busy" when
+    the restart is due but a session is mid-turn: a restart kills the shell a script or a browser
+    login is running in, and a refused account still lets those finish."""
     path = refusal_path()
     if not path.exists():
         return True
@@ -227,6 +243,10 @@ def recover_daemon(emit, clock=now, refuse=switchboard_refuse, pick=switchboard_
     if not alternative or alternative == rec.get("account"):
         emit(None, "daemon_refused", account=rec.get("account"), alternative=alternative)
         return False
+    busy = working()
+    if busy:
+        emit(None, "daemon_busy", sessions=busy, alternative=alternative)
+        return "busy"
     if not restart():
         emit(None, "daemon_restart_failed", account=rec.get("account"), alternative=alternative)
         return False
@@ -238,9 +258,11 @@ def recover_daemon(emit, clock=now, refuse=switchboard_refuse, pick=switchboard_
 def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False, recover=recover_daemon):
     failures = 0
     delivered = 0
-    if not repair_only and C.get("agent.delivery", "inprocess") == "daemon" and not recover(emit, clock):
-        emit(None, "skip", reason="daemon_refused")
-        return
+    if not repair_only and C.get("agent.delivery", "inprocess") == "daemon":
+        state = recover(emit, clock)
+        if not state or state == "busy":
+            emit(None, "skip", reason="daemon_refused" if not state else "daemon_busy")
+            return
     for snapshot in candidates(board):
         card = snapshot["id"]
         emit(card, "start")

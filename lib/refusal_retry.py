@@ -23,6 +23,11 @@ PREFIX = ('Read the current CLAUDE.md in your working directory before handling 
           'from an earlier turn may have changed.\n\n')
 
 
+# How long the retry waits for other sessions to finish their turn before giving the restart back
+# to the sweep, which tries again every cycle.
+BUSY_WAIT = 10 * 60
+
+
 def log_path():
     return Path(os.environ.get("INBOARD_LOGS", str(Path(C.home()) / "logs"))) / "refusal-retry.log"
 
@@ -88,7 +93,15 @@ def deliver(card, prompt):
 def retry(card, session, transcript, dry_run=False, recover=W.recover_daemon, wait=wait_for_daemon,
           send=deliver, board=None):
     old_pid = supervisor_pid()
-    outcome = recover(lambda c, s, **f: emit(card, s, **f))
+    deadline = time.time() + BUSY_WAIT
+    while True:
+        outcome = recover(lambda c, s, **f: emit(card, s, **f))
+        if outcome != "busy" or time.time() > deadline:
+            break
+        time.sleep(15)
+    if outcome == "busy":
+        emit(card, "held", reason="another session stayed mid-turn; the sweep retries")
+        return 1
     if not outcome:
         emit(card, "held", reason="no other account; the sweep retries when the refusal expires")
         return 1
