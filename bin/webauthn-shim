@@ -18,8 +18,17 @@ has to stay attached for the life of each tab — that is why it holds sockets r
 attaching and exiting.
 
 Deliberately NOT Target.setAutoAttach(waitForDebuggerOnStart): that pauses every new page
-until this process resumes it, so a dead shim would hang the whole browser. Polling can
-only ever attach late, which is merely the old behaviour.
+until this process resumes it, so a dead shim would hang the whole browser.
+
+Attachment is therefore event-driven with a poll behind it. Target.setDiscoverTargets fires
+targetCreated as Chrome makes the page, which is before the document runs script, so the
+authenticator is usually in place by the time a login page asks for one; the poll stays as
+the backstop for anything the event stream misses or a browser restart. Polling alone left a
+window the length of POLL in which a brand-new page had no authenticator, and Duo's
+security-key request auto-starts on load — a request that lands in that window finds nothing,
+raises the macOS dialog, and re-equipping afterwards cannot rescue a call already in flight.
+Neither path pauses a page, so a dead shim still cannot hang the browser. The window is
+narrowed, not closed: a page that asks before the socket is up still misses.
 """
 import asyncio, fcntl, json, os, re, subprocess, sys, urllib.request, urllib.error
 from datetime import datetime, timezone
@@ -82,6 +91,46 @@ def page_targets():
         return []
 
 
+def browser_ws():
+    """The browser-level debugger socket, which is where target events come from."""
+    if PORT is None:
+        return None
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json/version", timeout=5) as r:
+            return json.load(r).get("webSocketDebuggerUrl")
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+
+
+async def watch_targets(held, creds):
+    """Equip each page as Chrome creates it, instead of on the next poll tick.
+
+    Events only: no waitForDebuggerOnStart, so nothing here can pause a page. The per-page
+    socket URL is derived rather than read, because targetCreated carries no debugger URL.
+    """
+    import websockets
+    url = browser_ws()
+    if not url:
+        return
+    async with websockets.connect(url, max_size=None) as ws:
+        await ws.send(json.dumps({"id": 1, "method": "Target.setDiscoverTargets",
+                                  "params": {"discover": True}}))
+        async for raw in ws:
+            message = json.loads(raw)
+            if message.get("method") not in ("Target.targetCreated", "Target.targetInfoChanged"):
+                continue
+            info = message.get("params", {}).get("targetInfo", {})
+            tid = info.get("targetId")
+            if info.get("type") != "page" or not tid:
+                continue
+            if tid in held and not held[tid].done():
+                continue
+            target = {"id": tid,
+                      "webSocketDebuggerUrl": f"ws://127.0.0.1:{PORT}/devtools/page/{tid}"}
+            held[tid] = asyncio.create_task(equip(target, creds))
+            log(f"targetCreated {tid[:8]} — equipping without waiting for the poll")
+
+
 async def equip(target, creds_by_transport):
     import websockets
     async with websockets.connect(target["webSocketDebuggerUrl"], max_size=None) as ws:
@@ -134,6 +183,7 @@ async def main():
     total = sum(len(v) for v in creds.values())
     log(f"webauthn-shim watching CDP :{PORT} — {total} stored credential(s)")
     held = {}
+    watcher = None
     while True:
         if MODE == "main":
             discovered = main_port()
@@ -144,6 +194,15 @@ async def main():
                 held.clear()
                 PORT = discovered
                 log(f"main browser port={PORT}")
+                if watcher:
+                    watcher.cancel()
+                    watcher = None
+        # The event watcher dies with its browser; the poll below is what notices and
+        # restarts it, which is also why the poll stays rather than being replaced.
+        if PORT is not None and (watcher is None or watcher.done()):
+            if watcher and not watcher.cancelled() and watcher.exception():
+                log(f"target watcher error={type(watcher.exception()).__name__}")
+            watcher = asyncio.create_task(watch_targets(held, creds))
         for t in page_targets():
             tid = t["id"]
             if tid in held and not held[tid].done():
