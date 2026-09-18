@@ -18,6 +18,17 @@ then follow `cfg preferences.calendar_events` for an eligible entry:
   (📌 note or log). An eligible entry with no such line is an unfinished step.
 - `off` → don't touch the calendar unless the operator requests a specific correction.
 
+**An invitation goes on his calendar the moment you see it, and never waits on a reply.** A real
+invitation does sit on his calendar server-side, which makes "it is already there" look true — but
+his own setting hides invitations he has not answered (`hideInvitations: true`,
+`hideInvitationsSetting: UNRESPONDED`, read from the Calendar API), so an unanswered one is
+invisible to him and raises no reminder. Treat it as not on the calendar and add your own entry
+under the preference above, carrying the time, the joining link and who else is attending.
+Answering the invitation is a separate, outward act that stays behind his approval; adding the
+entry is not, and holding the entry hostage to the reply is how a meeting he was required at passed
+with nothing on his calendar and no notification. Once he has answered and the real invitation
+becomes visible, remove your duplicate under "Reconcile existing reminders" below.
+
 ## Reconcile existing reminders
 When the matter changes, read its linked event and check whether the operator still needs that reminder.
 Under an enabled calendar preference, remove an agent-created task reminder once its action is verified
