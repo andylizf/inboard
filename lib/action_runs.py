@@ -108,7 +108,17 @@ def require_approved_draft(card, token, page):
     return approved_draft(page)
 
 
+def display_action(action):
+    """The name he pressed. The send button writes an internal value (`❗ Execute script`) that
+    the status column would otherwise show him verbatim, reading as a mechanism he was told
+    no longer exists."""
+    import shell_actions as SH
+    return C.get('board.schema.send_action', action) if action == SH.ACTION else action
+
+
 def progress(board, card, record, message):
+    import shell_actions as SH
+    message = message.replace(SH.ACTION, display_action(SH.ACTION))
     # Results carry their request key. A later click stays visible even if it races this PATCH.
     board.api('PATCH', f'/pages/{card}', {'properties': {
         HANDLED: {'rich_text': W.text(record['key'])},
