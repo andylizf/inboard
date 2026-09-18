@@ -16,7 +16,9 @@ on the card. For non-email actions use `board stage-script` below: include the a
 sending account, exact destination URL or recipient, and the full content or submitted fields. A comment
 and closing a PR are separate actions; show each proposed action explicitly rather than inferring one
 from the other's wording. Keep the preview self-contained so the operator can approve it without reading
-the log. Preview labels describe the operation; publish only its content, without those labels.
+the log. The preview is the operation and nothing else: what went wrong last time, what you changed in
+your own tooling and how you tested it go to Summary and the log, never into the text he is approving.
+Preview labels describe the operation; publish only its content, without those labels.
 Changes to any of these details require a new 📤 帮我发送 click.
 
 Store the complete preview through these commands; they chunk long text and verify Draft by readback.
