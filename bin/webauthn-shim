@@ -213,8 +213,16 @@ async def main():
             held[tid] = asyncio.create_task(equip(t, creds))
         for tid in [k for k, v in held.items() if v.done()]:
             task = held.pop(tid)
-            if not task.cancelled() and task.exception():
-                log(f"target={tid} error={type(task.exception()).__name__}")
+            if task.cancelled() or not task.exception():
+                continue
+            kind = type(task.exception()).__name__
+            if kind in ("InvalidStatus", "InvalidURI", "ConnectionRefusedError"):
+                # The tab went away before the socket opened — Chrome re-announces a target
+                # id that is already being torn down. Nothing failed to be protected here,
+                # and calling it an error sent a reader hunting for a broken equip.
+                log(f"target={tid[:8]} vanished before it could be equipped")
+                continue
+            log(f"target={tid} error={kind}")
         await asyncio.sleep(POLL)
 
 
