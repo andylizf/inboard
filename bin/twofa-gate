@@ -70,7 +70,13 @@ case "$cmd" in
     ;;
   *)
     o=$(read_ts "$lock"); c=$(read_ts "$cool")
-    echo "outstanding: $([ "${o:-0}" -gt 0 ] && echo "$(( (now - o) / 60 )) min ago" || echo none)"
+    # Agree with acquire: a hold older than OUTSTANDING_MIN is dead and reads as none here too,
+    # or a waiter polling for "outstanding: none" never sees the gate free after its holder dies.
+    if [ "${o:-0}" -gt 0 ] && [ $((now - o)) -ge $((OUTSTANDING_MIN * 60)) ]; then
+      echo "outstanding: none (a hold from $(( (now - o) / 60 )) min ago was never released; acquire treats it as dead)"
+    else
+      echo "outstanding: $([ "${o:-0}" -gt 0 ] && echo "$(( (now - o) / 60 )) min ago" || echo none)"
+    fi
     echo "cooldown   : $([ "${c:-0}" -gt 0 ] && echo "$(( (now - c) / 60 )) min ago (of ${COOLDOWN_MIN})" || echo none)"
     ;;
 esac
