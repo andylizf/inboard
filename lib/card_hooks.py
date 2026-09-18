@@ -57,7 +57,19 @@ def refused(kind, detail):
     return kind == 'rate_limit' or bool(REFUSED.search(detail))
 
 
-def release_refused_card(board, state, sid, detail):
+def start_retry(card, sid, transcript):
+    """Retry now rather than at the next sweep: a detached helper moves the daemon to another
+    account and re-sends this session's last prompt. Detached, because the restart it performs
+    would take this hook down with the daemon it runs under."""
+    import subprocess
+    helper = Path(C.home()) / 'lib' / 'refusal_retry.py'
+    subprocess.Popen([sys.executable, str(helper), '--card', card, '--session', sid,
+                      '--transcript', transcript or ''],
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     start_new_session=True)
+
+
+def release_refused_card(board, state, sid, detail, payload_transcript=''):
     """Hand the card back as it was and mark its delivery failed, so the sweep re-sends it."""
     card = state['card']
     W.record_refusal(card, sid, detail)
@@ -76,6 +88,7 @@ def release_refused_card(board, state, sid, detail):
             board.edit(argparse.Namespace(card=card, status=prior, needs=None, subject=None,
                                           draft=None, sender=None, due=None))
     emit(sid, 'refused', card=card, detail=detail[:300], restored=prior if prior != current else None)
+    start_retry(card, sid, payload_transcript)
 
 
 def report_failure(board, state, sid, kind, detail):
@@ -116,7 +129,7 @@ def decide(board, state, payload):
         detail = str(payload.get('last_assistant_message') or payload.get('error_details') or kind)
         report_failure(board, state, sid, kind, detail)
         if refused(kind, detail):
-            release_refused_card(board, state, sid, detail)
+            release_refused_card(board, state, sid, detail, str(payload.get('transcript_path') or ''))
         return {}
     if board._g(props, 'Status', 'select') != C.status_name('researching'):
         state['blocks'] = 0

@@ -113,8 +113,11 @@ class HookTests(unittest.TestCase):
                                             'prior_status': C.status_name('needs_you')})
         self.board.edits = []
         self.board.edit = lambda a: self.board.edits.append(a.status)
-        self.stop(event='StopFailure', error='rate_limit',
-                  last_assistant_message="You've hit your monthly spend limit · resets Sep 22")
+        started = []
+        with patch.object(H, 'start_retry', side_effect=lambda c, s, t: started.append((c, t))):
+            self.stop(event='StopFailure', error='rate_limit', transcript_path='/tmp/t.jsonl',
+                      last_assistant_message="You've hit your monthly spend limit · resets Sep 22")
+        self.assertEqual(started, [(CARD, '/tmp/t.jsonl')])
         rec = json.loads((W.root() / f'{CARD}.json').read_text())
         self.assertEqual(rec['state'], 'failed')
         self.assertEqual(self.board.edits, [C.status_name('needs_you')])
