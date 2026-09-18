@@ -154,8 +154,8 @@ if [ -n "${CARD:-}" ] && [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   NEWSID=""
   echo "[$(date)] comment delivered to daemon agent $(card_agent_name "$CARD") rc=$RC (queued, async)" >> "$INBOARD_LOGS/webhook.log"
 else
-  runh() { claude -p "$PROMPT" "$@" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
-  run_with_selfheal
+  runh() { claude_run -p "$PROMPT" "$@" --allowedTools "Bash,Read,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >> "$INBOARD_LOGS/comment-$TS.out" 2>> "$INBOARD_LOGS/comment-$TS.log"; }
+  run_with_selfheal "$INBOARD_LOGS/comment-$TS.out"
 fi
 
 # Persist the new session id on the card only after a clean run, so the next comment resumes this thread.

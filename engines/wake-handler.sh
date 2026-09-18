@@ -18,8 +18,8 @@ if [ "$(cfg agent.delivery inprocess)" = "daemon" ]; then
   fi
 else
   MAX_TURNS="$(cfg agent.interactive_max_turns 45)"
-  runh() { claude -p "$PROMPT" "$@" --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >>"$INBOARD_LOGS/wake-$TS.log" 2>&1; }
-  run_with_selfheal
+  runh() { claude_run -p "$PROMPT" "$@" --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill" --max-turns "$MAX_TURNS" --output-format text >>"$INBOARD_LOGS/wake-$TS.log" 2>&1; }
+  run_with_selfheal "$INBOARD_LOGS/wake-$TS.log"
   if [ "$RC" = 0 ] && [ -n "$NEWSID" ]; then board session --card "$CARD" --set "$NEWSID"; fi
 fi
 exit "$RC"

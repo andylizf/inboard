@@ -109,7 +109,7 @@ Then also do the cross-card work your role describes."
 # The dispatcher may run on its own model: it only groups and routes, so it can be cheaper than the
 # card agents. The flag outranks agent/.claude/settings.json; empty means "same as the agents".
 DMODEL="$(cfg preferences.dispatcher_model 2>/dev/null)"
-run_dispatch() { claude -p "$DPROMPT" "$@" ${DMODEL:+--model "$DMODEL"} \
+run_dispatch() { claude_run -p "$DPROMPT" "$@" ${DMODEL:+--model "$DMODEL"} \
   --append-system-prompt-file "$DROLE_FILE" \
   --allowedTools "Bash,Read,Write,WebSearch,WebFetch,Skill" \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }
@@ -221,10 +221,10 @@ Output one short line."
     NEWSID=""
     echo "[$(date)] g$idx dispatch delivered to daemon agent $(card_agent_name "$CARD") rc=$RC" >>"$LOG"
   else
-    runh() { claude -p "$PROMPT" "$@" \
+    runh() { claude_run -p "$PROMPT" "$@" \
       --allowedTools "Bash,Read,Write,Task,WebSearch,WebFetch,ToolSearch,Skill" \
       --max-turns "$CARD_TURNS" --output-format text < /dev/null >> "$glog" 2>&1; }
-    run_with_selfheal
+    run_with_selfheal "$glog"
   fi
   echo "[$(date)] g$idx route=$route card=${CARD:-new} rc=$RC matter='$matter'" >>"$LOG"
 
