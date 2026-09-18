@@ -102,6 +102,45 @@ class WakeTests(unittest.TestCase):
         self.assertEqual(len(self.sent), 1)
         self.assertEqual(len(list(W.root().glob('card-*.json'))), 2)
 
+    def test_delivery_record_carries_the_status_it_found(self):
+        self.page(status='needs_you', rules=W.add([], self.past, 'Check'))
+        self.sweep()
+        rec = json.loads((W.root() / 'card.json').read_text())
+        self.assertEqual(rec['prior_status'], B.S['needs_you'])
+        self.assertEqual(self.pages['card']['properties']['Status']['select']['name'], B.S['researching'])
+
+    def test_refused_daemon_blocks_deliveries_until_another_account_picks(self):
+        self.page(rules=W.add([], self.past, 'Check'))
+        (Path(self.temp.name) / 'daemon-account').write_text('princeton-static\n')
+        W.record_refusal('card', 'sid', 'weekly limit', clock=lambda: self.time)
+        calls = []
+        with patch.object(W.C, 'get', side_effect=lambda k, d=None: 'daemon' if k == 'agent.delivery' else d):
+            W.sweep(B, self.emit, send=self.send, busy=lambda c: False, clock=lambda: self.time,
+                    recover=lambda emit, clock: W.recover_daemon(
+                        emit, clock, refuse=lambda a, w: calls.append(('refuse', a)) or True,
+                        pick=lambda: 'princeton-static', restart=lambda: calls.append('restart') or True))
+            self.assertEqual(self.sent, [])
+            self.assertIn((None, 'skip', {'reason': 'daemon_refused'}), self.events)
+            self.assertNotIn('restart', calls)
+            W.sweep(B, self.emit, send=self.send, busy=lambda c: False, clock=lambda: self.time,
+                    recover=lambda emit, clock: W.recover_daemon(
+                        emit, clock, refuse=lambda a, w: True,
+                        pick=lambda: 'andy-static', restart=lambda: calls.append('restart') or True))
+        self.assertIn('restart', calls)
+        self.assertFalse(W.refusal_path().exists())
+        self.assertEqual(len(self.sent), 1)
+
+    def test_refusal_expires_and_the_account_is_tried_again(self):
+        self.page(rules=W.add([], self.past, 'Check'))
+        W.record_refusal('card', 'sid', 'weekly limit',
+                         clock=lambda: self.time - timedelta(seconds=W.REFUSAL_TTL + 1))
+        with patch.object(W.C, 'get', side_effect=lambda k, d=None: 'daemon' if k == 'agent.delivery' else d):
+            W.sweep(B, self.emit, send=self.send, busy=lambda c: False, clock=lambda: self.time,
+                    recover=lambda emit, clock: W.recover_daemon(
+                        emit, clock, refuse=lambda a, w: True, pick=lambda: None, restart=lambda: False))
+        self.assertFalse(W.refusal_path().exists())
+        self.assertEqual(len(self.sent), 1)
+
     def test_dead_worker_retries_but_live_worker_does_not(self):
         self.page(rules=W.add([], self.past, 'Review reply'))
         self.sweep()

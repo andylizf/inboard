@@ -147,9 +147,99 @@ def active(card):
     return bool(job and job.get("state") in ("working", "running", "adopted"))
 
 
-def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
+# ---- the daemon's account, and what happens when it is refused ---------------------------------
+# Every card session runs inside one daemon on one account (engines/daemon-launch.sh records
+# which). When that account refuses the work — a usage limit, a disabled organization — every
+# session on it fails the same way, so the card hook records one refusal here and the next sweep
+# recovers: it tells the switchboard, and if another account is now the pick it restarts the
+# daemon onto it. Nothing is delivered while the record stands, since it would only fail again.
+REFUSAL_TTL = 60 * 60   # after this the account is tried again; the hook re-records if it still refuses
+
+
+def state_dir():
+    return Path(os.environ.get("INBOARD_STATE", str(Path(C.home()) / "state")))
+
+
+def refusal_path():
+    return state_dir() / "daemon-refused.json"
+
+
+def daemon_account():
+    try:
+        return (state_dir() / "daemon-account").read_text().strip() or None
+    except OSError:
+        return None
+
+
+def record_refusal(card, session, why, clock=now):
+    save(refusal_path(), {"account": daemon_account(), "why": why[:300], "at": clock().isoformat(),
+                          "card": card, "session": session})
+
+
+def _switchboard(*args):
+    """One switchboard call; None when the tool or the verb is missing or it fails."""
+    import shutil
+    import subprocess
+    if not shutil.which("claude-switchboard"):
+        return None
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_OAUTH_TOKEN"}
+    try:
+        r = subprocess.run(["claude-switchboard", *args], env=env, capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def switchboard_refuse(account, why):
+    return _switchboard("refuse", account, why) is not None
+
+
+def switchboard_pick():
+    return _switchboard("pick") or None
+
+
+def daemon_restart():
+    """Restart the daemon through launchd so the launcher picks an account again."""
+    import subprocess
+    label = C.get("agent.daemon_label", "")
+    if not label:
+        return False
+    r = subprocess.run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/{label}"],
+                       capture_output=True, text=True, timeout=60)
+    return r.returncode == 0
+
+
+def recover_daemon(emit, clock=now, refuse=switchboard_refuse, pick=switchboard_pick, restart=daemon_restart):
+    """True when the daemon can take deliveries; False while its account stands refused."""
+    path = refusal_path()
+    if not path.exists():
+        return True
+    rec = json.loads(path.read_text())
+    if (clock() - instant(rec["at"])).total_seconds() > REFUSAL_TTL:
+        path.unlink()
+        emit(None, "refusal_expired", account=rec.get("account"))
+        return True
+    if rec.get("account"):
+        if not refuse(rec["account"], rec.get("why", "")):
+            emit(None, "refusal_not_recorded", account=rec["account"])
+    alternative = pick()
+    if not alternative or alternative == rec.get("account"):
+        emit(None, "daemon_refused", account=rec.get("account"), alternative=alternative)
+        return False
+    if not restart():
+        emit(None, "daemon_restart_failed", account=rec.get("account"), alternative=alternative)
+        return False
+    path.unlink()
+    emit(None, "daemon_restarted", account=rec.get("account"), alternative=alternative)
+    return True
+
+
+def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False, recover=recover_daemon):
     failures = 0
     delivered = 0
+    if not repair_only and C.get("agent.delivery", "inprocess") == "daemon" and not recover(emit, clock):
+        emit(None, "skip", reason="daemon_refused")
+        return
     for snapshot in candidates(board):
         card = snapshot["id"]
         emit(card, "start")
@@ -237,8 +327,9 @@ def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False):
                       "Do not retry login or second-factor prompts during review. "
                       f"Finish with board wake-ack --card {card} --token {token}. "
                       "This acknowledges these checks, not completion of the matter.\n")
+            # prior_status lets a refused delivery hand the card back the way it was found.
             rec = {"card": card, "token": token, "rules": rules, "prompt": prompt,
-                   "delivered_at": clock().isoformat(), "state": "pending"}
+                   "delivered_at": clock().isoformat(), "state": "pending", "prior_status": status}
             # Keep every attempt: a failed delivery and its exact input remain inspectable after retry.
             save(root() / f"{card}-{token}.json", rec)
             save(path, rec)

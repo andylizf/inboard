@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import sys
 import uuid
 
@@ -45,6 +46,38 @@ def emit(sid, event, **fields):
                           **fields}, ensure_ascii=False), file=log, flush=True)
 
 
+# The account refused the work: the daemon's whole pool of sessions is affected, not this card.
+# The switchboard owns the full list of such wordings; these are the ones the CLI reports as a
+# StopFailure rather than as a crash, so a hook can act on them at all.
+REFUSED = re.compile(r"spend limit|usage limit|hit your (?:weekly|5-hour|five-hour) limit"
+                     r"|organization has disabled Claude|Credit balance is too low", re.IGNORECASE)
+
+
+def refused(kind, detail):
+    return kind == 'rate_limit' or bool(REFUSED.search(detail))
+
+
+def release_refused_card(board, state, sid, detail):
+    """Hand the card back as it was and mark its delivery failed, so the sweep re-sends it."""
+    card = state['card']
+    W.record_refusal(card, sid, detail)
+    path = W.root() / f'{card}.json'
+    prior = None
+    if path.exists():
+        rec = json.loads(path.read_text())
+        if rec.get('state') == 'pending':
+            rec.update(state='failed', refused=detail[:300], failed_at=W.now().isoformat())
+            W.save(path, rec)
+            prior = rec.get('prior_status')
+    page = board.api('GET', f'/pages/{card}')
+    current = board._g(page['properties'], 'Status', 'select')
+    if prior and prior != current and current == C.status_name('researching'):
+        with contextlib.redirect_stdout(io.StringIO()):
+            board.edit(argparse.Namespace(card=card, status=prior, needs=None, subject=None,
+                                          draft=None, sender=None, due=None))
+    emit(sid, 'refused', card=card, detail=detail[:300], restored=prior if prior != current else None)
+
+
 def report_failure(board, state, sid, kind, detail):
     """Keep the failure separate from the matter's business status and summary."""
     key = f'{kind}:{detail}'
@@ -82,6 +115,8 @@ def decide(board, state, payload):
         kind = str(payload.get('error') or 'unknown')
         detail = str(payload.get('last_assistant_message') or payload.get('error_details') or kind)
         report_failure(board, state, sid, kind, detail)
+        if refused(kind, detail):
+            release_refused_card(board, state, sid, detail)
         return {}
     if board._g(props, 'Status', 'select') != C.status_name('researching'):
         state['blocks'] = 0

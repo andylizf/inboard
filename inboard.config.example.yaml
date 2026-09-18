@@ -70,6 +70,10 @@ agent:
                                     # event to the card's persistent daemon-hosted agent via the
                                     # control socket (lib/agent_deliver.py) — no dropped taps under
                                     # contention, but needs a token-carrying Claude Code daemon running.
+  daemon_label: ""                  # the launchd label that runs engines/daemon-launch.sh (daemon mode).
+                                    # When a card session is refused (usage limit, disabled org) the wake
+                                    # sweep restarts this job so the launcher can pick another account;
+                                    # blank = never restart, deliveries just wait for the refusal to expire.
                      # Claude Code model for both engines (e.g. sonnet | opus)
   pull_max_turns: 80                # tool-call budget for one pull-loop cycle
   interactive_max_turns: 45         # tool-call budget for a webhook (comment/action) run

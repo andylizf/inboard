@@ -54,6 +54,12 @@ class DiscoveryTests(unittest.TestCase):
                 stub = root / 'bin/claude'
                 stub.write_text('#!/bin/bash\necho spawned\n')
                 stub.chmod(0o755)
+                # The launcher picks the daemon's account through the switchboard when one is on
+                # PATH; this stand-in keeps the real one, and a real daemon, out of the test.
+                switchboard = root / 'bin/claude-switchboard'
+                switchboard.write_text('#!/bin/bash\ncase "$1" in pick) echo stub-account;; '
+                                       'run) shift; [ "$1" = -- ] && shift; exec "$@";; esac\n')
+                switchboard.chmod(0o755)
                 (root / '.claude/daemon.status.json').write_text(json.dumps(
                     {'supervisorPid': os.getpid()} if alive else {}))
                 shutil.copy(root_path / 'engines/daemon-launch.sh', root / 'daemon-launch.sh')
@@ -67,11 +73,13 @@ sleep() { exit 42; }
 export -f ps sleep
 exec bash "$1"
 ''', 'bash', str(root / 'daemon-launch.sh')],
-                                        env=dict(os.environ, HOME=td, CLAUDE_CODE_OAUTH_TOKEN='test'),
+                                        env=dict(os.environ, HOME=td, INBOARD_HOME=td, CLAUDE_CODE_OAUTH_TOKEN='test'),
                                         capture_output=True, text=True)
                 if alive:
-                    self.assertEqual(result.returncode, 42, result.stderr)
+                    # Standing down is exiting, not waiting: launchd's KeepAlive brings it back.
+                    self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertNotIn('spawned', result.stdout)
                 else:
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertIn('spawned', result.stdout)
+                    self.assertEqual((root / 'state/daemon-account').read_text().strip(), 'stub-account')

@@ -105,6 +105,29 @@ class HookTests(unittest.TestCase):
         self.assertIn('Organization disabled', self.board.logs[0])
         self.assertEqual(self.board.page, before)
 
+    def test_refusal_hands_card_back_and_marks_delivery_failed(self):
+        import wakeups as W
+        (Path(self.temp.name) / 'daemon-account').write_text('princeton-static\n')
+        W.save(W.root() / f'{CARD}.json', {'card': CARD, 'token': 't', 'rules': [], 'state': 'pending',
+                                            'delivered_at': W.now().isoformat(),
+                                            'prior_status': C.status_name('needs_you')})
+        self.board.edits = []
+        self.board.edit = lambda a: self.board.edits.append(a.status)
+        self.stop(event='StopFailure', error='rate_limit',
+                  last_assistant_message="You've hit your monthly spend limit · resets Sep 22")
+        rec = json.loads((W.root() / f'{CARD}.json').read_text())
+        self.assertEqual(rec['state'], 'failed')
+        self.assertEqual(self.board.edits, [C.status_name('needs_you')])
+        refusal = json.loads(W.refusal_path().read_text())
+        self.assertEqual(refusal['account'], 'princeton-static')
+        self.assertEqual(refusal['card'], CARD)
+        self.assertEqual(len(self.board.logs), 1)
+
+    def test_other_failures_do_not_record_a_refusal(self):
+        import wakeups as W
+        self.stop(event='StopFailure', error='offline', last_assistant_message='network down')
+        self.assertFalse(W.refusal_path().exists())
+
     def test_old_session_cannot_modify_replacement_card(self):
         self.board.page['properties']['Session']['rich_text'][0]['plain_text'] = 'new-session'
         self.assertEqual(self.stop(), {})
