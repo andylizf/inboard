@@ -319,6 +319,19 @@ def retire(name: str) -> bool:
     return True
 
 
+def unfinished_background(session_id: str) -> bool:
+    """Does the card hook's last snapshot of this session show a background task still running?"""
+    try:
+        from card_hooks import session_path
+        path = session_path(session_id)
+        if not path.exists():
+            return False
+        tasks = json.loads(path.read_text()).get("background_tasks") or []
+        return any(t.get("status") not in ("completed", "failed", "killed") for t in tasks)
+    except Exception:
+        return False
+
+
 def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60.0) -> dict:
     """The one call inboard needs: make sure agent `name` exists & is reachable,
     then deliver `text` to it. Handles all four lifecycle states, and waits out a
@@ -357,6 +370,26 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
                     break
             if job is None:
                 raise DaemonError(f"replaced stopped {name} but it never registered")
+            short = job["short"]
+        elif job.get("state") == "adopted" and not unfinished_background(job.get("sessionId", "")):
+            # Every session reads as adopted after the daemon restarts. One with a background
+            # task still running wakes when that task completes and consumes what was queued;
+            # one with nothing running accepts a delivery and never reads it — a card sat
+            # 执行中 for an hour behind one. Replace it as a stopped worker; the card holds
+            # the state, so the replacement loses only the live session's working memory.
+            subprocess.run(["claude", "stop", short], capture_output=True)
+            subprocess.run(["claude", "rm", short], capture_output=True)
+            spawn(name, cwd)
+            deadline = time.time() + ready_timeout
+            job = None
+            while time.time() < deadline:
+                time.sleep(3)
+                sock = live_control_sock()
+                job = find_job(name, sock)
+                if job and job.get("state") not in ("stopped", "adopted"):
+                    break
+            if job is None:
+                raise DaemonError(f"replaced adopted {name} but it never registered")
             short = job["short"]
         elif job.get("state") == "blocked":
             # A blocked worker still accepts deliveries and never runs them, so every
