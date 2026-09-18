@@ -179,6 +179,13 @@ def _norm(s):
     return " ".join((s or "").split())
 
 
+def _addrs(s):
+    """Address-set comparison for recipient headers: the preview writes "a@x,b@y" while the wire
+    format canonicalises it to "a@x, b@y", and whitespace collapsing alone still sees a difference."""
+    from email.utils import getaddresses
+    return frozenset(addr.strip().lower() for _, addr in getaddresses([s or ""]) if addr.strip())
+
+
 def send_approved(acct_env, gws, rest):
     """`email <id> gmail +send-approved --card <ID> --draft-id <ID>` — send a draft the
     operator approved on its card. Every check below must pass; each one fails closed."""
@@ -253,7 +260,9 @@ def send_approved(acct_env, gws, rest):
             if shown == '无' and field in ('Cc', 'Bcc'):
                 shown = ''
             actual = str(make_header(decode_header(wire_headers.get(field.lower(), ''))))
-            if _norm(shown) != _norm(actual):
+            same = (_norm(shown) == _norm(actual) if field == 'Subject'
+                    else _addrs(shown) == _addrs(actual))
+            if not same:
                 blocked('current draft %s differs from the card preview' % field)
     if _norm(outgoing) != _norm(preview_parts[-1]):
         blocked("+send-approved where the draft body is NOT what the card shows — he can only "
