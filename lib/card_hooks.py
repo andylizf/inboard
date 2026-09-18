@@ -168,6 +168,10 @@ def handle(payload, board=None):
         state = json.loads(path.read_text())
         # A previous empty snapshot cannot authorize retirement during a new turn.
         state['retirement_ready'] = False
+        if payload['hook_event_name'] == 'UserPromptSubmit':
+            # The delivery path reads this to tell a worker that ran the prompt from one that
+            # only queued it (agent_deliver._taken_up).
+            state['last_prompt_at'] = W.now().isoformat()
         W.save(path, state)
         emit(sid, 'start', card=state['card'], input=payload)
         try:

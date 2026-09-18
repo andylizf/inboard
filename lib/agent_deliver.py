@@ -24,6 +24,7 @@ Wire protocol (reverse-engineered — UNDOCUMENTED, may break on CLI upgrade):
 Security: the socket is uid-restricted by the OS, so no network exposure. The
 control key gates the write ops within the user's own session.
 """
+from datetime import datetime
 import glob
 import json
 import os
@@ -358,64 +359,60 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
             # confirmed, and the model is the one thing inboard must decide for itself on every
             # worker it runs. A stopped worker is dropped and a fresh one spawned through spawn(),
             # the single place the model is set.
-            subprocess.run(["claude", "rm", short], capture_output=True)
-            spawn(name, cwd)
-            deadline = time.time() + ready_timeout
-            job = None
-            while time.time() < deadline:
-                time.sleep(3)
-                sock = live_control_sock()
-                job = find_job(name, sock)
-                if job and job.get("state") != "stopped":
-                    break
-            if job is None:
-                raise DaemonError(f"replaced stopped {name} but it never registered")
-            short = job["short"]
+            job, short = _respawn(name, cwd, short, ready_timeout, gone=("stopped",), stop=False)
         elif job.get("state") == "adopted" and not unfinished_background(job.get("sessionId", "")):
             # Every session reads as adopted after the daemon restarts. One with a background
             # task still running wakes when that task completes and consumes what was queued;
             # one with nothing running accepts a delivery and never reads it — a card sat
             # 执行中 for an hour behind one. Replace it as a stopped worker; the card holds
             # the state, so the replacement loses only the live session's working memory.
-            subprocess.run(["claude", "stop", short], capture_output=True)
-            subprocess.run(["claude", "rm", short], capture_output=True)
-            spawn(name, cwd)
-            deadline = time.time() + ready_timeout
-            job = None
-            while time.time() < deadline:
-                time.sleep(3)
-                sock = live_control_sock()
-                job = find_job(name, sock)
-                if job and job.get("state") not in ("stopped", "adopted"):
-                    break
-            if job is None:
-                raise DaemonError(f"replaced adopted {name} but it never registered")
-            short = job["short"]
+            job, short = _respawn(name, cwd, short, ready_timeout, gone=("adopted", "stopped"), stop=True)
         elif job.get("state") == "blocked":
-            # A blocked worker still accepts deliveries and never runs them, so every
-            # send returns ok and is silently swallowed — one that came up during an
-            # auth outage ate three of the operator's comments before anyone looked.
-            # Its block cannot clear on its own (it wants a login it cannot be given),
-            # so replace it rather than queue behind it. The card holds the state, so
-            # the replacement loses nothing but the live session's working memory.
-            subprocess.run(["claude", "stop", short], capture_output=True)
-            subprocess.run(["claude", "rm", short], capture_output=True)
-            spawn(name, cwd)
-            deadline = time.time() + ready_timeout
-            job = None
-            while time.time() < deadline:
-                time.sleep(3)
-                sock = live_control_sock()
-                job = find_job(name, sock)
-                if job and job.get("state") != "blocked":
-                    break
-            if job is None:
-                raise DaemonError(f"replaced blocked {name} but it never registered")
+            # "blocked" is the daemon's reading of the worker's last message, and it covers two
+            # unrelated things: the worker asked the operator for something — the normal end of a
+            # card turn, 「审一眼点帮我发送」 — and the API refused the worker (login, usage limit,
+            # overload). A comment or a button press is exactly what clears the first kind, and it
+            # is the one delivery the worker must receive with its memory intact: replacing it
+            # here put five fresh sessions on one card in an hour, each answering the operator
+            # as if it had never seen the exchange he was replying to. So a blocked worker is
+            # delivered to first, and replaced only when it does not take the delivery up — the
+            # API-refused kind accepts a reply and never runs it, which is how one came to eat
+            # three comments in a row during an auth outage.
+            r = _deliver(name, job, short, text, sock)
+            if _taken_up(name, job.get("sessionId", ""), r["delivered_at"]):
+                r["delivery"] = "blocked-worker-resumed"
+                return r
+            job, short = _respawn(name, cwd, short, ready_timeout, gone=("blocked",), stop=True)
             if job.get("state") == "blocked":
                 raise DaemonError(
                     f"{name} came back blocked ({job.get('needs') or 'unknown'}) — "
                     "the daemon itself is unauthenticated; check its env carries a token")
-            short = job["short"]
+            r = _deliver(name, job, short, text, sock)
+            r["delivery"] = "blocked-worker-replaced"
+            return r
+    return _deliver(name, job, short, text, sock)
+
+
+def _respawn(name, cwd, short, ready_timeout, *, gone, stop):
+    """Drop worker `short` and spawn a fresh one for `name`; return (job, short) once the new
+    one registers in a state outside `gone`."""
+    if stop:
+        subprocess.run(["claude", "stop", short], capture_output=True)
+    subprocess.run(["claude", "rm", short], capture_output=True)
+    spawn(name, cwd)
+    deadline = time.time() + ready_timeout
+    job = None
+    while time.time() < deadline:
+        time.sleep(3)
+        job = find_job(name, live_control_sock())
+        if job and job.get("state") not in gone:
+            break
+    if job is None:
+        raise DaemonError(f"replaced {gone[0]} {name} but it never registered")
+    return job, job["short"]
+
+
+def _deliver(name, job, short, text, sock):
     # Bind before delivery: a short turn can reach Stop before the caller writes Session.
     from card_hooks import bind_session
     bind_session(name, (job or {}).get("sessionId", ""), pending=True)
@@ -423,15 +420,38 @@ def ensure_and_deliver(name: str, cwd: str, text: str, ready_timeout: float = 60
         text = ('Read the current CLAUDE.md in your working directory before handling this card. '
                 'Read the current files for applicable project skills too; instructions remembered '
                 'from an earlier turn may have changed.\n\n') + text
+    delivered_at = time.time()
     r = _reply_with_retry(short, text, sock)
     # Hand the caller the session this actually landed in. The card records a session id, and
     # under daemon delivery nothing was writing it back — so a card kept naming the session that
     # last ran it in the shell, which on one bank card meant a July transcript, dead for five
     # weeks, while every September run happened somewhere the card never mentioned.
-    if isinstance(r, dict):
-        r.setdefault("short", short)
-        r.setdefault("sessionId", (job or {}).get("sessionId", ""))
+    r = dict(r) if isinstance(r, dict) else {"ok": True, "raw": r}
+    r.setdefault("short", short)
+    r.setdefault("sessionId", (job or {}).get("sessionId", ""))
+    r["delivered_at"] = delivered_at
     return r
+
+
+def _taken_up(name, session_id, since, timeout=30.0):
+    """Did session `session_id` start a turn on a delivery made at `since`? The card hook stamps
+    the session's state file on every UserPromptSubmit; a worker that queues a reply without
+    running it never stamps. Only card agents have that file, so anything else reads as not
+    taken up and is replaced as before."""
+    if not name.startswith('inboard-card-') or not session_id:
+        return False
+    from card_hooks import session_path
+    path = session_path(session_id)
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            at = json.loads(path.read_text()).get("last_prompt_at")
+            if at and datetime.fromisoformat(at).timestamp() >= since:
+                return True
+        except (OSError, ValueError):
+            pass
+        time.sleep(1)
+    return False
 
 
 if __name__ == "__main__":
