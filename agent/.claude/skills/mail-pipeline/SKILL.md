@@ -184,8 +184,13 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
      `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>'`.
      Use `board note` to open the complete Summary with the required decision or draft approval.
      Keep the header-bearing Draft preview written by `+draft`; do not replace it with the bare body.
-   - **IMPORTANT but you need their input first** → don't draft blind:
-     `board upsert ... --status '⏸ Needs you'`, then put the specific question at the start of Summary with `board note`. `⏸ Needs you`
+   - **IMPORTANT and his decision comes first** (whether to answer at all, who answers, which of two
+     courses) → draft anyway. A `⏸ Needs you` card always carries a Draft: write the reply you would send
+     under your own recommendation, through `+draft` as above, so his move is approve, edit or reject
+     rather than dictate a reply for you to write. Where the wording turns on a fact only he holds, write
+     the draft on the assumption you would bet on and name that assumption in the first line of Summary.
+     `board upsert ... --status '⏸ Needs you'`, then put the decision itself at the start of Summary with
+     `board note`, with the other courses and what changes under each. `⏸ Needs you`
      is the column that means his move. Use `🔍 Researching` while agent work remains; there is no New column.
    - **If the matter will keep generating mail** (recurring reminders — holds/enrollment/insurance, an ongoing
      thread awaiting replies) → after creating its card, `board subscribe --card <ID> --desc '<which follow-up

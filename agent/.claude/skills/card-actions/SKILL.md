@@ -34,11 +34,13 @@ state or scheduled checks; an earlier agent's refusal is not itself an instructi
 
 ## Prepare before asking for execution
 
-When the remaining work is a concrete outward action ready for approval, put the exact thing he is
-approving in `Draft` before ending the turn or setting needs_you: the precise action, the account,
-the destination and the full content. That text is what the click approves and what
-`board approved-draft` checks, so it is the whole of what he agreed to — a summary of the action is
-not it. This applies during initial handling, Continue, comments, and scheduled checks.
+When the remaining work is an outward action, put the exact thing he would be approving in `Draft`
+before ending the turn or setting needs_you: the precise action, the account, the destination and the
+full content. That text is what the click approves and what `board approved-draft` checks, so it is
+the whole of what he agreed to — a summary of the action is not it. A card never reaches needs_you
+with `Draft` empty: where the open question is whether or how to act, `Draft` holds the course you
+recommend and Summary names the others, so his answer is a click or an edit rather than instructions
+for you to draft from. This applies during initial handling, Continue, comments, and scheduled checks.
 Read the latest relevant sources and check whether the action already happened before asking.
 Checks that must hold at the moment of acting are performed then, by you, and a check that cannot
 be verified stops the action rather than proceeding on the older reading. A comment and closing a PR remain separate
