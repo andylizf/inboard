@@ -210,7 +210,8 @@ def daemon_restart():
 
 
 def recover_daemon(emit, clock=now, refuse=switchboard_refuse, pick=switchboard_pick, restart=daemon_restart):
-    """True when the daemon can take deliveries; False while its account stands refused."""
+    """Truthy when the daemon can take deliveries — "restarted" when this call restarted it, so the
+    caller knows to wait for the new one — and False while its account stands refused."""
     path = refusal_path()
     if not path.exists():
         return True
@@ -231,7 +232,7 @@ def recover_daemon(emit, clock=now, refuse=switchboard_refuse, pick=switchboard_
         return False
     path.unlink()
     emit(None, "daemon_restarted", account=rec.get("account"), alternative=alternative)
-    return True
+    return "restarted"
 
 
 def sweep(board, emit, send=deliver, busy=active, clock=now, repair_only=False, recover=recover_daemon):

@@ -54,15 +54,27 @@ def last_prompt(transcript):
     return text
 
 
-def wait_for_daemon(timeout=120):
+def supervisor_pid():
+    try:
+        return json.loads((Path.home() / ".claude" / "daemon.status.json").read_text()).get("supervisorPid")
+    except (OSError, ValueError):
+        return None
+
+
+def wait_for_daemon(not_pid=None, timeout=120):
+    """A daemon that answers ping — and, after a restart, not the one being killed: its socket
+    keeps answering for a moment after the kick, and a delivery that lands there is lost."""
     import agent_deliver as A
     deadline = time.time() + timeout
     while time.time() < deadline:
-        try:
-            A.live_control_sock()
-            return True
-        except Exception:
-            time.sleep(3)
+        pid = supervisor_pid()
+        if pid and pid != not_pid:
+            try:
+                A.live_control_sock()
+                return True
+            except Exception:
+                pass
+        time.sleep(3)
     return False
 
 
@@ -75,10 +87,12 @@ def deliver(card, prompt):
 
 def retry(card, session, transcript, dry_run=False, recover=W.recover_daemon, wait=wait_for_daemon,
           send=deliver, board=None):
-    if not recover(lambda c, s, **f: emit(card, s, **f)):
+    old_pid = supervisor_pid()
+    outcome = recover(lambda c, s, **f: emit(card, s, **f))
+    if not outcome:
         emit(card, "held", reason="no other account; the sweep retries when the refusal expires")
         return 1
-    if not wait():
+    if not wait(old_pid if outcome == "restarted" else None):
         emit(card, "fail", error="daemon did not answer after restart")
         return 1
     prompt = last_prompt(transcript) if transcript and os.path.exists(transcript) else None

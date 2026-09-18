@@ -42,7 +42,7 @@ class RetryTests(unittest.TestCase):
         self.sent = []
 
     def test_replays_the_last_prompt_without_the_delivery_prefix(self):
-        rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: True, wait=lambda: True,
+        rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: True, wait=lambda not_pid=None: True,
                      send=lambda card, prompt: self.sent.append(prompt) or 'new-sid', board=self.board)
         self.assertEqual(rc, 0)
         self.assertEqual(self.sent, ['Scheduled wakeup for card X. Receipt: tok.'])
@@ -50,15 +50,26 @@ class RetryTests(unittest.TestCase):
         rec = json.loads((W.root() / f'{CARD}.json').read_text())
         self.assertEqual((rec['state'], rec['token'], rec['retried_from']), ('pending', 'tok', 'old-sid'))
 
+    def test_after_a_restart_the_wait_excludes_the_old_daemon(self):
+        waited = []
+        with patch.object(R, 'supervisor_pid', return_value=4242):
+            R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: 'restarted',
+                    wait=lambda not_pid=None: waited.append(not_pid) or True,
+                    send=lambda card, prompt: 'new-sid', board=self.board)
+            R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: True,
+                    wait=lambda not_pid=None: waited.append(not_pid) or True,
+                    send=lambda card, prompt: 'new-sid', board=self.board)
+        self.assertEqual(waited, [4242, None])
+
     def test_no_other_account_leaves_the_delivery_failed_for_the_sweep(self):
-        rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: False, wait=lambda: True,
+        rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: False, wait=lambda not_pid=None: True,
                      send=lambda card, prompt: self.sent.append(prompt) or 'x', board=self.board)
         self.assertEqual(rc, 1)
         self.assertEqual(self.sent, [])
         self.assertEqual(json.loads((W.root() / f'{CARD}.json').read_text())['state'], 'failed')
 
     def test_daemon_not_back_is_a_failure_not_a_send(self):
-        rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: True, wait=lambda: False,
+        rc = R.retry(CARD, 'old-sid', str(self.transcript), recover=lambda emit: True, wait=lambda not_pid=None: False,
                      send=lambda card, prompt: self.sent.append(prompt) or 'x', board=self.board)
         self.assertEqual((rc, self.sent), (1, []))
 
