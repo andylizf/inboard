@@ -115,7 +115,13 @@ run_dispatch() { claude_run -p "$DPROMPT" "$@" ${DMODEL:+--model "$DMODEL"} \
   --max-turns "$DISPATCH_TURNS" --output-format text < /dev/null >> "$LOG" 2>&1; }
 
 deadline_run run_dispatch "${DFLAG[@]}"; RC=$?
-if [ "$DRESUME" = 1 ] && [ "$RC" != 0 ] && [ "$RC" != 124 ]; then
+# A usage limit is not a stale session: run it again so the switchboard can move to another
+# account, and skip the fresh-session retry, which would spend a second run on the account
+# that just refused this one.
+if [ "$RC" != 0 ] && [ "$RC" != 124 ] && usage_limit_in "$LOG"; then
+  echo "[$(date)] dispatcher hit a usage limit -> retry on another account" >>"$LOG"
+  deadline_run run_dispatch "${DFLAG[@]}"; RC=$?
+elif [ "$DRESUME" = 1 ] && [ "$RC" != 0 ] && [ "$RC" != 124 ]; then
   echo "[$(date)] dispatcher resume failed (rc=$RC) → fresh session, retry once" >>"$LOG"
   DSID=$(python3 -c 'import uuid;print(uuid.uuid4())'); echo "$DSID" >"$SESS_FILE"
   deadline_run run_dispatch --session-id "$DSID"; RC=$?
