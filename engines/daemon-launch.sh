@@ -35,7 +35,7 @@ if command -v claude-switchboard >/dev/null 2>&1; then
     printf '%s\n' "$account" >"$STATE_DIR/daemon-account"
     echo "[$(date)] daemon starting on $account" >&2
     unset CLAUDE_CODE_OAUTH_TOKEN
-    exec claude-switchboard run -- claude daemon run
+    exec claude-switchboard run -- daemon run
   fi
   echo "[$(date)] switchboard has no usable account → static token" >&2
 fi

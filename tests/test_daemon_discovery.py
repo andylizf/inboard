@@ -58,7 +58,7 @@ class DiscoveryTests(unittest.TestCase):
                 # PATH; this stand-in keeps the real one, and a real daemon, out of the test.
                 switchboard = root / 'bin/claude-switchboard'
                 switchboard.write_text('#!/bin/bash\ncase "$1" in pick) echo stub-account;; '
-                                       'run) shift; [ "$1" = -- ] && shift; exec "$@";; esac\n')
+                                       'run) shift; [ "$1" = -- ] && shift; exec claude "$@";; esac\n')
                 switchboard.chmod(0o755)
                 (root / '.claude/daemon.status.json').write_text(json.dumps(
                     {'supervisorPid': os.getpid()} if alive else {}))
