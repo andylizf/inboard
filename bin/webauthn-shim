@@ -161,6 +161,12 @@ async def equip(target, creds_by_transport):
                                           "privateKey", "signCount") if k in c}
                 if c.get("userHandle"):
                     cred["userHandle"] = c["userHandle"]
+                    # Discoverable, whatever the store says. Duo starts its security-key request
+                    # on page load with no allow-list, so a credential Chrome cannot discover is
+                    # never offered: Chrome falls through to the macOS passkey dialog, which sits
+                    # over the page and swallows every click, "Other options" included. The
+                    # server checks the signature, not how the client filed the key.
+                    cred["isResidentCredential"] = True
                 a = await cmd("WebAuthn.addCredential", {"authenticatorId": aid, "credential": cred})
                 if "error" in a:
                     log(f"addCredential failed ({c.get('rpId')}): {a['error']}")

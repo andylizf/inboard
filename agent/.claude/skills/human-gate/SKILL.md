@@ -6,8 +6,12 @@ description: Handle an observed blocker requiring the operator or an external co
 ## Keep ownership while waiting
 
 Record the actual failed step and evidence on the card. Ask for only the action the operator must
-perform, and continue independent work. Use needs_you for his action and waiting for an external
-condition; a running probe does not change who must act next.
+perform — the one thing that unblocks you: a tap on his phone, a decision, a credential only he
+holds — and continue independent work. The task itself is never that action, in any wording:
+「你自己上 X 加一下」, "about two minutes for you" hand the deliverable back and are not written,
+however solid the blocker. Where nothing he can do unblocks you, the card says which step is
+blocked and what you tried, and the work stays yours. Use needs_you for his action and waiting for
+an external condition; a running probe does not change who must act next.
 
 If a read-only signal can detect readiness without submitting credentials, sending a new prompt or
 changing account state, run one bounded background probe. Use the runtime's tracked background task,
