@@ -1,16 +1,28 @@
 #!/usr/bin/env python3
-"""Add COS 522 to Zhifei's Fall 2026 Stellic schedule, once, after his 帮我执行 click.
+"""Register COS 522 on Zhifei's Fall 2026 Stellic schedule, once, after his 📤 click.
 
-The login route is not a guess: three logins on 09-15 died at the same place and the
-card log records why. Duo's default factor for this account is a security key; the
-local.inboard-webauthn shim re-equips every new tab with a NON-discoverable credential
-every 2s, Duo's auto-started request wants a discoverable one, Chrome therefore raises
-a native OS picker, and web-plane's UI gate then refuses every command on that lane.
-`--no-webauthn` alone loses the race with the shim, so the shim is stopped FIRST and
-restored in a finally — other cards' Princeton logins depend on it being back up.
+Both halves of this were measured on 2026-09-19, not guessed.
 
-Fails closed: anything ambiguous stops BEFORE the registration submit, leaving the
-browser logged in so a corrected version costs no second phone push.
+LOGIN. Duo's default factor for this account is a security key. Earlier versions stopped
+the local.inboard-webauthn shim and attached the lane with --no-webauthn so Duo would
+offer its other factors; on 09-18 Stellic stopped falling back and the run died on
+"Use your security key". The shim now stays UP and the lane keeps WebAuthn. The key is
+still not accepted by Stellic's Duo integration — Chrome raises the macOS passkey sheet,
+which sits over the page — but that sheet only swallows real input events: web-plane's
+`eval` still runs, so a JavaScript .click() reaches "Other options" straight through it
+and Duo Push is one click away. That is what unwedges a login this machine could not
+finish for four days. One push, gated, and the code Duo shows must reach him fast.
+
+REGISTRATION. Stellic does not register from a search box. COS 522 is already in his
+Fall 2026 plan but has no section, and the course panel says so: "You need to select a
+section before you can register for this class." So: open the scheduler, pick the one
+LECTURE section (Lec L01, hidden behind a filter until "show all"), then Start
+Registration. Its seat count reads 0, so the submit may be refused unless the
+department's 09-15 clearance is recorded as an override; that is reported, not worked
+around.
+
+Fails closed: anything ambiguous stops BEFORE the submit, and nothing that drops, swaps
+or removes a course he already has is ever clicked.
 """
 import json
 import os
@@ -30,7 +42,8 @@ CRED_ITEM = "a0463dac-685e-4207-8146-b42c00f2f44e"   # "Princeton", user al9080
 NETID = "al9080"
 SERVICE = "princeton"
 COURSE = "COS 522"
-PLIST = Path.home() / "Library/LaunchAgents/local.inboard-webauthn.plist"
+HELD = ("COS 433", "COS 585", "COS 551", "MAT 579")   # already registered - never touch
+SHIM_LOG = HOME / "logs" / "webauthn-main.log"
 STAMP = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 LOG = HOME / "logs" / ("cos522-enroll-" + STAMP + ".log")
 SHOTS = HOME / "logs" / ("cos522-enroll-" + STAMP)
@@ -45,28 +58,38 @@ def log(msg):
         f.write(line + "\n")
 
 
-def run(argv, timeout=180, check=False):
-    p = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
-    if check and p.returncode != 0:
-        raise RuntimeError(argv[0] + " failed rc=" + str(p.returncode) + ": " + (p.stderr or p.stdout)[:400])
-    return p
+def run(argv, timeout=180):
+    return subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
 
 
-def wp(*args, **kw):
-    return run(["web-plane", "lane", FULL_LANE] + list(args), timeout=kw.get("timeout", 180))
+def wp(*args, timeout=180):
+    return run(["web-plane", "lane", FULL_LANE] + list(args), timeout=timeout)
 
 
-def page_text():
-    return wp("eval", "document.body ? document.body.innerText : ''").stdout
+def clean(p):
+    return "\n".join(l for l in p.stdout.splitlines()
+                     if '"lane-source"' not in l and '"UI_BLOCKED"' not in l)
+
+
+def js(expr):
+    """The one command a native modal cannot block."""
+    out = clean(wp("eval", expr)).strip()
+    try:
+        return json.loads(out) if out else ""
+    except ValueError:
+        return out
 
 
 def url():
-    out = wp("get", "url").stdout
-    for line in reversed(out.strip().splitlines()):
+    for line in reversed(clean(wp("get", "url")).splitlines()):
         line = line.strip()
         if line.startswith("http") or line == "about:blank":
             return line
     return ""
+
+
+def page_text():
+    return js("document.body ? document.body.innerText : ''") or ""
 
 
 def shot(name):
@@ -78,11 +101,23 @@ def shot(name):
 
 
 def snapshot(label):
-    out = wp("snapshot", "-i").stdout
-    body = "\n".join(l for l in out.splitlines() if '"lane-source"' not in l)
+    body = clean(wp("snapshot", "-i"))
     with open(LOG, "a") as f:
         f.write("----- snapshot " + label + " -----\n" + body + "\n----- end -----\n")
     return body
+
+
+def ref_of(line):
+    m = re.search(r"ref=(@?e\d+)", line)
+    return m.group(1) if m else None
+
+
+def find_ref(body, pattern):
+    """The single snapshot line matching pattern, or None if it is not unique."""
+    hits = [l for l in body.splitlines() if re.search(pattern, l, re.I) and ref_of(l)]
+    if len(hits) != 1:
+        return None, hits
+    return ref_of(hits[0]), hits
 
 
 def die(msg, code=3):
@@ -123,32 +158,56 @@ def already_registered_by_mail():
     return False
 
 
-def stop_shim():
-    r = run(["launchctl", "bootout", "gui/" + str(os.getuid()) + "/local.inboard-webauthn"])
-    log("webauthn shim bootout rc=" + str(r.returncode) + " " + (r.stderr or "").strip()[:120])
-    time.sleep(3)
+# ---------------------------------------------------------------- login
 
 
-def start_shim():
-    r = run(["launchctl", "bootstrap", "gui/" + str(os.getuid()), str(PLIST)])
-    log("webauthn shim restored rc=" + str(r.returncode) + " " + (r.stderr or "").strip()[:120])
+def lane_target_id():
+    """The lane-monitor worker carries its tab's target id on its command line."""
+    p = run(["ps", "-axo", "command"])
+    for line in p.stdout.splitlines():
+        if "lane-monitor.js" in line and '"lane":"' in line:
+            blob = line[line.index("{"):]
+            try:
+                cfg = json.loads(blob[:blob.index("}") + 1])
+            except ValueError:
+                continue
+            if cfg.get("lane") in (FULL_LANE, LANE):
+                return cfg.get("targetId"), cfg.get("webauthnDisabled")
+    return None, None
 
 
-def attach_clean_lane():
+def attach_lane_with_key():
+    """Attach WITH WebAuthn and prove the key is on this tab before a Duo page loads."""
     run(["web-plane", "lane", FULL_LANE, "close"])
     time.sleep(1)
-    r = run(["web-plane", "-s=main", "attach", "--as", FULL_LANE, "--no-webauthn", "about:blank"])
-    log("lane " + FULL_LANE + " attached without webauthn rc=" + str(r.returncode))
+    r = run(["web-plane", "-s=main", "attach", "--as", FULL_LANE, "about:blank"])
+    log("lane " + FULL_LANE + " attached WITH webauthn rc=" + str(r.returncode))
     if r.returncode != 0:
-        die("could not attach a no-webauthn lane: " + (r.stderr or r.stdout)[:300], 4)
+        die("could not attach the lane: " + (r.stderr or r.stdout)[:300], 4)
+    time.sleep(3)
+    tid, disabled = lane_target_id()
+    log("lane tab target=" + str(tid) + " webauthnDisabled=" + str(disabled))
+    if disabled:
+        die("the lane came up with WebAuthn disabled - the key could not answer", 4)
+    for _ in range(10):
+        tail = SHIM_LOG.read_text().splitlines()[-40:] if SHIM_LOG.exists() else []
+        if tid and any("equipped" in l and tid in l and "creds=1" in l for l in tail):
+            log("the security-key service equipped this tab")
+            return
+        if not tid and any("creds=1" in l for l in tail):
+            log("the security-key service reported a recent equip (tab id unknown)")
+            return
+        time.sleep(2)
+    die("the security-key service never reported equipping this tab - not spending a login", 4)
 
 
 def cas_login():
     wp("open", "https://princeton.stellic.com/", timeout=300)
+    time.sleep(4)
     here = url()
     log("landed on " + here)
     if "stellic" in here and "fed.princeton.edu" not in here:
-        log("already authenticated - no login needed")
+        log("already authenticated - no password needed")
         return False
     if "fed.princeton.edu" not in here:
         die("unexpected page instead of the Princeton login: " + here, 4)
@@ -164,153 +223,291 @@ def cas_login():
     return True
 
 
-def duo_push():
-    gate = run([str(HOME / "bin/twofa-gate"), "acquire", SERVICE])
-    log("twofa-gate acquire rc=" + str(gate.returncode) + " " + (gate.stdout or "").strip()[:200])
-    if gate.returncode != 0:
-        die("another verification is already outstanding - not competing for his phone", 6)
+CLICK_TEXT = """
+(() => {
+  const want = new RegExp(%s, 'i');
+  const els = [...document.querySelectorAll(%s)];
+  const hit = els.find(e => want.test((e.textContent||'').trim()));
+  if (!hit) return 'miss';
+  hit.click();
+  return 'clicked: ' + (hit.textContent||'').trim().slice(0,60);
+})()
+"""
+
+
+def js_click(pattern, selector="'a,button,[role=button]'"):
+    return js(CLICK_TEXT % (json.dumps(pattern), selector))
+
+
+def duo():
+    """Answer Duo. The key is tried first; a push is the fallback, once, gated."""
+    gate_held = False
     outcome = "unused"
-    pushed = False          # one push, ever: the page keeps saying "Duo Push" afterwards
+    pushed = False
+    deadline = time.time() + 330
     try:
-        for attempt in range(40):
+        while time.time() < deadline:
             here = url()
-            text = page_text()
             if "stellic" in here and "duo" not in here and "fed.princeton" not in here:
-                log("authenticated; Duo satisfied")
-                outcome = "ok" if outcome == "timeout" else "unused"
+                log("authenticated - Duo satisfied")
+                if pushed:
+                    outcome = "ok"
                 return
-            low = text.lower()
-            if attempt == 0:
-                shot("duo-page")
-                snapshot("duo-page")
-            if "other options" in low and "duo push" not in low:
-                log("opening Duo's other-options list")
-                wp("click", "text=Other options")
-                time.sleep(3)
+            low = (page_text() or "").lower()
+            if not low:
+                time.sleep(5)
                 continue
-            if not pushed and re.search(r"duo\s*push|send me a push", low):
+            if re.search(r"use your security key|verify it's you", low) and "other options" in low:
+                # The sheet is up and the key will not answer; JS reaches the button anyway.
+                log("the key was not accepted; opening Duo's other-options list in the page")
+                log(js_click(r"^\\s*Other options\\s*$"))
+                time.sleep(4)
+                continue
+            if not pushed and re.search(r"select an option to log in", low) and "duo push" in low:
+                gate = run([str(HOME / "bin/twofa-gate"), "acquire", SERVICE])
+                log("twofa-gate acquire rc=" + str(gate.returncode) + " "
+                    + (gate.stdout or "").strip()[:200])
+                if gate.returncode != 0:
+                    die("another verification is already outstanding - not competing for his phone", 6)
+                gate_held = True
                 log("choosing Duo Push - his phone rings once now")
-                wp("click", "text=Duo Push")
+                log(js_click(r"^\\s*Duo Push", "'button.auth-method'"))
                 pushed = True
                 outcome = "timeout"
-                time.sleep(8)
+                time.sleep(6)
+                # Duo shows a matching code he has to type. He cannot approve without it.
+                code = js("(() => { const m = (document.body.innerText||'')"
+                          ".match(/\\\\b(\\\\d{3})\\\\b\\\\s*\\\\n?\\\\s*Sent to/); return m ? m[1] : ''; })()")
+                if code:
+                    log("Duo verification code shown on the page: " + str(code))
+                    run([str(HOME / "bin/board"), "reply", "--card", CARD, "--text",
+                         "【现在，约 60 秒内】你手机（尾号 1608）刚收到一次 Duo 验证，是我在替你把 COS 522 加进 "
+                         "Stellic 秋季课表。打开 Duo Mobile，输入验证码 " + str(code) + " 就能通过。"])
+                    log("the code was posted to the card")
+                else:
+                    log("no matching code on the page; it is a plain approve-or-deny push")
                 continue
             if "trust this browser" in low or "yes, this is my device" in low:
                 log("marking this browser trusted (his own persistent profile)")
-                for label in ("Yes, this is my device", "Trust this browser"):
-                    if label.lower() in low:
-                        wp("click", "text=" + label)
-                        break
+                log(js_click(r"yes, this is my device|trust this browser"))
                 time.sleep(5)
                 continue
-            time.sleep(5)      # pushed and waiting for his tap, or a page we do not act on
+            time.sleep(5)
         shot("duo-timeout")
         die("Duo was not completed in time", 6)
     finally:
-        run([str(HOME / "bin/twofa-gate"), "release", SERVICE, outcome])
-        log("twofa-gate released as " + outcome)
+        if gate_held:
+            run([str(HOME / "bin/twofa-gate"), "release", SERVICE, outcome])
+            log("twofa-gate released as " + outcome)
 
 
-def ref_of(line):
-    m = re.search(r"ref=(@?e\d+)", line)
-    return m.group(1) if m else None
+# ---------------------------------------------------------------- registration
 
 
-def add_course():
-    wp("open", "https://princeton.stellic.com/", timeout=300)
-    time.sleep(5)
-    shot("stellic-home")
-    body = snapshot("stellic-home")
-    if re.search(r"COS\s*522", body, re.I) and re.search(r"registered|enrolled", body, re.I):
-        log("COS 522 already appears on the Stellic schedule - nothing to submit")
-        return "already"
+def registration_state():
+    """('registered'|'planned'|'absent', page text) for COS 522, read off the home page.
 
-    for label in ("Registration", "Register", "Plan", "Courses"):
-        line = next((l for l in body.splitlines() if '"' + label in l and ref_of(l)), None)
-        if line:
-            log("opening the " + label + " area")
-            wp("click", ref_of(line))
-            time.sleep(5)
+    Measured 09-19: the scheduler's course rail is aria-label text, absent from
+    innerText, and neither view carries a REGISTERED heading - the earlier reader
+    saw only the week calendar and called a present course absent. The home page's
+    "Fall 2026" course list is where the status word lives: a code line, then the
+    title, then "Enrolled" or "Planned" (or nothing while it still has no section).
+    That list is the authority here.
+    """
+    wp("open", "https://stellic.princeton.edu/app/home", timeout=300)
+    time.sleep(8)
+    body = page_text()
+    lines = [l.strip() for l in body.splitlines()]
+    hits = [i for i, l in enumerate(lines) if re.fullmatch(r"COS\s*522", l)]
+    if not hits:
+        return "absent", body
+    block = []
+    for l in lines[hits[-1] + 1:]:
+        if re.fullmatch(r"[A-Z]{2,4}\s*\d{3}[A-Z]?", l):
             break
-    else:
-        die("could not find Stellic's registration area from the landing page", 7)
+        block.append(l)
+    label = " ".join(block)
+    log("home page reads COS 522 as: " + (label[:120] or "(no status word yet)"))
+    return ("registered" if re.search(r"\bEnrolled\b", label) else "planned"), body
 
-    body = snapshot("registration-area")
-    search = next((l for l in body.splitlines()
-                   if re.search(r"searchbox|textbox", l, re.I) and ref_of(l)), None)
-    if not search:
-        die("no course-search box on the registration page", 7)
-    wp("fill", ref_of(search), COURSE)
-    wp("press", "Enter")
+
+def open_scheduler():
+    wp("open", "https://princeton.stellic.com/", timeout=300)
     time.sleep(6)
-    shot("search-results")
+    if "stellic" not in url():
+        die("not on Stellic after opening it: " + url(), 5)
+    body = snapshot("stellic-home")
+    ref, hits = find_ref(body, r'button "Start Registration"')
+    if not ref:
+        die("could not find one Start Registration button on the home page ("
+            + str(len(hits)) + " candidates)", 7)
+    wp("click", ref)
+    time.sleep(7)
+    if "scheduler" not in url():
+        die("Start Registration did not open the scheduler (at " + url() + ")", 7)
+    shot("scheduler")
+    log("on the scheduler at " + url())
 
-    body = snapshot("course-search")
-    hits = [l for l in body.splitlines() if "522" in l]
-    row = next((l for l in hits if re.search(r"\badd\b|\bregister\b|\benroll\b", l, re.I)), None)
-    if row is None:
-        row = hits[0] if len(hits) == 1 else None
-    if not row:
-        die("could not identify a single unambiguous " + COURSE + " control in the results", 7)
-    target = ref_of(row)
-    if not target:
-        die("found " + COURSE + " but no clickable control on its row", 7)
-    log("pre-submit check on the row I am about to click: " + row.strip()[:200])
-    wp("click", target)
+
+def pick_section():
+    body = snapshot("scheduler")
+    ref, hits = find_ref(body, r'button "select a section"')
+    if not ref:
+        # No such control can also mean the section is already attached: the rail
+        # row then names it instead of saying "No section selected".
+        rail = [l for l in body.splitlines() if re.search(r'COS\s*522', l)]
+        if rail and not any("No section selected" in l for l in rail):
+            log("COS 522 already carries a section: " + rail[0].strip()[:160])
+            return "picked"
+        die("no single 'select a section' control for " + COURSE
+            + " (" + str(len(hits)) + " candidates)", 7)
+    wp("click", ref)
     time.sleep(5)
-    shot("pre-confirm")
-    body = snapshot("pre-confirm")
+    body = snapshot("course-panel")
+    if not re.search(r"Computational Complexity", body, re.I):
+        die("the panel that opened is not COS 522's", 7)
 
-    confirm = next((l for l in body.splitlines()
-                    if re.search(r'"(confirm|register|add course|submit|save)', l, re.I)
-                    and ref_of(l)), None)
-    if confirm:
-        if not re.search(r"522", body):
-            die("the confirmation step no longer mentions COS 522 - not submitting", 7)
-        log("confirming: " + confirm.strip()[:200])
-        wp("click", ref_of(confirm))
-        time.sleep(8)
+    show_all, _ = find_ref(body, r'show all"')
+    if show_all:
+        log("the section list is filtered; showing all sections")
+        wp("click", show_all)
+        time.sleep(4)
+        body = snapshot("sections-shown")
+
+    rows = [l for l in body.splitlines()
+            if re.search(r'button "Lec [A-Z]?\d+', l) and ref_of(l)]
+    if len(rows) != 1:
+        die("expected exactly one lecture section for " + COURSE + ", saw "
+            + str(len(rows)), 7)
+    log("the one section on offer: " + rows[0].strip()[:160])
+    if re.search(r"\b0\b", rows[0]):
+        log("NOTE: this section's seat count reads 0 - the submit may be refused")
+    # The row's own child button is the one that selects it.
+    idx = body.splitlines().index(rows[0])
+    child = next((ref_of(l) for l in body.splitlines()[idx + 1:idx + 4]
+                  if re.match(r"\s+- button \[ref=e\d+\]", l)), None)
+    wp("click", child or ref_of(rows[0]))
+    time.sleep(5)
+    shot("section-picked")
+    body = snapshot("section-picked")
+    if re.search(r"No [Ss]ection [Ss]elected", body):
+        die("COS 522 still shows no section after picking Lec L01", 7)
+    log("a section is now attached to " + COURSE)
+    close, _ = find_ref(body, r'^\s+- button "close" \[ref=')
+    if close:
+        wp("click", close)
+        time.sleep(3)
+    return "picked"
+
+
+SELECT_ONLY = """
+(() => {
+  const host = [...document.querySelectorAll('*')].find(e => e.shadowRoot);
+  if (!host) return 'no registration app';
+  const boxes = [...host.shadowRoot.querySelectorAll('[data-testid=registration-row-checkbox]')];
+  if (!boxes.length) return 'no row checkboxes';
+  const ticked = b => [...b.querySelectorAll('path')]
+      .some(p => /zm-9 14-5/.test(p.getAttribute('d') || ''));
+  const out = [];
+  for (const b of boxes) {
+    const row = b.closest('tr,[role=row]');
+    const text = (row ? row.textContent : '') || '';
+    const mine = /COS\\s*522/.test(text);
+    if (ticked(b) !== mine) b.click();
+    out.push((mine ? 'keep ' : 'clear ') + text.replace(/\\s+/g, ' ').trim().slice(0, 40));
+  }
+  return out.join(' | ');
+})()
+"""
+
+
+def select_only_this_course():
+    """Stellic registers every ticked PLANNED row at once, not the one you came for.
+
+    Measured 09-19: with COS 597C also planned, Register Now offered "Register 2
+    Courses" - and COS 597C belongs to a different matter. Each row carries its own
+    checkbox (data-testid=registration-row-checkbox); the ticked icon is the one whose
+    path contains the tick stroke "zm-9 14-5". Leave only COS 522 ticked, then make the
+    dialog's own count prove it before anything is confirmed.
+    """
+    log("row selection: " + str(js(SELECT_ONLY)))
+    time.sleep(3)
+
+
+def submit_registration():
+    select_only_this_course()
+    body = snapshot("before-submit")
+    for course in HELD:
+        for line in body.splitlines():
+            if course.replace(" ", "") in line.replace(" ", "") \
+                    and re.search(r"\bdrop\b|\bremove\b|\bswap\b", line, re.I):
+                die("a control on this page would drop or swap " + course
+                    + " - stopping before any submit: " + line.strip()[:160], 7)
+    ref, hits = find_ref(body, r'button "Start Registration"')
+    if not ref:
+        die("could not find one Start Registration button on the scheduler ("
+            + str(len(hits)) + " candidates)", 7)
+    log("pre-submit: clicking " + hits[0].strip()[:160])
+    wp("click", ref)
+    time.sleep(7)
+    shot("registration-dialog")
+    body = snapshot("registration-dialog")
+    if not re.search(r"COS\s*522|Computational Complexity", body, re.I):
+        die("the registration step no longer mentions COS 522 - not submitting", 7)
+    confirm, hits = find_ref(body, r'button "(Register|Confirm|Submit|Register Courses)[^"]*"')
+    if not confirm:
+        log("no separate confirm control; snapshot recorded in the log")
+        die("could not identify a single confirm control (" + str(len(hits))
+            + " candidates) - stopping before submitting", 7)
+    # The dialog names its own scope. One course, and it has to be this one.
+    if not re.search(r'heading "Register 1 Course"', body):
+        heading = next((l.strip() for l in body.splitlines() if "Register " in l and "Course" in l), "?")
+        die("the confirm dialog is not scoped to one course - not submitting: " + heading[:120], 7)
+    log("confirming: " + hits[0].strip()[:160])
+    wp("click", confirm)
+    time.sleep(10)
     shot("post-submit")
-    return "submitted"
+    snapshot("post-submit")
 
 
 def verify():
-    wp("open", "https://princeton.stellic.com/", timeout=300)
-    time.sleep(6)
-    body = page_text()
+    state, body = registration_state()
     shot("verify")
     snapshot("verify")
-    ok = bool(re.search(r"COS\s*522", body, re.I))
-    log("verification on Stellic: COS 522 present = " + str(ok))
-    return ok
+    log("verification on Stellic: COS 522 is " + state)
+    if re.search(r"seats?|full|closed|waitlist|error|could not|unable", body, re.I):
+        for line in body.splitlines():
+            if re.search(r"seats?|full|closed|waitlist|error|could not|unable", line, re.I):
+                log("page says: " + line.strip()[:200])
+    return state == "registered"
 
 
 def main():
-    log("=== COS 522 enrolment, card " + CARD + ", operation " + OPERATION[:12] + " ===")
+    log("=== COS 522 registration, card " + CARD + ", operation " + OPERATION[:12] + " ===")
     check_approval()
     if already_registered_by_mail():
         log("RESULT: already registered before this run; nothing submitted")
         return 0
-    stop_shim()
-    try:
-        attach_clean_lane()
-        if cas_login():
-            duo_push()
-        here = url()
-        if "stellic" not in here:
-            die("login did not end on Stellic (at " + here + ")", 5)
-        log("logged in to Stellic")
-        outcome = add_course()
-        ok = verify()
-    finally:
-        start_shim()
-    if outcome == "already":
-        log("RESULT: COS 522 was already on the schedule")
+    attach_lane_with_key()
+    if cas_login():
+        duo()
+    if "stellic" not in url():
+        die("login did not end on Stellic (at " + url() + ")", 5)
+    log("logged in to Stellic")
+    state, _ = registration_state()
+    log("COS 522 currently reads: " + state)
+    if state == "registered":
+        log("RESULT: COS 522 was already registered")
         return 0
-    if ok:
+    if state == "absent":
+        die("COS 522 is not in the Fall 2026 plan at all - not adding it blindly", 7)
+    open_scheduler()
+    pick_section()
+    submit_registration()
+    if verify():
         log("RESULT: COS 522 registered and verified on the Stellic schedule")
         return 0
-    log("RESULT: submitted but NOT verified on the schedule - treat as unfinished")
+    log("RESULT: submitted but NOT verified as registered - treat as unfinished")
     return 8
 
 
@@ -321,5 +518,4 @@ if __name__ == "__main__":
         raise
     except Exception as exc:
         log("FAILED: " + type(exc).__name__ + ": " + str(exc))
-        start_shim()
         sys.exit(9)
