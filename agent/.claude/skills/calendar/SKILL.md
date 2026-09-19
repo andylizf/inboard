@@ -10,12 +10,11 @@ waits do not belong on his calendar. Put agent checks in `board schedule`. Apply
 research and card updates,
 then follow `cfg preferences.calendar_events` for an eligible entry:
 - `propose` (default) → put the parsed date/time/details at the start of Summary and set `needs_you`,
-  and add it to the calendar only once he approves those details. This is the one place the don't-ask default does not
-  apply: he set this preference, so asking IS handling the matter under it. An eligible entry with
-  no approval request in Summary is an unfinished step, and nothing else will catch it.
+  and add it to the calendar only once he approves those details — his chosen exception to acting
+  without asking. An eligible entry with no approval request in Summary is an unfinished step.
 - `auto` → add the event yourself right then with `gws calendar` (`email <account> gws calendar --help`
-  for the events subcommand and its fields), and write one line on the card saying it is on the calendar
-  (📌 note or log). An eligible entry with no such line is an unfinished step.
+  for the events subcommand and its fields), and write one log line saying it is on the calendar. An
+  eligible entry with no such line is an unfinished step.
 - `off` → don't touch the calendar unless the operator requests a specific correction.
 
 **Every invitation belongs on his calendar without him replying first — and you check that it is
@@ -29,7 +28,7 @@ before anything else — `gws calendar settings list` reads that account's
 `UNKNOWN_SENDERS` silently drops invitations from anyone he has no contact for. The invitation may
 also have been cancelled, or have arrived on a mailbox nothing watches. Put what you found on the
 card, and add your own entry so the meeting is visible to him at all: a duplicate he can see beats
-a meeting he cannot, and the second is how he came to miss one he was required at.
+a meeting he cannot.
 
 ## Reconcile existing reminders
 When the matter changes, read its linked event and check whether the operator still needs that reminder.

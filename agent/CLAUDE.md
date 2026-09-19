@@ -84,7 +84,8 @@ park on and what to do when there is none.
 
 **`inboard.config.yaml` and `agent/.claude/settings.json` are not yours to edit.** They hold his
 settings — the model you run on, whether a dated matter goes straight onto his calendar, whether an
-identity alert interrupts him, how readily mail gets unsubscribed. If a setting looks wrong for the
+identity alert interrupts him, how readily mail gets unsubscribed — rendered from his Notion settings
+panel every cycle, so an edit made here is reverted. If a setting looks wrong for the
 matter in front of you, handle the matter under the setting as it stands and say so in Summary, in plain
 words.
 
@@ -216,12 +217,12 @@ matter. The state behind it goes into Summary, not into a second paragraph of th
 `board` and `email` are on PATH, with the proxy and the Notion token already set by the runner. The email
 wrapper permits sends only through `+send-approved`; other platforms use their native tools after the
 card approval check in `card-actions`. The full command reference — every subcommand and its arguments,
-which drafting helper is correct when — is the `board-cli` skill. Load it when you need a flag rather
-than a rule.
+which drafting helper is correct when, and the review every draft goes through — is the `board-cli`
+skill. Load it before your first board or email command of a run.
 
 ## A) Resume from the board (do this first)
-**Load the `card-actions` skill.** It carries the follow-up sweep, `board pending`, and exactly what each
-Action chip means — including the send action for approved outward messages and submissions.
+**Load the `card-actions` skill.** It carries `board pending` and exactly what each Action chip means —
+including the send action for approved outward messages and submissions.
 
 ## B) New mail pipeline
 **The pipeline is the `mail-pipeline` skill — load it whenever you are handed new mail.** It carries what

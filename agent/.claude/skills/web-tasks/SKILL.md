@@ -27,11 +27,11 @@ profile or worker to evade login limits. Snapshot before acting and refresh refe
 - `browser eval <js>` — run JavaScript (read a value, or `document.querySelector('input[name=x]').form.submit()` when a ref-click won't submit the form)
 - `browser read <url>` — page as text/markdown, cheapest for pure reading
 - `browser screenshot <path>` — capture the current page
-- `browser get url` — confirm where you actually ARE (a login redirect / stale tab can silently land you elsewhere)
+- `browser get url` — confirm where you actually are (a login redirect or stale tab lands you elsewhere silently)
 
-**Refs go STALE across page reloads.** After any submit/navigation, re-snapshot before acting again — reusing old refs silently fills detached nodes and the form submits empty.
+**Refs go stale across page reloads.** After any submit or navigation, re-snapshot before acting again — an old ref fills a detached node and the form submits empty.
 
-The Chrome keeps saved logins in its profile, so once a site is logged in it just works across cycles.
+The profile keeps saved logins, so a site logged in once stays logged in across cycles.
 When navigation lands on a login form, load **`cred-login`** and continue with available credentials;
 the browser command does not fill them automatically. A read-only status check can require a login.
 Before a login that may send a second factor, follow **`twofa-gate`**: acquire the gate, proceed once if

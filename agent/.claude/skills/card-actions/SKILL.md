@@ -1,44 +1,43 @@
 ---
 name: card-actions
-description: Handle an operator Action chip or a legacy inbox cycle. Covers each chip's meaning, the approved-send path, and why the Status is already set before the card agent arrives. The dispatch engine runs the follow-up sweep itself; per-card agents handle only their assigned card.
+description: Handle an operator Action chip, with or without a delivered operation token. Covers each chip's meaning, the approved-send path, and the Status already set before the card agent arrives. The dispatch engine runs the follow-up sweep itself; per-card agents handle only their assigned card.
 ---
 
 ## Resume from the board
 The engine delivers scheduled checks to their card agents before mail triage. A per-card agent handles
-only its assigned card; the legacy whole-inbox runner uses `board pending` to find operator actions.
+only its assigned card; a run that received no `--operation` token uses `board pending` to find
+operator actions.
 
 For each assigned actioned card, act on the request, record the outcome, reply and reconcile mail/time
-triggers before the final receipt. Use `board clear-action` for a completed operation or `board action-fail`
-for failure or an unverified outcome, never both. Either receipt ends operation-scoped writes.
-Pass the delivered `--operation` token on every card mutation; a superseded operation must stop.
-Legacy actions without a delivered token retain `board clear-action` as their receipt.
+triggers before the final receipt. While an operation is open, pass its `--operation` token on every
+card mutation; a superseded operation must stop. The receipt for a Continue, or for a run with no
+token, is `board clear-action` on completion or `board action-fail` on failure or an unverified
+outcome, never both; a 📤 帮我发送 execution is closed by the runtime itself (below). A receipt ends
+operation-scoped writes. A blocker record, wherever it is written, names the evidence, what changed
+since approval, the step it prevents, and the smallest step only he can perform; unaffected work
+continues and the remaining work stays yours.
 
-**The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped,
-because a status that waits on you is a status that never changes when you hit your deadline or die.
-Continue and 📤 帮我发送 both land in `🔍 Researching`: while you carry the request out the card is
-being worked, and it does not sit in `⏸ Needs you` under his name. Keep that state while handling
-the request, then set Status from who must act next. A rewritten necessary draft awaits approval
-in needs_you; a verified send may leave an external wait, more agent work or a completed matter.
+**The Status is already set when you arrive.** The handler moves the card the moment the chip is tapped:
+Continue and 📤 帮我发送 both land in `🔍 Researching`. Keep that state while handling the request, then
+set Status from who must act next: a rewritten necessary draft awaits approval in needs_you; a verified
+send may leave an external wait, more agent work or a completed matter.
 
-Once the operator has approved an action, execute it through verification, and keep going until it is
+Once the operator has approved an action, execute it through verification and keep going until it is
 done. A failure in your own means — a bug in a script you wrote, a click the page swallowed, a browser
 timeout, a stale selector — is not a blocker and does not spend his approval: fix it and continue in
 the same run, as many times as it takes, as long as what he approved (the action, the account, the
-destination, the content) is unchanged. Re-staging and asking for another press because your tool
-broke hands your own job back to him. Pause only for an observed
-execution blocker outside your means — a refusal by the destination, a lockout, a step only he can
-do, a rule that names the stop — or new information that materially changes the approved proposal;
-name the evidence, what changed since approval and the step it prevents. Your disagreement with his
-approved choice or reconsideration of facts already known before approval is not new information.
-Keep ownership of the work and continue the unaffected steps; do not substitute instructions for
-him to do it himself.
-External rules about AI use are information for the operator when preparing work and executing an
-approved submission. Follow technical requirements and report relevant restrictions accurately.
-Check actual declarations required by the destination against the facts and approved content; do not
-invent a declaration from the mere act of uploading. Never make a false declaration. Higher-priority
-instructions still govern execution; cite the applicable instruction when it prevents an approved action.
-Reassess earlier refusals under the current instructions and evidence before carrying them into card
-state or scheduled checks; an earlier agent's refusal is not itself an instruction.
+destination, the content) is unchanged; never re-stage and ask for another press because your tool
+broke. Pause only for an observed execution blocker outside your means — a refusal by the
+destination, a lockout, a step only he can do, a rule that names the stop — or new information that
+materially changes the approved proposal. Your disagreement with his approved choice, or facts
+already known before approval, is not new information. Never substitute instructions for him to do it.
+External rules about AI use are information for the operator, reported accurately while preparing and
+executing; technical requirements are followed. Check the declarations the destination actually
+requires against the facts and approved content; never invent one from the act of uploading, and never
+make a false one; a field the form requires is content for the preview, not a disclosure you add.
+Higher-priority instructions still govern execution; cite the one that prevents an
+approved action. Reassess an earlier agent's refusal under current instructions and evidence before
+carrying it into card state or scheduled checks; it is not itself an instruction.
 
 ## Prepare before asking for execution
 
@@ -51,28 +50,23 @@ recommend and Summary names the others, so his answer is a click or an edit rath
 for you to draft from. This applies during initial handling, Continue, comments, and scheduled checks.
 Read the latest relevant sources and check whether the action already happened before asking.
 Checks that must hold at the moment of acting are performed then, by you, and a check that cannot
-be verified stops the action rather than proceeding on the older reading. A comment and closing a PR remain separate
-actions. If script preparation is blocked, record the observed blocker and continue unaffected work;
-never label an unprepared action ready. Stop itself does not execute anything.
+be verified stops the action rather than proceeding on the older reading. A comment and closing a PR
+remain separate actions, never inferred from each other's wording. If script preparation is blocked,
+record the blocker; never label an unprepared action ready. Ending your turn runs nothing.
 
 - **▶️ Continue / redo** → the operator is asking you to carry the matter through its remaining work.
   Read the latest request and card, identify the intended result, then execute the steps you can perform
-  under existing authorization. This includes producing the actual deliverable, not just researching
-  how to do it, checking availability, drafting a plan or reminding the operator to do the work.
-  A card's old assignment of work is not evidence that the task requires his hands. If it assigns him work
-  you can perform, take that work on; do not ask whether he wants you to continue after this click.
-  For example, a request to complete an assignment includes working through the available problems and
-  preparing the answers, rather than only checking the release date and reporting the deadline.
-  Carry forward approvals already given. If the remaining step requires approval of new outward content,
-  put the complete deliverable in `Draft` using `board-cli` and let 📤 帮我发送 be his approval of it.
-  **Continue and 📤 帮我发送 now do the same mechanical thing — each wakes you with the operation token —
-  and differ only in what his press approved.** Continue authorizes continued work and approves no
-  outward content, so nothing may go out on it. 📤 帮我发送 approves the `Draft` exactly as it stood
-  when he pressed it, and that press is his approval for that one outward action. Reading a
-  Continue as an approval to send is the error the unification made easy.
-  When blocked, state the observed obstacle and the smallest step only the operator can perform, retain
-  ownership of the remaining work, and resume when it clears. A genuine future release can be scheduled;
-  resume the substantive work when the material becomes available.
+  under existing authorization — the actual deliverable (for an assignment, the worked problems and
+  prepared answers), not research on how to do it, a plan, an availability check or a reminder to him.
+  A card's old assignment of work to him is not evidence that it needs his hands: where you can do it,
+  do it, and do not ask whether he wants you to continue after this click. Carry forward approvals
+  already given; where the remaining step needs approval of new outward content, put the complete
+  deliverable in `Draft` (`board-cli`) and let 📤 帮我发送 be his approval of it.
+  **Continue and 📤 帮我发送 wake you the same way, with the operation token, and differ only in what
+  his press approved.** Continue authorizes continued work and approves no outward content, so nothing
+  goes out on it; 📤 帮我发送 approves the `Draft` exactly as it stood when he pressed it, for that one
+  outward action. When blocked, record the blocker and resume when it clears; when the material is
+  genuinely not yet released, `board schedule` a check for its release date and resume then.
 - **📤 帮我发送 (internal action `❗ Execute script`)** → the click wakes this card's agent with the
   operation token and you carry the action out yourself. It approves the `Draft` as it stood when he
   pressed it, and it is the whole of his approval for that action: nothing else is required of him
@@ -86,20 +80,20 @@ never label an unprepared action ready. Stop itself does not execute anything.
   undetected rather than absent, so open the page and look. A portal that opens without a login is
   a portal you can submit through: make it the 📤 帮我发送 action instead of telling him to do it by
   hand, and say in `Draft` exactly what goes where — the file's full path and size, the destination
-  page, and anything optional he is choosing to include or leave out. The reason to be exact is
-  that the Draft as it stood at the click is the whole of what he approved.
+  page, and anything optional he is choosing to include or leave out.
   **An upload is not a submission until the portal says so.** Read the state back from the page
   afterwards — the assignment or request moving out of its unsubmitted state, with the timestamp and
-  filename it now shows — and record that receipt. A successful upload command is not it, and a
-  recorded receipt still does not mean the matter is finished.
+  filename it now shows — and record that confirmation. A successful upload command is not it, and a
+  recorded confirmation still does not mean the matter is finished.
   The runtime closes the execution operation itself; use ordinary card updates for diagnosis after
-  that receipt, without reusing its completed operation token. On failure, inspect whether the action
+  that, without reusing its completed operation token. On failure, inspect whether the action
   partly succeeded, then prepare a corrected version for a new click. Never automatically repeat the
   external action, including after a timeout with no result. Changes to the action, account,
   destination or content require a new staged version and another click. If the action is no longer
   needed, clear its preview and explain why. Once verified sent, clear the consumed Draft, use
   awaiting for an external wait, needs_you for remaining operator work, and done only when no work
-  remains. Log a verified send in the configured daily log when available.
+  remains. Log a verified send in the daily log as `✅ Done` where `cfg board.daily_log_database_id`
+  is set.
 - **✅ Done and ✖ Cancel say what he wants, not what is true of the matter.** The handler writes the
   terminal status from the label before you arrive, so your first job is to check it against what
   the card itself still carries, and to put it back where the card contradicts it.
@@ -112,7 +106,7 @@ never label an unprepared action ready. Stop itself does not execute anything.
   he is deferring to, and write one line saying which reading you took and how he gets the other
   («你点了取消，我读成暂时不办而不是不办了，因为 X 还在；要真销掉在卡上说一句»).
   **Whichever reading you take, the card does not stay in `needs_you`** — his press says it is not
-  waiting on him right now, and leaving it there leaves the column he was clearing. Where it goes
+  waiting on him right now. Where it goes
   instead follows from what the card holds, not from a default: `awaiting` for the date or the
   external thing it now waits on, `done` where the check shows nothing is left to do, `cancelled`
   where the matter really is dropped. Name which one you chose.

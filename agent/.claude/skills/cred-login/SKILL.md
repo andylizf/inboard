@@ -44,10 +44,9 @@ redirects when logged out.
 cred with <id> -- bash -c '<command that uses "$CRED">'
 ```
 
-**Shell expansion:** `cred with … -- <cmd>` runs `<cmd>` directly,
-with no shell, so `"$CRED"` expands only if `<cmd>` IS a shell. Writing
-`cred with <id> -- browser fill @e5 '$CRED'` types the literal 5 characters `$CRED` into the
-field — a wrong login that LOOKS right, dots in the box and all, then "password does not match". Always
+**Shell expansion:** `cred with … -- <cmd>` runs `<cmd>` directly, with no shell, so `"$CRED"` expands
+only if `<cmd>` is a shell. `cred with <id> -- browser fill @e5 '$CRED'` types the literal five
+characters `$CRED` into the field — dots appear in the box, then "password does not match". Always
 wrap it:
 
 ```sh
@@ -71,7 +70,7 @@ and verify access to the destination before reporting login success. Reuse that 
 later tasks and check whether the session is still accepted.
 
 **When the vault is locked** every fetch fails until a human unlocks it, and it stays locked until then —
-there is no timer that will clear it. Do NOT retry in a loop. Say so on the card in one line and follow
+there is no timer that will clear it. Do not retry in a loop. Say so on the card in one line and follow
 `human-gate`; the safe readiness probe is `cred status`, never a login attempt.
 Use the broker's reported unlock procedure on the machine running it.
 

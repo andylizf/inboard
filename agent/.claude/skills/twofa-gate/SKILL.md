@@ -10,7 +10,7 @@ Anything that sends a push, a code, or an approval prompt to him — Duo, an aut
 an SMS code, a passkey tap — goes through the shared gate first:
 
 ```sh
-twofa-gate acquire <service>     # exit 0 = you hold the only outstanding push; exit 1 = do NOT push
+twofa-gate acquire <service>     # exit 0 = you hold the only outstanding push; exit 1 = do not push
 … attempt the login …
 twofa-gate release <service> ok        # he answered
 twofa-gate release <service> timeout   # he did not — this blocks everyone for a cooldown

@@ -1,6 +1,6 @@
 ---
 name: board-cli
-description: The `board` and `email` command reference AND the rules bound to specific commands — which drafting helper is correct when, what `done` clears, why `archive` is not completion, how a card's title is written. Load this at the start of every run before your first board or email command, and again whenever you need the exact form of a flag; a confidently-wrong flag costs a deadline the sweep cannot see. Covers every board subcommand, the email helpers including the one path that sends, `cfg`, and how the board and the daily log divide the work.
+description: The `board` and `email` command reference and the rules bound to specific commands — which drafting helper is correct when, what `done` clears, why `archive` is not completion, how a card's title is written. Load this at the start of every run before your first board or email command, and again whenever you need the exact form of a flag. Covers every board subcommand, the email helpers including the one path that sends, `cfg`, and the daily log.
 ---
 
 ## Tools
@@ -10,26 +10,31 @@ any value from the deployment's config (`cfg identity.name`, `cfg preferences.ca
 
 ### Drafts and approval
 
-The card's Draft is a preview of a proposed outward action, including email, a GitHub comment or a form
-submission. Before staging text, apply `writing-for-people` and its review procedure; log review evidence
-on the card. For non-email actions use `board stage-script` below: include the action and platform,
-sending account, exact destination URL or recipient, and the full content or submitted fields. A comment
-and closing a PR are separate actions; show each proposed action explicitly rather than inferring one
-from the other's wording. Keep the preview self-contained so the operator can approve it without reading
-the log. The preview is the operation and nothing else: what went wrong last time is one log line, and
-your own tooling and how you tested it reach neither him nor the preview.
-Preview labels describe the operation; publish only its content, without those labels.
-Changes to any of these details require a new 📤 帮我发送 click.
+The card's Draft is the preview of a proposed outward action — an email, a GitHub comment, a form
+submission. Before writing or editing one, load `writing-for-people`; before publishing it to the card
+or Gmail, complete its `writing-reviewer` review and apply the accepted fixes (its one-sentence
+instant-reply exception still requires checking the reviewer's tables yourself), and record the reviewed
+draft version, findings and fixes — or the exception and self-check — in `board log`, never in Summary
+or the email body. Review precedes his approval; a rewrite after approval is a new preview and a new
+click, and a rewritten draft is never sent on the old approval.
+For non-email actions use `board stage-script` below: include the action and platform, sending account,
+exact destination URL or recipient, and the full content or submitted fields. A comment and closing a
+PR are separate actions, each shown explicitly, never inferred from the other's wording. The preview
+is self-contained — he approves it without
+reading the log — and is the operation and nothing else: what went wrong last time is one log line, and
+your own tooling and how you tested it reach neither him nor the preview. Publish the preview's
+content without the lines that describe the operation. Any change to these details requires a new
+📤 帮我发送 click.
 
 Store the complete preview through these commands; they chunk long text and verify Draft by readback.
-The Summary length target does not apply to Draft. A size error requires a smaller explicitly scoped
-proposal or a reported storage limitation, never silent truncation or hiding the rest in the log.
-The operator reviews and approves on the card; do not send them to an email drafts folder or ask for
-a comment saying yes. A send failure describes the operation, not whether the matter is finished.
+Summary's 300-character rule does not apply to Draft. A size error requires a smaller explicitly scoped proposal or a reported
+storage limitation, never silent truncation or hiding the rest in the log. He reviews and approves on
+the card: never send him to an email drafts folder or ask for a comment saying yes. A send failure
+describes the operation, not whether the matter is finished.
 
 `board approved-draft --card C --operation TOKEN` returns the approved current preview, or fails if the
-operation is stale, is not an approved execution, or the preview changed. For the unified button it
-requires a running native script with a bound preview. This check does not send anything. The runtime
+operation is stale, is not an approved execution, or the preview changed. For the 📤 帮我发送 button
+it requires a running native script with a bound preview. This check does not send anything. The runtime
 supplies INBOARD_OPERATION and INBOARD_CARD to the script; use them for guarded sending commands.
 
 ### Prepared scripts
@@ -44,9 +49,8 @@ not execute the script. Keep credentials in the project's secret store, outside 
 The button executes the saved version once through Claude Code's native `!` mode. Inspect the saved
 result and destination before preparing another version after a failure or an unknown outcome.
 Follow `card-actions` for diagnosis and result reporting. Declared inputs are checked by hash;
-arbitrary dependencies and remote state are not frozen. Command output returns to the original
-session; automatic response follows Claude Code's `respondToBashCommands` setting. Prepare this
-before asking for approval; Stop never automatically clicks or executes it.
+arbitrary dependencies and remote state are not frozen. Prepare this before asking for approval;
+ending your turn never clicks or executes it.
 
 `board stage-email --card C --account ACCOUNT --draft-id ID` binds the current email Draft to a
 guarded send script. `email ... +draft` calls this automatically. Use it for an existing Gmail draft
@@ -56,21 +60,14 @@ after checking that its account, recipients, subject and body still match the cu
 
 Account ids come from `board accounts` (each row: `id`, `label`, `address`). Then `email <id> gmail ...`.
 
-Before writing or editing an email draft, load `writing-for-people`. Before publishing the draft to
-the card or Gmail, complete its `writing-reviewer` review and apply the accepted fixes. Its one-sentence
-instant-reply exception still requires checking the reviewer's tables yourself. Record the reviewed
-draft version, reviewer findings and fixes (or the exception and self-check results) in `board log`,
-not Summary or the email body. Follow the skill's revision rules when editing an existing draft.
-Review precedes operator approval; never silently rewrite an approved draft before sending.
-
 - **Read:** `+triage --query '<gmail search>' --max N --format json` → headers only (id, from, subject,
   date). `+read --message-id <ID>` → one message's body and headers, text only — use the `email-images`
   skill when it has a figure or looks empty. Raw API: `users messages list --params '{"userId":"me","q":"from:<addr>","maxResults":20}'`
   for a sender's history.
 - **Draft — one command, and it is the only one:** `+draft --card <CARD> --body TEXT` plus either
   `--reply-to-message <msgid>` (To, subject, thread and In-Reply-To come from that message; use it when
-  answering mail someone ELSE sent) or `--to <addr> --subject S [--thread-id T] [--in-reply-to <Message-ID>]`
-  (a new mail, or a follow-up on a thread the OPERATOR started — replying there would address him). It
+  answering mail **someone else** sent) or `--to <addr> --subject S [--thread-id T] [--in-reply-to <Message-ID>]`
+  (a new mail, or a follow-up on a thread **the operator** started — replying there would address him). It
   creates the Gmail draft, puts the text into Draft, stages the guarded send script and logs the draft id.
   Both forms accept `--cc <addresses>` and `--bcc <addresses>`. The card preview starts with From, To,
   Cc, Bcc and Subject, then a `---` separator and the body. Pass only the email body to `--body`;
@@ -92,12 +89,11 @@ Review precedes operator approval; never silently rewrite an approved draft befo
 - **`board subscriptions`** → the watchlist: open cards that wrote down what mail they expect
   (`card, subject, subscription, status, sender`). A hit is the card claiming the mail.
 - **`board cards`** → every open card, compactly (`card, status, subject, sender, account, edited`). The
-  dispatcher reads this whole; a card agent rarely needs it.
-- **`board search --query '<words>'`** → substring match across EVERY card, `✅ Done` included, over Subject,
-  Sender, Summary, Subscription **and the card body** — a name written once in a log line is findable. Each
-  hit reports `matched` and a body `snippet`. Filters: `--open-only`, `--status`, `--account`,
-  `--since YYYY-MM-DD`, `--limit`; `--no-body` for a title-only sweep. It answers "what cards mention
-  this?", never "does this mail belong there" — a bank's name matches every card that bank ever appeared on.
+  dispatcher reads this whole; a card agent reads it before settling a title.
+- **`board search --query '<words>'`** → substring match across every card, `✅ Done` included, over Subject,
+  Sender, Summary, Subscription and the card body. Each hit reports `matched` and a body `snippet`.
+  Filters: `--open-only`, `--status`, `--account`, `--since YYYY-MM-DD`, `--limit`; `--no-body` for a
+  title-only sweep. It answers "what cards mention this?", never "does this mail belong there".
 - `board schedules --card C` → every pending time trigger, with its id, offset-aware time and action.
 - `board comments --card C` → the card's comment thread.
 
@@ -142,7 +138,8 @@ Review precedes operator approval; never silently rewrite an approved draft befo
 - **`board subscribe --card C --desc '<which follow-up mail belongs here, until when>'`** → register a
   matter that will keep getting mail, so the next reminder lands on this card instead of a new one. Write it
   at the grain he acts on, not the sender's.
-- `board clear-action --card C` → reset the chip after handling an Action; the completion receipt.
+- `board clear-action --card C [--operation TOKEN]` → the completion receipt after handling an Action;
+  `board action-fail --card C [--text TXT] [--operation TOKEN]` → the receipt for a failure or unverified outcome.
 - `board archive --card C` → **trashes** the card (recoverable ~30 days). Only for a mistaken or duplicate
   card, never for completion.
 
@@ -151,7 +148,6 @@ Review precedes operator approval; never silently rewrite an approved draft befo
 `board daily --type '🚫 Unsubscribe'|'✅ Done'|'✉️ Draft'|'ℹ️ FYI' --subject S --account <label> [--detail D]`
 — only where a daily-log database is configured; otherwise the FYI is simply marked processed.
 
-**Two surfaces.** The board holds what is live (`🔍 Researching` = queued or active agent work,
-`⏳ Waiting` = waiting for mail, time or an external condition, `⏸ Needs you` = his required move,
-including approval of a necessary draft) and the `✅ Done` column keeps finished items as a record. Pure FYI events go to the daily log,
-where they cost him nothing until he chooses to look.
+The board holds what is live (`🔍 Researching` = queued or active agent work, `⏳ Waiting` = waiting for
+mail, time or an external condition, `⏸ Needs you` = his required move, including approval of a
+necessary draft) and `✅ Done` keeps finished items as a record. Pure FYI events go to the daily log.

@@ -1,221 +1,189 @@
 ---
 name: mail-pipeline
-description: The full new-mail pipeline: what counts as new, how to classify it, how to route a follow-up onto the matter that already owns it, when to ask memory and what to write back, and how to record the result. Load this the moment you are handed new mail to handle — it is the procedure, and working from memory of it instead skips the steps that keep one matter from becoming three cards.
+description: The full new-mail pipeline: what counts as new, how to classify it, how to route a
+follow-up onto the matter that already owns it, when to ask memory and what to write back, and how to
+record the result. Load this the moment you are handed new mail to handle — it is the procedure, and
+working from memory of it instead skips the steps that keep one matter from becoming three cards.
 ---
 
 ## New mail pipeline
-1. Read `$INBOARD_STATE/processed.json` (object: id → {...}). Missing/empty = `{}`. (State dir = `$INBOARD_STATE`.)
-2. New mail (READ **or** UNREAD — do NOT filter by `is:unread`; `processed.json` is the agent's own
-   seen-ledger, so mail the operator already opened is still handled), EVERY account from `board accounts`:
+1. Read `$INBOARD_STATE/processed.json` (object: id → {...}); missing or empty = `{}`.
+2. New mail, read or unread — do not filter by `is:unread`; `processed.json` is your own seen-ledger, so
+   mail the operator already opened is still handled — from every account in `board accounts`:
    `email <id> gmail +triage --query '{in:inbox in:sent} newer_than:2d' --max 100 --format json`.
-   NEW = triage ids not in `processed.json`.
-3. **Nothing new after step 2 → output NOTHING and stop.** An empty cycle is silent; there is no tally to
-   post and no card to touch.
-4. For each NEW message: `email <id> gmail +read --message-id <ID>` → body + headers.
-   - **Has an image, or looks empty?** If it has an image attachment, its text points to a figure (`see below` /
-     `attached` / `as shown`), OR the text body is suspiciously empty/thin → use the **`email-images`** skill
-     before deciding (`+read` is text-only). Obvious promo/newsletter noise (clear from sender+subject) needs no image check.
-5. **Classify**: `IMPORTANT` (needs reply / deadline / money / key-person / real action) vs `NOISE`
+   New = triage ids not in `processed.json`.
+3. **Nothing new → output nothing and stop.** No tally, no card touched.
+4. For each new message: `email <id> gmail +read --message-id <ID>` → body + headers. `+read` is text
+   only: with an image attachment, text that points to a figure ("see below", "attached", "as shown"), or
+   a suspiciously thin body, load `email-images` before deciding. Obvious promo/newsletter noise, clear
+   from sender and subject, needs no image check.
+5. **Classify** `IMPORTANT` (needs reply / deadline / money / key person / real action) vs `NOISE`
    (newsletters, promos, automated notices, social, recruiting blasts).
-   - **A reply to YOU is ALWAYS important — never noise.** If an inbox message is a reply into a thread you (the
-     operator) took part in — it carries `In-Reply-To`/`References`, its subject is a `Re:` to something you
-     wrote, or its thread contains a message from an address you own (see `board accounts`) — then someone is
-     replying to something YOU sent → IMPORTANT, full stop, however unfamiliar the sender's address or however
-     casual it looks. Likewise a genuine one-to-one email from a real human, addressed to you by name and
-     expecting a reply, is IMPORTANT even from an unknown sender. **Never let an odd sender name or casual
-     address push a real personal message into NOISE.** When unsure whether an inbox item is a reply to you,
-     look up the sent side (`email <id> gmail +triage --query 'in:sent to:<addr>'`, or read the thread) BEFORE
-     calling it noise.
-   - **Outgoing mail is also work to track.** Read the body and, when needed, the conversation's latest
-     replies before deciding what remains. An outgoing request awaiting a reply or result, or a promise
-     by the operator to do something, is IMPORTANT even when the email is a reply rather than a first contact.
-     A finished acknowledgement with no remaining action needs no new card. Never draft a reply to the
-     operator's own outgoing message; record that it was sent and apply the outgoing rules in step 6.
-   - **CI / build notifications** (`Run failed`, `CI failed`, workflow-run emails): treat per
-     `cfg preferences.ci_notifications` — `noise` (default) = do NOT put them on the board; `surface` = card them
-     even though the fork test in 6 would not, because he chose to see them.
-     Real PRs / issues / @-mentions / review requests are always IMPORTANT. Auto-close/stale-bot notices = NOISE.
-5b. **Dedup — route follow-ups to an EXISTING matter first** (before creating ANY card):
-    - **Find it — and notice which of the two you got, because they are not the same kind of answer.**
-      · `board subscriptions` — the **watchlist**: open cards that have written down, in their own words,
-        what mail they are still expecting (set by `board subscribe` or `board awaiting --desc`, cleared by
-        `board done`). A hit here is a card saying *this mail is mine*, so it decides on its own.
-      · `board search --query '<sender / key subject words>'` — substring matches across card properties and body
-        over every card, closed ones included. It produces candidates, not evidence: a bank's name matches
-        unrelated matters. Read the candidate's Status and context; an empty Subscription does not mean done.
-      So route straight off a watchlist hit. A search hit still has to earn it under the rules below.
-    - Read a closed card for context. Create a new card referencing it only if the incoming message
-      leaves actual work; an acknowledgement or repeated confirmation is FYI. Do not reopen completed work.
-    - **If it belongs to an ongoing matter** (semantic match to a subscription — a reminder / follow-up for
-      something tracked, or a continuing reply thread) → do **NOT** open a new card. Apply the memory
-      lookup and reconciliation in 5c before changing it, then append to it:
-      `board log --card <ID> --text '<one-line update>'`, then set that card's Status to match reality:
-      · **the reply RESOLVES it** (handled / no further action) → `board done --card <ID>` so the card they
-        tracked as UNFINISHED visibly flips to `✅ Done` (**NEVER** leave a card they think is open sitting open
-        after a reply resolved it); record the resolution in Summary and `board log` without a completion
-        comment. Reply only to answer his question, provide a requested report, or surface a newly required
-        action or material change in its urgency or arrangement.
-      · **it still needs their action** → `board edit --card <ID> --status '⏸ Needs you'`; open Summary with the required action using `board note`.
-      · **NEVER** file the resolution of an OPEN card to the daily log only — an open card MUST close on the board.
-      Then mark the message processed as `handled` — the disposition for mail that belonged to an
-      existing card. Complete the Summary, memory and trigger updates in 6–8 before moving on.
-    - **On an open card, same thread is identity.** Mail carrying the card's `threadId`, or replying to a
-      message it tracks, belongs there however old the card is: a bank answering in October the question you
-      asked in July is that conversation. A *semantic* resemblance is a weaker claim — that the mail looks
-      like the matter — and lands on an open card only.
-    - Only a **genuinely-new** matter gets a new card. **Never `upsert` a follow-up** (upsert keys on msgid → duplicate).
-5c. **Check memory before working an actionable matter**, whether its card is new or existing.
-    Noise needs no lookup. Reuse a lookup already made for this matter in the current event.
-    - **`omem search '<the matter in a few words>'`** — the matter, not the email subject
-      (`ACME storage-quota request`, not `Re: FW: ACTION REQUIRED - please respond`).
-    - **One lookup per thing, not per group.** If several unrelated alerts arrived together, each
-      needs its own search. Answering the first and carding the rest looks exactly like having
-      followed this step.
-    - **"Was this you?" — per `cfg preferences.identity_alerts` (default `assume-self`): assume it was him
-      and do not ask.** A sign-in from a new device or place, a third-party app authorization, a password
-      reset he requested, a new API token — these are notices that an event happened, and
-      the operator is the overwhelmingly likely cause of every one. Record it (`board daily --type 'ℹ️ FYI'`
-      where a daily log is configured; otherwise a one-line `board log` on the nearest related card, or
-      nothing if there is none — but never a card)
-      and move on. If memory happens to name the app or device, say so in the log line; do NOT make the
-      lookup a precondition, because memory cannot hold every service he has ever touched and its silence
-      is not suspicion.
-      · **Never let a confirmation question gate the work.** If the same mail also carries something
-        actionable — an appointment, a form, a deadline, a temporary PIN — do that part. Putting "was
-        that you?" on the card blocks everything else behind a question whose answer is
-        almost always yes.
-      · **Escalate a concrete problem that needs action.** An account locked after unauthorized access,
-        a transaction blocked pending a response, or a change the operator reports as unauthorized
-        warrants investigation. An ordinary successful payment or transfer is FYI, regardless of amount.
-        A new recipient or absence from memory is not evidence of a problem. Ask "was this you?" only
-        when specific evidence calls for verification or the operator requested that monitoring.
-      · **Classify the remaining work, not the sender or money movement.** Record ordinary bank notices
-        without making the operator confirm each one. If a notice changes an existing matter, update
-        that card instead of creating a new task.
-    - No memory match adds no context; retain the card routing established in 5b and continue to 6.
-    - **A memory covers this matter** → read it, and follow any pointer it gives to the real source of
-      truth first. Then answer the ONE question that decides everything: **does this mail change what
-      is already known?**
-      · **An outgoing obligation is still open but has no open card** → create the todo even if memory
-        already records it. Memory cannot surface a waiting card or remind the operator to fulfil a promise.
-      · **No, there is no existing destination card, and no untracked outgoing obligation remains** — a repeat reminder, a status already on record, a deadline already scheduled, a
-        decision already made → **do NOT open a card.** `board daily --type 'ℹ️ FYI' --subject
-        '<one line: what arrived and why it needs nothing>' --account <label>` and move on. A card
-        that hands back something already settled costs the operator attention twice: once to read
-        it, once to remember why he can ignore it. Enough of those and he stops trusting the board.
-      · An existing destination card still receives reconciliation and state updates even when memory
-        already knows the event; a memory match does not skip that card's work.
-      · **Yes** — new information, a changed deadline, something now genuinely blocked on him →
-        handle it per 6.
-    - **Write the change back.** Whenever this cycle moved a matter that memory tracks — a date got
-      set, a reply landed, a decision was made, a blocker cleared — update that memory file (the
-      write format is in your context). Not a running commentary: record what a reader coming to this
-      matter cold next week needs to know.
-      · **Every date you write forward must carry how it is known.** Not `2026-03-05`, but
-        `2026-03-05 15:45 (confirmation email)` or `2026-03-05 (their target; nothing booked)`. A proposal, an
-        invitation, and a booking are all just dates once the qualifier is gone, and the next
-        reader cannot recover the difference, and a bare date gets restated as a commitment by the next
-        file that copies it. Someone confirming a DEADLINE is never evidence the
-        operator has committed to a date inside it — record the deadline as a deadline.
-      · Do not record an operator decision as settled without his confirmation. Record verified
-        external outcomes from their sources; an old card saying it awaits him may be stale.
-    - **Repair conflicting records from evidence.** When a relevant memory and card disagree, compare
-      their dates and underlying sources, then correct the stale account. Neither location wins by
-      itself. If the conflict cannot be resolved, retain the uncertainty. Limit this reconciliation
-      to records needed for the assigned matter.
+   - **A reply to the operator is always important.** A message that carries `In-Reply-To`/`References`
+     into a thread he took part in, a `Re:` to something he wrote, or a thread holding a message from an
+     address in `board accounts` is someone answering him, whatever the sender's address or tone. So is a
+     one-to-one mail from a real person addressed to him by name and expecting a reply. When unsure
+     whether a mail is a reply to him, read the sent side (`email <id> gmail +triage --query 'in:sent
+     to:<addr>'`, or the thread) before calling it noise.
+   - **Outgoing mail is work to track.** Read the body and the conversation's latest replies to work out
+     whose move remains. A request awaiting a reply or result, or a promise by the operator, is
+     IMPORTANT even when the mail is itself a reply; a finished acknowledgement with no remaining action
+     needs no card. Never draft a reply to his own outgoing mail; record that it was sent and route it
+     under step 6.
+   - **CI / build notifications** (`Run failed`, `CI failed`, workflow-run mails) follow
+     `cfg preferences.ci_notifications`: `noise` (default) keeps them off the board; `surface` cards them
+     although the fork test in 6 would not. Real PRs, issues, @-mentions and review requests are always
+     IMPORTANT — read in full and fork-tested, and a mention with no ask still only logs; auto-close
+     and stale-bot notices are NOISE.
 
-6. **Handle & record.** ⚠️ Write EVERY action down or it didn't happen — in BOTH places, they answer
-   different questions: the board records what you DID to this matter and what the operator must do
-   next; memory records where the matter now STANDS for whoever picks it up next (5c). A board-only
-   record is stale the moment another session touches the same matter. Route it:
-   - **Outgoing mail:** work out whose move remains from the latest conversation, not just the sent item.
-     Waiting for a reply or result is actionable: create or update ONE card, use `board awaiting --card
-     <ID> --desc '<who owes what response or result>'`, and update Summary to describe the remaining wait.
-     A commitment by the operator (for example, promising to send materials by Friday) stays open with
-     `Needs you`, a concrete next action, and Due and scheduled checks when dated. If both sides owe work, keep the
-     operator's next action visible and subscribe to the expected reply. Close an existing card only when
-     no action or awaited result remains. A simple acknowledgement needs no new card. Record the sent
-     date, recipient and remaining action in the state note and log; use the configured daily sent type
-     when a daily log exists. Never invent a deadline from the reminder interval.
-   - **The fork test, before you route anything: would he DO anything about this, including following up
-     if a reply or result never arrives?** Not "is it
-     interesting", not "might he want to see it" — would he take an action that changes something.
-     **Anything he would glance at and move past is NOT a card**, however genuinely informative: a
-     statement, a notification, a status, an FYI, a bill with nothing owed, someone mentioning him
-     somewhere, a build waiting on CI, a notice that something happened. Those go to the daily log,
-     where they cost him nothing until he chooses to look. A card costs him twice — once to read it,
-     once to work out that it needed nothing — and a board where most cards cost that is a board he
-     stops trusting. When you cannot name the action in a short phrase ("send the reply", "pick one of
-     two", "book it before the 21st"), there isn't one: log it.
-     "Do you want to act?" does not establish an obligation. Optional balance top-ups, extra explanations
-     nobody requested and acknowledgements of routine transactions remain information unless the operator
-     takes them up or concrete circumstances require action. Put related information on an existing card
-     without making it Needs you or extending the matter after its actual work ends. A real issue such as
-     an unpaid amount due or a service interruption still needs handling.
-     Only actionable matters receive subscriptions and timed reviews. During a review, reapply this test:
-     if a card was created for a pure notice, preserve its information in the daily log where configured,
-     cancel its time/mail triggers and archive the mistaken card. Do not mark a notice Done or keep
-     asking for acknowledgement. Keep genuine work on mixed cards and remove only the invented action.
-   - **Actionable** (a necessary draft awaiting approval, or a required decision only he can make =
-     `⏸ Needs you` with the request in Summary / in progress) → a BOARD card (`board upsert`). A draft the agent chose
-     to create does not establish a task. When actual work is complete, close the matter without waiting
-     for optional thanks or asking another person to tidy their alert. An upstream alert remaining open
-     matters only when it leaves a concrete risk, restriction or required task outcome unresolved.
-     An optional suggestion with no decision to track is FYI. A direct invitation awaiting acceptance
-     or an opportunity the operator asked to track belongs in needs_you when his decision is next,
-     even without a deadline. Optional wording alone does not make a direct invitation FYI.
-   - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by a
-     third party) → the card goes to `⏳ Waiting` with `board awaiting --desc '<what you are waiting
-     for>'`.
-   - **If the matter has a deadline, put it on the card** with `--due YYYY-MM-DD`. Schedule a useful
-     pre-deadline check with `board schedule`, and an expiry check only if the window shutting ends the
-     matter. On any new development, reconcile all schedules: a reply may make an unanswered-mail check
-     obsolete. Due passing alone never proves completion; overdue obligations remain open.
-   - **FYI / done event** (unsubscribe, completion) → the DAILY LOG (`board daily`, where one is configured;
-     otherwise it is simply marked processed), NOT the board — EXCEPT a
-     completion that closes an OPEN card, which must FIRST flip that card to `✅ Done` (see 5b).
-   - **Pure noise, no action** → nothing recorded (the only exception).
-   For received mail, then handle by type (outgoing mail follows the outgoing rules above):
-   - **IMPORTANT & substantive, with a necessary reply under the fork test above** → the assigned card agent:
-     research with all materials, load `writing-for-people`, write a considered reply and complete its
-     `writing-reviewer` review before saving it (follow the drafting and review-record rules in `board-cli`):
-     `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` — it puts the draft on the
-     card and logs its id itself. Then
-     `board upsert --msgid <ID> --subject '<subj>' --account <label> --status '⏸ Needs you' --sender '<from>'`.
-     Use `board note` to open the complete Summary with the required decision or draft approval.
-     Keep the header-bearing Draft preview written by `+draft`; do not replace it with the bare body.
+5b. **Route a follow-up to the existing matter before creating any card.** Two lookups, which answer
+    differently:
+    - `board subscriptions` — the watchlist: open cards that wrote down which mail they still expect (set
+      by `board subscribe` or `board awaiting --desc`, cleared by `board done`). A hit is the card claiming
+      this mail; route on it alone.
+    - `board search --query '<sender / key subject words>'` — substring matches over every card's
+      properties and body, closed cards included. A hit is a candidate, not evidence: read its Status and
+      context; an empty Subscription does not mean done.
+    Rules for a match:
+    - On an open card, same thread is identity: mail carrying the card's `threadId`, or replying to a
+      message it tracks, belongs there however old the card is. A semantic resemblance lands on an open
+      card only.
+    - A closed card is context. Create a new card referencing it only when the incoming mail leaves
+      actual work; an acknowledgement or repeated confirmation is FYI. Do not reopen completed work.
+    - Mail that belongs to an ongoing matter never gets a new card. Run 5c first, then append
+      `board log --card <ID> --text '<one-line update>'` and set Status to match reality: the reply
+      resolves it → `board done --card <ID>` (a card he tracks as open never stays open after the reply
+      that resolved it; record the resolution in Summary and the log, with a comment only to answer his
+      question, deliver a requested report, or surface a newly required action or a material change in
+      its urgency or arrangement); it still needs his action → `board edit --card <ID> --status '⏸
+      Needs you'` and
+      open Summary with that action. The resolution of an open card is never filed to the daily log
+      alone. Mark the message `handled`, then finish the Summary, memory and trigger updates in 6–8.
+    - Only a genuinely new matter gets a new card. Never `upsert` a follow-up: upsert keys on msgid and
+      would duplicate.
+
+5c. **Check memory before working an actionable matter**, new card or existing; noise needs no lookup,
+    and a lookup already made for this matter in this event is reused.
+    - `omem search '<the matter in a few words>'` — the matter, not the subject line (`ACME storage-quota
+      request`, not `Re: FW: ACTION REQUIRED - please respond`). One lookup per thing: several unrelated
+      alerts in one batch each get their own search.
+    - **"Was this you?"** follows `cfg preferences.identity_alerts` (default `assume-self`): a sign-in
+      from a new device or place, a third-party app authorization, a password reset he requested,
+      a new API token is a
+      notice that an event happened, and he is its cause. Record it (`board daily --type 'ℹ️ FYI'` where a
+      daily log is configured; otherwise a one-line `board log` on the nearest related card, or, where no
+      related card exists, nothing) and move on; where memory names the app or device, say so, but
+      memory's silence is not suspicion.
+      Do what else the same mail carries — an appointment, a form, a deadline, a temporary PIN — rather
+      than parking it behind the question. Investigate only a concrete problem: an account locked after
+      unauthorized access, a transaction blocked pending a response, a change he reports as unauthorized.
+      An ordinary payment or transfer is FYI whatever the amount; a new recipient or absence from memory
+      is not evidence. Ask "was this you?" only on specific evidence or where he asked for that
+      monitoring. A notice that changes an existing matter updates that card rather than opening one.
+    - No memory match → keep the routing from 5b and continue to 6.
+    - A memory covers the matter → read it, follow any pointer to the real source of truth first, then
+      decide whether this mail changes what is known:
+      · an outgoing obligation is open with no open card → create the card even if memory records it;
+        memory cannot surface a waiting card or remind him of a promise;
+      · nothing new, no untracked obligation and no open card for it — a repeat reminder, a status
+        already on record, a deadline already scheduled, a decision already made → no card:
+        `board daily --type 'ℹ️ FYI' --subject '<one line: what arrived and why it needs nothing>'
+        --account <label>`;
+      · an existing destination card still gets its reconciliation and state update, memory match or not;
+      · new information, a changed deadline, something now blocked on him → step 6.
+    - **Write the change back.** Where the matter stands goes to memory whenever Summary changes: update
+      the file that tracks it, or create one for a matter that will outlive the card (the write format
+      is in your context), with what a reader coming to it cold next week needs, not a running
+      commentary. Every
+      forward date carries how it is known — `2026-03-05 15:45 (confirmation email)`, `2026-03-05 (their
+      target; nothing booked)` — and a confirmed deadline is recorded as a deadline, never as his
+      commitment to a date inside it. An operator decision is recorded as settled only on his
+      confirmation; an external outcome is recorded from its source.
+    - **Repair conflicting records from evidence.** Where a memory and a card disagree, compare their dates
+      and sources and correct the stale one; neither wins by itself, and an unresolved conflict is
+      recorded as uncertainty. Limit this to records the assigned matter needs.
+
+6. **Handle and record.** Every action is written down: the board records what you did to this matter
+   and what he must do next, memory where the matter now stands (5c). Route it:
+   - **The fork test, before routing anything: would he do anything about this, including following up
+     if a reply or result never arrives?** Not "is it interesting" — would he take an action that changes
+     something. Anything he would glance at and move past is not a card, however informative: a
+     statement, a notification, a status, an FYI, a bill with nothing owed, a mention of him, a build
+     waiting on CI, a notice that something happened → the daily log. When you cannot name the action in a
+     short phrase ("send the reply", "pick one of two", "book it before the 21st"), there is none: log it.
+     "Do you want to act?" establishes no obligation: optional top-ups, unrequested explanations and
+     routine transaction acknowledgements stay information unless he takes them up or concrete
+     circumstances require action; related information goes onto an existing card without making it
+     Needs you or extending a matter past its actual work. An unpaid amount due or a service
+     interruption still needs handling. Only actionable matters get subscriptions and timed reviews; a
+     review reapplies this test — a card created for a pure notice has its information preserved in the
+     daily log where configured, its triggers cancelled, and is archived, never marked Done; on a mixed
+     card only the invented action goes.
+   - **Outgoing mail:** waiting for a reply or result is actionable — create or update one card, `board
+     awaiting --card <ID> --desc '<who owes what response or result>'`, Summary describing the wait. A
+     commitment by the operator (materials promised by Friday) stays `Needs you` with a concrete next
+     action, and Due plus scheduled checks when dated; where both sides owe work, keep his next action
+     visible and subscribe to the expected reply. Close an existing card only when no action or awaited
+     result remains. Record the sent date, recipient and remaining action in Summary and the log; use
+     the daily log as `✅ Done` where `cfg board.daily_log_database_id` is set. Never invent a deadline
+     from the reminder interval.
+   - **Actionable** (a necessary draft awaiting approval, or a required decision only he can make →
+     `⏸ Needs you` with the request in Summary; `🔍 Researching` while agent work remains — there is no
+     New column) → a board card (`board upsert`). A draft you chose to create establishes no task; an
+     upstream alert remaining open matters only where it leaves a concrete risk, restriction or required
+     outcome unresolved; an optional suggestion with no decision to track is FYI. A direct invitation
+     awaiting acceptance, or an opportunity he asked to track, is `needs_you` when his decision is next,
+     however optional its wording and however distant its deadline.
+   - **You did his part and now wait on someone else** (a form submitted, a request sent, a reply owed by
+     a third party) → `⏳ Waiting` with `board awaiting --desc '<what you are waiting for>'`.
+   - **A deadline goes on the card** with `--due YYYY-MM-DD`; schedule a useful pre-deadline check with
+     `board schedule`, and an expiry check only where the window shutting ends the matter. On any new
+     development reconcile all schedules. Due passing alone never proves completion; overdue
+     obligations stay open.
+   - **FYI / done event** (unsubscribe, completion) → the daily log (`board daily`, where
+     `cfg board.daily_log_database_id` is set;
+     otherwise just marked processed), except a completion that closes an open card, which first flips
+     that card to `✅ Done` (5b).
+   - **Pure noise** → nothing recorded.
+   Then, for received mail, by type:
+   - **IMPORTANT with a necessary reply under the fork test** → research with all materials, load
+     `writing-for-people`, write a considered reply and complete its `writing-reviewer` review before
+     saving it (the drafting and review-record rules are in `board-cli`):
+     `email <id> gmail +draft --card <CARD> --reply-to-message <ID> --body '<reply>'` puts the draft on the
+     card and logs its id. Then `board upsert --msgid <ID> --subject '<subj>' --account <label> --status
+     '⏸ Needs you' --sender '<from>'` and `board note` for Summary. Keep the header-bearing Draft
+     preview `+draft` wrote; never replace it with the bare body.
    - **IMPORTANT and his decision comes first** (whether to answer at all, who answers, which of two
-     courses) → draft anyway. A `⏸ Needs you` card always carries a Draft: write the reply you would send
-     under your own recommendation, through `+draft` as above, so his move is approve, edit or reject
-     rather than dictate a reply for you to write. Where the wording turns on a fact only he holds, write
-     the draft on the assumption you would bet on and name that assumption in the first line of Summary.
-     `board upsert ... --status '⏸ Needs you'`, then put the decision itself at the start of Summary with
-     `board note`, with the other courses and what changes under each. `⏸ Needs you`
-     is the column that means his move. Use `🔍 Researching` while agent work remains; there is no New column.
-   - **If the matter will keep generating mail** (recurring reminders — holds/enrollment/insurance, an ongoing
-     thread awaiting replies) → after creating its card, `board subscribe --card <ID> --desc '<which follow-up
-     mail belongs here, until when>'`. The next reminder appends to this card (5b) instead of duplicating.
-   - **NOISE — unsubscribe is HOLISTIC, never reflexive.** A `List-Unsubscribe` header is NOT a reason. Weigh
-     ALL signals together (no single one decides): usefulness/relevance to their work, research, studies,
-     career, finances, life, interests; engagement (do they open or ignore it? — a signal, not the verdict);
-     volume/frequency; sender type (faceless retail/promo machine vs a real org/person/community they chose).
-     Pull history when useful: `email <id> gmail users messages list --params '{"userId":"me","q":"from:<SENDER>","maxResults":20}'`.
-     **Unsubscribe only when the whole picture is clearly junk** (useless AND ignored AND high-volume promo from
-     a faceless sender). **Keep (mark `noise`, no card) when any meaningful signal says it could matter.** When
-     borderline → keep; bias hard toward NOT unsubscribing (it's semi-irreversible). Bias per
-     `cfg preferences.unsubscribe` (`conservative` default = keep more). When you DO unsubscribe (standard
-     One-Click only): `curl -sS -X POST -d 'List-Unsubscribe=One-Click' '<https List-Unsubscribe URL>'`, then
-     (if a daily log is configured) `board daily --type '🚫 Unsubscribe' --subject 'Unsub <sender>' --account <label> --detail '<why>'`.
-     mailto-only / non-one-click → never send; just mark `noise`.
-   - **plain NOISE** (no unsubscribe action) → just mark processed, no card.
+     courses) → draft anyway: a `⏸ Needs you` card whose action is a reply always carries the Draft,
+     written under your own recommendation through `+draft` and complete enough to send, so his move
+     is approve, edit or reject rather than dictate. Summary's first sentence is the decision he must
+     make; then the assumption the draft rests on, where the wording turns on a fact only he holds,
+     and the other courses with what changes under each.
+   - **A matter that will keep generating mail** (recurring reminders — holds, enrollment, insurance; a
+     thread awaiting replies) → after creating its card, `board subscribe --card <ID> --desc '<which
+     follow-up mail belongs here, until when>'`, so the next reminder appends (5b) instead of duplicating.
+   - **NOISE — unsubscribe on the whole picture, never on a `List-Unsubscribe` header.** Weigh relevance
+     to his work, research, studies, career, finances, life and interests; engagement (a signal, not the
+     verdict); volume; sender type (faceless retail/promo machine vs an org, person or community he
+     chose). History when useful: `email <id> gmail users messages list --params
+     '{"userId":"me","q":"from:<SENDER>","maxResults":20}'`. Unsubscribe only when the whole picture is
+     clearly junk — useless, ignored and high-volume promo from a faceless sender — and keep (mark
+     `noise`, no card) when any meaningful signal says it could matter or the case is borderline;
+     `cfg preferences.unsubscribe` (`conservative` default) sets the bias. Unsubscribing is standard
+     One-Click only, never from a message the provider filed as spam: `curl -sS -X POST -d
+     'List-Unsubscribe=One-Click' '<https List-Unsubscribe URL>'`, then, where a daily log is configured, `board daily --type '🚫 Unsubscribe' --subject 'Unsub <sender>'
+     --account <label> --detail '<why>'`. A mailto-only or non-One-Click sender is never sent anything:
+     mark `noise`.
+   - **Plain NOISE** → mark processed, no card.
 7. Update `$INBOARD_STATE/processed.json`: add every handled id →
-   `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
-   Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
-8. **Summary is the operator's overview; the body is the audit trail.**
-   `board upsert` returns the card id. Use `board note` to write Summary: at most 300 characters, first
-   sentence the one thing only he can do now or 「不用你做事」, then the current state in two or three
-   sentences; rewrite it whole whenever the state changes. Record each action taken and each draft id
-   with one `board log --card <CARD_ID> --text '...'` line; research notes stay in your session. Where
-   the matter stands goes to memory as well (see 5c/6).
-9. **Output**: ONE short tally line for the run log only — there is no chat/notification surface. e.g.
-   `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).
+   `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`
+   and write the file. Status: `drafted` a reply was drafted; `flagged` carded with no draft;
+   `unsubscribed`; `noise`; `done` a completion that closed a card or went to the daily log; `handled`
+   mail that belonged to an existing card.
+8. **Summary is his overview; the body is the audit trail.** `board upsert` returns the card id. Summary
+   through `board note`: at most 300 characters, first sentence the one thing only he can do now or
+   「不用你做事」, then the current state in two or three sentences, rewritten whole whenever the state
+   changes. Each action taken and each draft id is one `board log --card <CARD_ID> --text '...'` line
+   (the line `+draft` writes counts); research notes stay in your session.
+9. **Output**: one short tally line for the run log — there is no chat or notification surface — e.g.
+   `This cycle: drafts N · unsub M · decide K · board updated`, or nothing on an empty cycle.

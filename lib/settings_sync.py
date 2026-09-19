@@ -30,7 +30,7 @@ SCHEMA = {
     "identity_alerts":  {"assume-self", "ask"},
     "ci_notifications": {"noise", "surface"},
     "unsubscribe":      {"conservative", "aggressive"},
-    "model":            {"opus", "sonnet", "haiku"},   # → agent/.claude/settings.json, not the YAML
+    "model":            {"opus", "opus[1m]", "sonnet", "sonnet[1m]", "haiku"},   # → agent/.claude/settings.json, not the YAML; [1m] = the 1M-token context
     "dispatcher_model": {"opus", "sonnet", "haiku"},   # → YAML; the dispatcher passes it as --model
 }
 FILE_KEYS = {"model"}   # settings that live in agent/.claude/settings.json rather than the YAML
