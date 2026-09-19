@@ -469,8 +469,27 @@ def reply(a):
     print(json.dumps({"replied": a.card}))
 
 
+def _step_blocks(card):
+    """The card's current checklist as (heading block id or None, [to_do block ids]).
+    Cards written before the heading was recorded hold a bare list."""
+    r = api("GET", f"/pages/{card}")
+    raw = "".join(x.get("plain_text", "") for x in r["properties"].get("StepBlocks", {}).get("rich_text", []))
+    data = json.loads(raw) if raw else []
+    if isinstance(data, dict):
+        return data.get("heading"), list(data.get("steps") or [])
+    return None, list(data)
+
+
 def plan(a):
     # Post a LIVE to-do checklist (checkbox blocks) so the operator watches progress in real time.
+    # A card has one checklist: the previous one is removed first, so a matter worked over many
+    # turns does not accumulate a stack of stale 📋 Progress lists in its body.
+    heading, old = _step_blocks(a.card)
+    for bid in ([heading] if heading else []) + old:
+        try:
+            api("DELETE", f"/blocks/{bid}")
+        except urllib.error.HTTPError:
+            pass    # already gone; the card body is what matters, not this id
     steps = [s.strip() for s in a.steps.split("|") if s.strip()]
     children = [{"object": "block", "type": "heading_3",
                  "heading_3": {"rich_text": rt(f"📋 Progress {datetime.now().strftime('%H:%M')}")}}]
@@ -478,14 +497,13 @@ def plan(a):
         children.append({"object": "block", "type": "to_do", "to_do": {"rich_text": rt(s), "checked": False}})
     r = api("PATCH", f"/blocks/{a.card}/children", {"children": children})
     ids = [b["id"] for b in r["results"] if b["type"] == "to_do"]
-    api("PATCH", f"/pages/{a.card}", {"properties": {"StepBlocks": {"rich_text": rt(json.dumps(ids))}}})
+    heading = next((b["id"] for b in r["results"] if b["type"] == "heading_3"), None)
+    api("PATCH", f"/pages/{a.card}", {"properties": {"StepBlocks": {"rich_text": rt(json.dumps({"heading": heading, "steps": ids}))}}})
     print(json.dumps({"plan": ids}))
 
 
 def tick(a):
-    r = api("GET", f"/pages/{a.card}")
-    raw = "".join(x.get("plain_text", "") for x in r["properties"].get("StepBlocks", {}).get("rich_text", []))
-    ids = json.loads(raw) if raw else []
+    _, ids = _step_blocks(a.card)
     n = int(a.n)
     if 0 <= n < len(ids):
         api("PATCH", f"/blocks/{ids[n]}", {"to_do": {"checked": True}})

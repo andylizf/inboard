@@ -1,8 +1,38 @@
 {
-  "model": "opus",
+  "model": "opus[1m]",
   "hooks": {
-    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"", "timeout": 30}]}],
-    "Stop": [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"", "timeout": 30}]}],
-    "StopFailure": [{"hooks": [{"type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"", "timeout": 30}]}]
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/../engines/card-hook.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }

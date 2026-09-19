@@ -16,8 +16,8 @@ on the card. For non-email actions use `board stage-script` below: include the a
 sending account, exact destination URL or recipient, and the full content or submitted fields. A comment
 and closing a PR are separate actions; show each proposed action explicitly rather than inferring one
 from the other's wording. Keep the preview self-contained so the operator can approve it without reading
-the log. The preview is the operation and nothing else: what went wrong last time, what you changed in
-your own tooling and how you tested it go to Summary and the log, never into the text he is approving.
+the log. The preview is the operation and nothing else: what went wrong last time is one log line, and
+your own tooling and how you tested it reach neither him nor the preview.
 Preview labels describe the operation; publish only its content, without those labels.
 Changes to any of these details require a new 📤 帮我发送 click.
 
@@ -103,21 +103,22 @@ Review precedes operator approval; never silently rewrite an approved draft befo
 
 **Creating and editing**
 - `board upsert --msgid ID --subject S --account <label> --status STATUS [--sender S] [--draft TXT] [--due YYYY-MM-DD]`
-  → creates, or updates the card keyed on that msgid. **`--subject` is the CARD TITLE — a self-contained,
-  scannable one-liner**: `<core matter> — <deadline if any> → <what he must do / what you did>`, in Chinese
-  like everything he reads: `保险 waiver 6/30 截止 → 上门户确认牙科/视力`. Never the raw email subject.
+  → creates, or updates the card keyed on that msgid. **`--subject` is the card title: the matter and
+  nothing else**, at most 25 characters, in Chinese like everything he reads (`保险 waiver 牙科视力确认`);
+  deadline, state and what he must do go in Summary and Due. Never the raw email subject.
 - `board edit --card C [--status S] [--subject S] [--draft TXT] [--sender S] [--due D]`
   → change only the fields you pass, by card id. Landing in an ending status (`done`, `unsub`, `expired`, `cancelled`)
   clears Action, Subscription and all time triggers.
 - **`--due`** stores the deadline. Passing it flags overdue work; it never completes the matter.
-- `board note --card C --text TXT` → replaces the `Summary` property, kept under ~1500 characters.
-  When his action is required, state it in the opening sentence. Follow the Summary shape in the project instructions: origin and goal, essential history, current
-  conclusions and uncertainty, and who does what next. Rewrite the complete current account for a reader
-  with no prior context; keep research details in the log. A resolved matter with no material next action
-  is complete, not waiting for approval of an optional draft.
-- `board log --card C --text TXT` → the append-only timeline in the body: research, actions, raw ids.
+- `board note --card C --text TXT` → replaces the `Summary` property: at most 300 characters, first
+  sentence the one thing only he can do now or 「不用你做事」, then the current state in two or three
+  sentences; rewritten whole whenever facts change. A resolved matter with no material next action is
+  complete, not waiting for approval of an optional draft.
+- `board log --card C --text TXT` → the audit trail in the body: one line per action taken or fact
+  verified, raw ids in parentheses; no research notes, no reasoning.
 - `board reply --card C --text TXT` → a comment in the card's thread, where he reads answers to what he asked.
-- `board plan --card C --steps 'a|b|c'` (2–5 steps) / `board tick --card C --n <0-based>` → the live checklist.
+- `board plan --card C --steps 'a|b|c'` (2–5 steps) / `board tick --card C --n <0-based>` → the live checklist;
+  a new plan replaces the card's previous one.
 - `board image --card C --file PATH [--caption TXT]` → upload a screenshot to the card.
 
 **Moving a card**

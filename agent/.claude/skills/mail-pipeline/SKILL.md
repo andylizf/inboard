@@ -211,13 +211,11 @@ description: The full new-mail pipeline: what counts as new, how to classify it,
 7. Update `$INBOARD_STATE/processed.json`: add every handled id →
    `{"account":...,"status":"drafted|flagged|unsubscribed|noise|done|handled","ts":"<iso>","subject":"<subj>","from":"<sender>","threadId":"<tid>"}`.
    Write the file. (subject/from/threadId make past dispositions searchable without re-hitting Gmail.)
-8. **Summary is the operator's overview; the body is the item's working directory and audit.**
-   `board upsert` returns the card id. When his action is required, begin Summary with that action.
-   Use `board note` to replace the full Summary, including the origin
-   and goal, essential history, current conclusions and uncertainty, and who does what next, under ~1500
-   characters. Refresh the whole current account whenever the state changes, not just the latest delta.
-   Append research notes, draft history, and actions with `board log --card <CARD_ID> --text '...'`.
-   The card body is the record of this
-   item's research and drafts — where the matter STANDS goes to memory as well (see 5c/6).
+8. **Summary is the operator's overview; the body is the audit trail.**
+   `board upsert` returns the card id. Use `board note` to write Summary: at most 300 characters, first
+   sentence the one thing only he can do now or 「不用你做事」, then the current state in two or three
+   sentences; rewrite it whole whenever the state changes. Record each action taken and each draft id
+   with one `board log --card <CARD_ID> --text '...'` line; research notes stay in your session. Where
+   the matter stands goes to memory as well (see 5c/6).
 9. **Output**: ONE short tally line for the run log only — there is no chat/notification surface. e.g.
    `This cycle: drafts N · unsub M · decide K · board updated` (or nothing on an empty cycle).
